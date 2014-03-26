@@ -1,0 +1,549 @@
+#include "navigation/Controller.h"
+
+class MasterSide : public Controller
+{
+	public:
+
+		Eigen::Matrix<double,6,1> Bd;
+
+		dynamic_reconfigure::Server<navigation::MasterControllerConfig> master_server;
+  		dynamic_reconfigure::Server<navigation::MasterControllerConfig>::CallbackType master_callback_type;
+
+		MasterSide(ros::NodeHandle & n_,
+                   double freq_,
+                   Eigen::Matrix<double,6,1> slave_to_master_scale_,
+                   Eigen::Matrix<double,6,1> master_offset_,
+                   Eigen::Matrix<double,6,1> slave_offset_) :
+                    slave_to_master_scale(slave_to_master_scale_),
+                    Controller(n_,freq_, master_offset_, slave_offset_)
+		{
+			master_callback_type = boost::bind(&MasterSide::paramsCallback, this, _1, _2);
+  			master_server.setCallback(master_callback_type);
+
+			// Feedback publish
+  			cmd_pub = n.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
+
+			// Master joint states subscriber
+  			master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterSide::masterJointsCallback, this);
+
+  			// Slave pose and velocity subscriber
+			slave_sub = n.subscribe("/RosAria/pose", 1, &MasterSide::slaveOdometryCallback, this);
+		}
+
+		void paramsCallback(navigation::MasterControllerConfig &config, uint32_t level) 
+		{
+			ROS_DEBUG_STREAM("Master PID reconfigure Request ->" << " kp_x:" << config.kp_x
+						 		     	     << " kp_y:" << config.kp_y
+						 		             << " kp_z:" << config.kp_z
+						 		      	     << " kd_x:" << config.kd_x
+						 		      	     << " kd_y:" << config.kd_y
+						 		      	     << " kd_z:" << config.kd_z);
+
+			Kp << config.kp_x,
+			      config.kp_y,
+			      config.kp_z,
+			      config.kp_roll,
+			      config.kp_pitch,
+			      config.kp_yaw;
+
+			Kd << config.kd_x,
+			      config.kd_y,
+			      config.kd_z,
+			      config.kd_roll,
+			      config.kd_pitch,
+			      config.kd_yaw;
+			//slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_workspace_size.x/config.slave_workspace_size.x), fabs(config.master_workspace_size.y/config.slave_workspace_size.y), fabs(config.master_workspace_size.z/config.slave_workspace_size.z));
+		}
+  
+	private:
+		Eigen::Matrix<double,6,1> slave_to_master_scale;
+
+		// MASTER MEASUREMENTS
+        void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states)
+        {
+            // Wrist3->Vangular_yaw, elbow->Vlinear_z
+            double x_master=0.0;
+            double y_master=0.0;
+            double z_master=0.0;
+            double yaw_master=0.0;
+
+            if(linear_button_pressed)
+            {
+                try
+                {
+                    listener.lookupTransform("/base", "/wrist2",ros::Time(0), transform);
+                }
+                    catch (tf::TransformException ex)
+                {
+                        ROS_ERROR("%s",ex.what());
+                }
+                x_master=transform.getOrigin().x();
+                y_master=transform.getOrigin().y();
+                z_master=transform.getOrigin().z();
+
+            }
+            if(angular_button_pressed)
+            {
+                // Wrist3 controls angular speed
+                yaw_master=joint_states->position[5];
+            }
+            // Pose master
+            current_pose_master << x_master, y_master, z_master, 0.0, 0.0, yaw_master_joint;
+
+            // Velocity master
+            current_velocity_master=(current_pose_master-previous_pose_master)*freq;
+
+            master_new_readings=true;
+            if(slave_new_readings && control_event)
+            {
+                feedback();
+            }
+        }
+
+		// SLAVE MEASUREMENTS
+		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+		{
+			// Pose slave
+			Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.pose.orientation.w,
+                                                               msg->pose.pose.orientation.x,
+                                                               msg->pose.pose.orientation.y,
+                                                               msg->pose.pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+			double yaw = euler(0,0);
+			double pitch = euler(1,0);
+			double roll = euler(2,0);
+
+			//std::cout << yaw << " " << pitch << " " << roll << std::endl;
+
+			current_pose_slave << (msg->pose.pose.position.x-slave_offset(0,0))*slave_to_master_scale(0,0) + master_offset(0,0), 
+                                  (msg->pose.pose.position.y-slave_offset(1,0))*slave_to_master_scale(1,0) + master_offset(1,0),
+                                  (msg->pose.pose.position.z-slave_offset(2,0))*slave_to_master_scale(2,0) + master_offset(2,0),
+                                  (roll                     -slave_offset(3,0))*slave_to_master_scale(3,0) + master_offset(3,0),
+                                  (pitch                    -slave_offset(4,0))*slave_to_master_scale(4,0) + master_offset(4,0),
+                                  (yaw                      -slave_offset(5,0))*slave_to_master_scale(5,0) + master_offset(5,0);
+
+
+			current_velocity_slave << msg->twist.twist.linear.x *slave_to_master_scale(0,0), 
+                                      msg->twist.twist.linear.y *slave_to_master_scale(1,0),
+                                      msg->twist.twist.linear.z *slave_to_master_scale(2,0),
+                                      msg->twist.twist.angular.x*slave_to_master_scale(3,0),
+                                      msg->twist.twist.angular.y*slave_to_master_scale(4,0),
+                                      msg->twist.twist.angular.z*slave_to_master_scale(5,0);
+
+			slave_new_readings=true;
+
+			if(master_new_readings && control_event)
+			{
+				feedback();
+			}
+		}
+
+		void feedback()
+		{
+
+            //Eigen::Matrix<double,6,6>  feeback_matrix = (current_pose_slave     -  current_pose_master) * Kp.transpose() +
+            //                                            (current_velocity_slave -  current_velocity_master) * Kd.transpose() +
+            //                                            (-current_velocity_master) * Bd.transpose();
+
+            Eigen::Matrix<double,6,6>  feeback_matrix = (current_velocity_slave     -  current_pose_master) * Kp.transpose()+
+                                                        (-current_velocity_master) * Bd.transpose();
+
+			//std::cout << "position error:" << (current_pose_master - current_pose_slave).norm() << std::endl;
+			std::cout << "master velocity error:" << (current_velocity_master -  current_velocity_slave).norm() << std::endl;
+
+			phantom_omni::OmniFeedback force_msg;
+
+			// weird mapping
+			force_msg.force.x=feeback_matrix(1,1);
+			force_msg.force.y=feeback_matrix(2,2);
+			force_msg.force.z=feeback_matrix(0,0);
+			cmd_pub.publish(force_msg);
+			
+			previous_pose_slave=current_pose_slave;
+			previous_pose_master=current_pose_master;
+			master_new_readings=false;
+			slave_new_readings=false;
+		}
+};
+
+class SlaveSide : public Controller
+{
+	public:
+  		dynamic_reconfigure::Server<navigation::SlaveControllerConfig> slave_server;
+  		dynamic_reconfigure::Server<navigation::SlaveControllerConfig>::CallbackType slave_callback_type;
+
+		SlaveSide(ros::NodeHandle & n_,
+                  double freq_,
+                  Eigen::Matrix<double,6,1> master_to_slave_scale_,
+                  Eigen::Matrix<double,6,1> master_offset_,
+                  Eigen::Matrix<double,6,1> slave_offset_) :
+                    master_to_slave_scale(master_to_slave_scale_),
+                    Controller(n_,freq_, master_offset_, slave_offset_)
+		{
+
+			slave_callback_type = boost::bind(&SlaveSide::paramsCallback, this, _1, _2);
+  			slave_server.setCallback(slave_callback_type);
+
+			// Feedback publish
+  			cmd_pub = n.advertise<geometry_msgs::Twist>("/RosAria/cmd_vel", 1);
+			
+
+			// Master joint states subscriber
+  			master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveSide::masterJointsCallback, this);
+
+  			// Slave pose and velocity subscriber
+			slave_sub = n.subscribe("/RosAria/pose", 1, &SlaveSide::slaveOdometryCallback, this);
+		}
+
+
+		void paramsCallback(navigation::SlaveControllerConfig &config, uint32_t level) 
+		{
+			ROS_INFO_STREAM("Slave PID reconfigure Request ->"  << " kp_x:" << config.kp_x
+						 		     	    << " kp_y:" << config.kp_y
+						 		            << " kp_z:" << config.kp_z
+						 		      	    << " kd_x:" << config.kd_x
+						 		      	    << " kd_y:" << config.kd_y
+						 		      	    << " kd_z:" << config.kd_z);
+
+			Kp << config.kp_x,
+			      config.kp_y,
+			      config.kp_z,
+			      config.kp_roll,
+		              config.kp_pitch,
+			      config.kp_yaw;
+
+			Kd << config.kd_x,
+			      config.kd_y,
+			      config.kd_z,
+			      config.kd_roll,
+			      config.kd_pitch,
+			      config.kd_yaw;
+		}
+
+	private:
+
+		Eigen::Matrix<double,6,1> master_to_slave_scale;
+
+
+		// MASTER MEASUREMENTS
+		void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states)
+		{
+			// waist->Vx, shoulder->Vy, elbow->Vz
+			double waist_joint_scaled=   (joint_states->position[0]-master_offset(0,0))*master_to_slave_scale(0,0);
+			double shoulder_joint_scaled=(joint_states->position[1]-master_offset(1,0))*master_to_slave_scale(1,0);
+			double elbow_joint_scaled=   (joint_states->position[2]-master_offset(2,0))*master_to_slave_scale(2,0);
+
+			// Pose master
+			current_pose_master << waist_joint_scaled, 0.0, elbow_joint_scaled, 0.0, 0.0, shoulder_joint_scaled; 
+
+			// Velocity master
+            current_velocity_master=(current_pose_master-previous_pose_master)*freq;
+
+			//std::cout << current_pose_master.transpose() << std::endl;
+			master_new_readings=true;
+			if(slave_new_readings && control_event)
+			{
+				feedback();
+			}
+		}
+
+		// SLAVE MEASUREMENTS
+		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+		{
+			// Pose slave
+			Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.pose.orientation.w,
+                                                               msg->pose.pose.orientation.x,
+                                                               msg->pose.pose.orientation.y,
+                                                               msg->pose.pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+			double yaw = euler(0,0);
+			double pitch = euler(1,0);
+			double roll = euler(2,0);
+
+			std::cout << yaw << " " << pitch << " " << roll << std::endl;
+
+			current_pose_slave << msg->pose.pose.position.x, 
+                                  msg->pose.pose.position.y,
+                                  msg->pose.pose.position.z,
+                                  roll,
+                                  pitch,
+                                  yaw;
+
+
+			current_velocity_slave << msg->twist.twist.linear.x, 
+                                      msg->twist.twist.linear.y,
+                                      msg->twist.twist.linear.z,
+                                      msg->twist.twist.angular.x,
+                                      msg->twist.twist.angular.y,
+                                      msg->twist.twist.angular.z;
+
+			//std::cout << "current vel:"<<current_velocity_slave.transpose() << std::endl;
+			slave_new_readings=true;
+
+			if(master_new_readings && control_event)
+			{
+				feedback();
+			}
+		}
+
+		void feedback()
+		{
+
+            //Eigen::Matrix<double,6,6>  feeback_matrix = (current_pose_master     -  current_pose_slave)     * Kp.transpose() +
+            //                                            (current_velocity_master -  current_velocity_slave) * Kd.transpose();
+            Eigen::Matrix<double,6,6>  feeback_matrix = (current_pose_master -  current_velocity_slave) * Kd.transpose();
+
+		
+			//std::cout << "position error:" << (current_pose_slave - current_pose_master).norm() << std::endl;
+		        //std::cout << "slave current velocity:" << current_velocity_slave.transpose() << std::endl;
+			std::cout << "slave velocity error:"   << (current_velocity_master -  current_pose_slave).norm() << std::endl;
+
+			geometry_msgs::Twist twist_msg;
+			twist_msg.linear.x=feeback_matrix(0,0);
+			//twist_msg.linear.y=feeback_matrix(1,1);
+			//twist_msg.linear.z=feeback_matrix(2,2);
+
+			//twist_msg.angular.z=feeback_matrix(1,1); // UGV angular velocity is given by Y
+			cmd_pub.publish(twist_msg);
+			
+			previous_pose_slave=current_pose_slave;
+			previous_pose_master=current_pose_master;
+			master_new_readings=false;
+			slave_new_readings=false;
+		}
+};
+
+int main(int argc, char **argv)
+{
+  	ros::init(argc, argv, "controller");
+
+  	ros::NodeHandle n;
+  	ros::NodeHandle n_priv("~");
+
+	// parameters
+	double freq; 
+	double kp_x;
+	double kp_y;
+	double kp_z;
+	double kp_roll;
+	double kp_pitch;
+	double kp_yaw;
+
+	double kd_x;
+	double kd_y;
+	double kd_z;
+	double kd_roll;
+	double kd_pitch;
+	double kd_yaw;
+
+
+	//initialize operational parameters
+    n_priv.param<double>("frequency", freq, 10.0);
+
+
+	double slave_workspace_min_x;
+	double slave_workspace_min_y;
+	double slave_workspace_min_z;
+	double slave_workspace_min_roll;
+	double slave_workspace_min_pitch;
+	double slave_workspace_min_yaw;
+    n_priv.param<double>("slave_workspace_min_x",     slave_workspace_min_x, 1.0);
+    n_priv.param<double>("slave_workspace_min_y",     slave_workspace_min_y, 1.0);
+    n_priv.param<double>("slave_workspace_min_z",     slave_workspace_min_z, 1.0);
+    n_priv.param<double>("slave_workspace_min_roll",  slave_workspace_min_roll, 1.0);
+    n_priv.param<double>("slave_workspace_min_pitch", slave_workspace_min_y, 1.0);
+    n_priv.param<double>("slave_workspace_min_yaw",   slave_workspace_min_z, 1.0);
+	Eigen::Matrix<double,6,1> slave_workspace_min;
+	slave_workspace_min << slave_workspace_min_x, 
+                           slave_workspace_min_y,
+                           slave_workspace_min_z,
+                           slave_workspace_min_roll,
+                           slave_workspace_min_pitch,
+                           slave_workspace_min_yaw;
+
+	double slave_workspace_max_x;
+	double slave_workspace_max_y;
+	double slave_workspace_max_z;
+	double slave_workspace_max_roll;
+	double slave_workspace_max_pitch;
+	double slave_workspace_max_yaw;
+    n_priv.param<double>("slave_workspace_max_x",     slave_workspace_max_x, 1.0);
+    n_priv.param<double>("slave_workspace_max_y",     slave_workspace_max_y, 1.0);
+    n_priv.param<double>("slave_workspace_max_z",     slave_workspace_max_z, 1.0);
+    n_priv.param<double>("slave_workspace_max_roll",  slave_workspace_max_roll,  1.0);
+    n_priv.param<double>("slave_workspace_max_pitch", slave_workspace_max_pitch, 1.0);
+    n_priv.param<double>("slave_workspace_max_yaw",   slave_workspace_max_yaw,   1.0);
+	Eigen::Matrix<double,6,1> slave_workspace_max;
+	slave_workspace_max << slave_workspace_max_x, 
+                           slave_workspace_max_y,
+                           slave_workspace_max_z,
+                           slave_workspace_max_roll,
+                           slave_workspace_max_pitch,
+                           slave_workspace_max_yaw;
+
+	Eigen::Matrix<double,6,1> slave_workspace_size=slave_workspace_max-slave_workspace_min;
+
+	double master_workspace_min_x;
+	double master_workspace_min_y;
+	double master_workspace_min_z;
+	double master_workspace_min_roll;
+	double master_workspace_min_pitch;
+	double master_workspace_min_yaw;
+    n_priv.param<double>("master_workspace_min_x",     master_workspace_min_x,     1.0);
+    n_priv.param<double>("master_workspace_min_y",     master_workspace_min_y,     1.0);
+    n_priv.param<double>("master_workspace_min_z",     master_workspace_min_z,     1.0);
+    n_priv.param<double>("master_workspace_min_roll",  master_workspace_min_roll,  1.0);
+    n_priv.param<double>("master_workspace_min_pitch", master_workspace_min_pitch, 1.0);
+    n_priv.param<double>("master_workspace_min_yaw",   master_workspace_min_yaw,   1.0);
+	Eigen::Matrix<double,6,1> master_workspace_min;
+	master_workspace_min << master_workspace_min_x,
+                            master_workspace_min_y,
+                            master_workspace_min_z,
+                            master_workspace_min_roll,
+                            master_workspace_min_pitch,
+                            master_workspace_min_yaw;
+
+	double master_workspace_max_x;
+	double master_workspace_max_y;
+	double master_workspace_max_z;
+	double master_workspace_max_roll;
+	double master_workspace_max_pitch;
+	double master_workspace_max_yaw;
+    n_priv.param<double>("master_workspace_max_x",     master_workspace_max_x,     1.0);
+    n_priv.param<double>("master_workspace_max_y",     master_workspace_max_y,     1.0);
+    n_priv.param<double>("master_workspace_max_z",     master_workspace_max_z,     1.0);
+    n_priv.param<double>("master_workspace_max_roll",  master_workspace_max_roll,  1.0);
+    n_priv.param<double>("master_workspace_max_pitch", master_workspace_max_pitch, 1.0);
+    n_priv.param<double>("master_workspace_max_yaw",   master_workspace_max_yaw,   1.0);
+	Eigen::Matrix<double,6,1> master_workspace_max;
+	master_workspace_max << master_workspace_max_x, 
+                            master_workspace_max_y,
+                            master_workspace_max_z,
+                            master_workspace_max_roll,
+                            master_workspace_max_pitch,
+                            master_workspace_max_yaw;
+
+	Eigen::Matrix<double,6,1> master_workspace_size=master_workspace_max-master_workspace_min;
+
+
+
+	bool is_master;
+  	n_priv.param<bool>("is_master", is_master, true);
+
+	//Controller controller;
+	if(is_master)
+	{
+		Eigen::Matrix<double,6,1> slave_to_master_scale;
+		slave_to_master_scale << fabs(master_workspace_size(0,0)/slave_workspace_size(0,0)), 
+                                 fabs(master_workspace_size(1,0)/slave_workspace_size(1,0)),
+                                 fabs(master_workspace_size(2,0)/slave_workspace_size(2,0)),
+                                 fabs(master_workspace_size(3,0)/slave_workspace_size(3,0)),
+                                 fabs(master_workspace_size(4,0)/slave_workspace_size(4,0)),
+                                 fabs(master_workspace_size(5,0)/slave_workspace_size(5,0));
+		MasterSide controller(n, freq, slave_to_master_scale, master_workspace_min, slave_workspace_min);
+		ros::spin();
+	}
+	else
+	{	
+		Eigen::Matrix<double,6,1> master_to_slave_scale;
+		master_to_slave_scale << fabs(slave_workspace_size(0,0)/master_workspace_size(0,0)), 
+                                 fabs(slave_workspace_size(1,0)/master_workspace_size(1,0)),
+                                 fabs(slave_workspace_size(2,0)/master_workspace_size(2,0)),
+                                 fabs(slave_workspace_size(3,0)/master_workspace_size(3,0)),
+                                 fabs(slave_workspace_size(4,0)/master_workspace_size(4,0)),
+                                 fabs(slave_workspace_size(5,0)/master_workspace_size(5,0));
+		SlaveSide controller(n, freq, master_to_slave_scale, master_workspace_min, slave_workspace_min);
+		ros::spin();
+	}
+
+	return 0;
+
+ /*
+
+
+
+
+
+	// Pose topic's name
+	std::string pose_topic_name = "/RosAria/pose" ;
+	
+	// *** I need more topics that I am going to use from the phantom Omni 
+  	ros::Publisher force_cmd_pub = n.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 2); ;
+
+  	tf::TransformListener listener;
+
+	// parameters Kp and Kd
+	Eigen::Matrix<double,3,1> Kp(0,0,0) ; 
+	Eigen::Matrix<double,3,1> Kd(1.0,1.0,1.0) ;  
+	Eigen::Matrix<double,3,1> scale_vector(1.0,1.0,1.0) ;  
+	//previous_position_of_robot 
+    	nav_msgs::Odometry::ConstPtr previous_pose_slave_msg = ros::topic::waitForMessage< nav_msgs::Odometry>(pose_topic_name);
+	Eigen::Matrix<double,3,1> previous_pose_slave(previous_pose_slave_msg->twist.twist.linear.x, previous_pose_slave_msg->twist.twist.linear.y,0.0);
+
+	tf::StampedTransform transform;
+
+	try
+	{
+		listener.lookupTransform("/wrist1", "/base",ros::Time(0), transform);
+	}
+    	catch (tf::TransformException ex)
+	{
+      		ROS_ERROR("%s",ex.what());
+    	}
+
+	Eigen::Matrix<double,3,1> previous_pose_master(transform.getOrigin()(0,0),transform.getOrigin()(1,0),transform.getOrigin()(2,0));
+	bool flag = false ; 
+	while ( ros::ok() ) 
+  	{
+
+	 	try
+		{
+			listener.lookupTransform("/wrist1", "/base",ros::Time(0), transform);
+		}
+    		catch (tf::TransformException ex)
+		{
+      			ROS_ERROR("%s",ex.what());
+		}
+
+
+		// Current position of master (omni)
+		Eigen::Matrix<double,3,1> current_pose_master(transform.getOrigin()(0,0) * scale_vector(0,0),
+						    transform.getOrigin()(1,0) * scale_vector(1,0),
+						    transform.getOrigin()(2,0) * scale_vector(2,0));
+
+		std::cout << transform.getOrigin()(0,0) << std::endl;
+		// Velocity master (omni)
+		Eigen::Matrix<double,3,1> current_velocity_master((current_pose_master(0,0) - previous_pose_master(0,0)) * freq,
+							(current_pose_master(1,0) - previous_pose_master(1,0)) * freq,
+		                                         0.0);
+		
+		// Current position of robot msg
+    		nav_msgs::Odometry::ConstPtr current_pose_slave_msg = ros::topic::waitForMessage<nav_msgs::Odometry>(pose_topic_name,ros::Duration (0) );
+		
+		// Current position robot
+		Eigen::Matrix<double,3,1> current_pose_slave( current_pose_slave_msg->twist.twist.linear.x, current_pose_slave_msg->twist.twist.linear.y,0.0);
+
+		// Velocity robot
+		Eigen::Matrix<double,3,1> current_velocity_slave((current_pose_slave(0,0) - current_pose_slave(0,0)) * freq,
+						 (current_pose_slave(1,0) - current_pose_slave(1,0)) * freq,
+						  0.0);
+
+		Eigen::Matrix<double,3,3>  input_matrix = (current_pose_master - current_pose_slave) * Kp.transpose() + ( current_velocity_master -  current_velocity_slave ) * Kd.transpose();
+		
+		previous_pose_slave=current_pose_slave;
+		previous_pose_master=current_pose_master;
+		
+		phantom_omni::OmniFeedback force_msg;
+		force_msg.force.x=input_matrix(0,0);
+		force_msg.force.y=input_matrix(1,1);
+		force_msg.force.z=input_matrix(2,2);
+
+		force_cmd_pub.publish(force_msg);
+		
+		loop_rate.sleep() ;  
+	} // end of while loop 
+
+  	//ros::Subscriber sub = n.subscribe("/RosAria/pose", 1, poseCallback);
+  	//ros::Subscriber sub2 = n.subscribe("/RosAria/sonar", 1, sonarCallback);
+
+
+ 	return 0;*/
+}

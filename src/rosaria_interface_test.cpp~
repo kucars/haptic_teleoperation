@@ -1,0 +1,153 @@
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "nav_msgs/Odometry.h"
+#include "sensor_msgs/PointCloud.h"
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <Eigen/Eigen>
+#include <boost/bind.hpp>
+
+const double PI=3.14159265359;
+
+visualization_msgs::Marker rviz_arrow (Eigen::Vector3d position, double & intensity, int & id ) 
+{
+	double rotation_angle=acos(position.normalized().dot(Eigen::Vector3d::UnitX ()));
+        Eigen::Vector3d rotation_axis=position.normalized().cross(Eigen::Vector3d::UnitX ()).normalized();
+	Eigen::Quaternion<double> rotation(Eigen::AngleAxisd(-rotation_angle+PI,rotation_axis));
+	visualization_msgs::Marker marker;
+	marker.header.frame_id = "base_link";
+	marker.header.stamp = ros::Time();
+	marker.ns = "force_field";
+	marker.id = id;
+	marker.type = visualization_msgs::Marker::ARROW;
+	marker.action = visualization_msgs::Marker::ADD;
+	marker.pose.position.x = position.x();
+	marker.pose.position.y = position.y();
+	marker.pose.position.z = position.z();
+	marker.pose.orientation.x = rotation.x();
+	marker.pose.orientation.y = rotation.y();
+	marker.pose.orientation.z = rotation.z();
+	marker.pose.orientation.w = rotation.w();
+	//marker.pose.orientation.x = 0;
+	//marker.pose.orientation.y = 0;
+	//marker.pose.orientation.z = 0;
+	//marker.pose.orientation.w = 1;
+	marker.scale.x = intensity;
+	marker.scale.y = 0.1;
+	marker.scale.z = 0.1;
+	marker.color.a = 1.0;
+	marker.color.r = 1.0;
+	marker.color.g = 0.0;
+	marker.color.b = 0.0;
+	//only if using a MESH_RESOURCE marker type:
+	//marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
+	//vis_pub.publish( marker );
+	return marker;
+}
+
+visualization_msgs::MarkerArray rviz_arrows (std::vector<Eigen::Vector3d> positions, std::vector<double> intensities)
+{
+	visualization_msgs::MarkerArray marker_array;
+	for(int i=0; i< positions.size();++i)
+	{
+		marker_array.markers.push_back(rviz_arrow(positions[i], intensities[i], i));
+	}
+	return marker_array;
+}
+
+
+void poseCallback(const nav_msgs::Odometry::ConstPtr& msg, ros::Publisher & test_pub)
+{
+	test_pub = n.advertise<nav_msgs::Odometry>( "teste", 10);
+  //ROS_INFO("I heard pose data: [%f, %f , %f]", msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z );
+	test_pub.publish(msg);
+}
+
+void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
+{
+  ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
+}
+
+double getPotentialPoint(const double & d, const double & v_i, const double & a_max, const double & gain)
+{
+
+	float dstop = (v_i*v_i) / (2*a_max ) ;		 
+	float dres ; 
+	if ( v_i <= 0 ) dres = d + dstop ; 
+        else dres = d - dstop ; 
+
+
+         if ( dres <= 0 || (1+v_i)/dres >= 1/gain)
+              return  1.0; 
+         else if ( (1+v_i)/dres <= 0) 
+                 return 0 ;
+         else 
+                return gain *(1+v_i)/ dres; 
+
+
+/*
+	double t_min=v_i/a_max;
+	double t_max=2*d/v_i;
+	double t_res=1.0/(t_max-t_min);
+
+	double aux=(1.0/t_res)+(1.0/d);
+	if(t_res<0.0)
+		return 1.0;
+	else if(aux>=(1.0/gain))
+		return 1.0;
+	else
+		return gain*aux;
+*/
+}
+
+int main(int argc, char **argv)
+{
+	  /**
+	   * The ros::init() function needs to see argc and argv so that it can perform
+	   * any ROS arguments and name remapping that were provided at the command line. For programmatic
+	   * remappings you can use a different version of init() which takes remappings
+	   * directly, but for most command-line programs, passing argc and argv is the easiest
+	   * way to do it.  The third argument to init() is the name of the node.
+	   *
+	   * You must call one of the versions of ros::init() before using any other
+	   * part of the ROS system.
+	   */
+  	ros::init(argc, argv, "listener");
+	/**
+   	* NodeHandle is the main access point to communications with the ROS system.
+   	* The first NodeHandle constructed will fully initialize this node, and the last
+   	* NodeHandle destructed will close down the node.
+   	*/
+  	ros::NodeHandle n("~");
+
+	// parameters
+	double a_max;
+	double gain;
+	double freq; 
+
+	//initialize operational parameters
+    	n.param<double>("frequency", freq, 5.0);
+    	n.param<double>("gain", gain, 1.0);
+    	n.param<double>("acc_max", a_max, 1.0);
+
+	ros::Rate loop_rate(freq); 
+
+	std::string pose_topic_name = "/RosAria/pose" ;
+  	std::string sonar_topic_name = "/RosAria/sonar"; 
+
+	ros::Publisher visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field", 0 );
+
+
+    	nav_msgs::Odometry::ConstPtr previous_position_msg = ros::topic::waitForMessage< nav_msgs::Odometry>(pose_topic_name);
+	Eigen::Vector3d previous_position(previous_position_msg->twist.twist.linear.x, previous_position_msg->twist.twist.linear.y,0.0);
+	std::vector<double> previous_potential_field;
+	bool flag = false ; 
+
+	ros::Publisher test_pub = n.advertise<nav_msgs::Odometry>( "teste", 10);
+  	ros::Subscriber sub = n.subscribe<nav_msgs::Odometry>("/RosAria/pose", 10, boost::bind(&poseCallback, _1, test_pub));
+
+  	//ros::Subscriber sub2 = n.subscribe("/RosAria/sonar", 1, sonarCallback);
+	ros::spin();
+
+ 	return 0;
+}

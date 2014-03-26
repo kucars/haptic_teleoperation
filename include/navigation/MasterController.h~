@@ -1,0 +1,37 @@
+#ifndef MASTER_CONTROLLER_
+#define MASTER_CONTROLLER_
+#include "navigation/Controller.h"
+
+class MasterController : public Controller
+{
+	public:
+		dynamic_reconfigure::Server<navigation::MasterControllerConfig> master_server;
+  		dynamic_reconfigure::Server<navigation::MasterControllerConfig>::CallbackType master_callback_type;
+
+		MasterController(ros::NodeHandle & n_,
+                   double freq_,
+                   Eigen::Matrix<double,6,1> Kp_,
+                   Eigen::Matrix<double,6,1> Kd_,
+                   Eigen::Matrix<double,6,6> lambda_,
+                   Eigen::Matrix<double,6,1> slave_to_master_scale_,
+                   Eigen::Matrix<double,6,1> master_min_,
+                   Eigen::Matrix<double,6,1> master_max_,
+                   Eigen::Matrix<double,6,1> slave_min_,
+                   Eigen::Matrix<double,6,1> slave_max_);
+
+		void paramsCallback(navigation::MasterControllerConfig &config, uint32_t level);
+
+	private:
+		// MASTER MEASUREMENTS
+        	void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
+
+		// SLAVE MEASUREMENTS
+		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+
+		void feedback();
+
+  		void initParams();
+
+		Eigen::Matrix<double,6,1> slave_to_master_scale;
+};
+#endif
