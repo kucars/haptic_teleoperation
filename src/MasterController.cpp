@@ -317,7 +317,8 @@ void MasterController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr&
                                           (pitch                    -slave_min(4,0))*slave_to_master_scale(4,0) + master_min(4,0),
                                           (yaw                      -slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);*/
 
-    current_pose_slave << 0.0,
+    current_pose_slave <<
+            0.0,
             0.0,
             0.0,
             (roll                     -slave_min(3,0))*slave_to_master_scale(3,0) + master_min(3,0),
@@ -325,7 +326,7 @@ void MasterController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr&
             (yaw                      -slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);
 
     current_velocity_slave << ( msg->twist.twist.linear.x-slave_velocity_min(0,0)) * slave_velocity_master_pose_scale(0,0) + master_min(0,0),
-                              (-msg->twist.twist.linear.y-slave_velocity_min(1,0)) * slave_velocity_master_pose_scale(1,0) + master_min(1,0),
+            (-msg->twist.twist.linear.y-slave_velocity_min(1,0)) * slave_velocity_master_pose_scale(1,0) + master_min(1,0),
             (msg->twist.twist.linear.z-slave_velocity_min(2,0)) * slave_velocity_master_pose_scale(2,0) + master_min(2,0),
             (msg->twist.twist.angular.x-slave_velocity_min(3,0)) * slave_velocity_master_pose_scale(3,0) + master_min(3,0),
             (msg->twist.twist.angular.y-slave_velocity_min(4,0)) * slave_velocity_master_pose_scale(4,0) + master_min(4,0),
@@ -349,7 +350,7 @@ void MasterController::feedback()
     Eigen::Matrix<double,6,1> r=lambda*current_pose_master;
 
     Eigen::Matrix<double,6,6> feeback_matrix = (current_pose_slave     -  current_pose_master) * Kp.transpose() +
-                                               (current_velocity_slave -  r)                   * Kd.transpose() +
+            (current_velocity_slave -  r)                   * Kd.transpose() +
             (-current_velocity_slave*Bd.transpose());
     std::cout << "current pose master:" <<     (current_pose_master).transpose() << std::endl;
     std::cout << "current velocity slave:" <<  (current_velocity_master).transpose() << std::endl;
