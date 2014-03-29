@@ -1,23 +1,22 @@
 <launch>
 
-<<<<<<< HEAD
-  <node name="force_field" pkg="navigation" type="force_field" output="screen">
-    <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
-=======
   <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
   </node>
 
-  <!--<node name="master_controller" pkg="navigation" type="controller_ros" output="screen">
+  <node name="master_controller" pkg="navigation" type="controller_ros" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
->>>>>>> 7538747148ef1662790313ad5e7eb613dd018377
   </node>
 
-  <node name="force_field" pkg="navigation" type="force_field" output="screen">
+  <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
+  </node>
+
+  <!--<node name="force_field" pkg="navigation" type="force_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
   </node>-->
 
