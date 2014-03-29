@@ -1,16 +1,16 @@
 <launch>
 
-  <!--<node name="force_field" pkg="navigation" type="force_field" output="screen">
+  <node name="force_field" pkg="navigation" type="force_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
-  </node>-->
+  </node>
 
-  <node name="controller" pkg="navigation" type="controller_ros" ns="master" output="screen">
+  <!--<node name="controller" pkg="navigation" type="controller_ros" ns="master" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
   </node>
 
-  <!--<node name="controller" pkg="navigation" type="controller_ros" ns="slave" output="screen">
+  <node name="controller" pkg="navigation" type="controller_ros" ns="slave" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
