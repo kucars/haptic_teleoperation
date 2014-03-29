@@ -276,25 +276,26 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
     yaw_master_joint_previous=yaw_master_joint;
 
     // Pose master
-    current_pose_master << 0.0, 0.0, 0.0, 0.0, 0.0, yaw_master;
+    current_pose_master << x_master, y_master, z_master, 0.0, 0.0, yaw_master;
 
     //std::cout << current_pose_master << std::endl;
     // Velocity master
     // Velocity master
-    timespec current_time;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &current_time);
-    double period = (current_time.tv_sec - previous_time.tv_sec) + (double)(current_time.tv_nsec - previous_time.tv_nsec) / (double)BILLION;
-    current_velocity_master(0,0)=-x_master;
-    current_velocity_master(1,0)=-y_master;
+    ros::Time current_time=ros::Time::now();
+    double period = current_time.toSec()-previous_time.toSec();
+    previous_pose_master=current_pose_master;
+
+    current_velocity_master(0,0)= x_master;
+    current_velocity_master(1,0)= y_master;
     current_velocity_master(2,0)= z_master;
     current_velocity_master(3,0)=( current_pose_master(3,0)-previous_pose_master(3,0))/period;
     current_velocity_master(4,0)=( current_pose_master(4,0)-previous_pose_master(4,0))/period;
     current_velocity_master(5,0)=( current_pose_master(5,0)-previous_pose_master(5,0))/period;
+
     master_new_readings=true;
-    if(slave_new_readings && control_event)
-    {
-        //feedback();
-    }
+    //feedback();
+    previous_pose_master=current_pose_master;
+    
 }
 
 // SLAVE MEASUREMENTS
@@ -318,55 +319,53 @@ void MasterController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr&
                                           (yaw                      -slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);*/
 
     current_pose_slave <<
-            0.0,
+                          0.0,
             0.0,
             0.0,
             (roll                     -slave_min(3,0))*slave_to_master_scale(3,0) + master_min(3,0),
             (pitch                    -slave_min(4,0))*slave_to_master_scale(4,0) + master_min(4,0),
             (yaw                      -slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);
 
-    current_velocity_slave << ( msg->twist.twist.linear.x-slave_velocity_min(0,0)) * slave_velocity_master_pose_scale(0,0) + master_min(0,0),
-            (-msg->twist.twist.linear.y-slave_velocity_min(1,0)) * slave_velocity_master_pose_scale(1,0) + master_min(1,0),
+    current_velocity_slave << (msg->twist.twist.linear.x-slave_velocity_min(0,0)) * (-slave_velocity_master_pose_scale(0,0)) + master_max(0,0),
+            (msg->twist.twist.linear.y-slave_velocity_min(1,0)) * (-slave_velocity_master_pose_scale(1,0)) + master_max(1,0),
             (msg->twist.twist.linear.z-slave_velocity_min(2,0)) * slave_velocity_master_pose_scale(2,0) + master_min(2,0),
             (msg->twist.twist.angular.x-slave_velocity_min(3,0)) * slave_velocity_master_pose_scale(3,0) + master_min(3,0),
             (msg->twist.twist.angular.y-slave_velocity_min(4,0)) * slave_velocity_master_pose_scale(4,0) + master_min(4,0),
             (msg->twist.twist.angular.z-slave_velocity_min(5,0)) * slave_velocity_master_pose_scale(5,0) + master_min(5,0);
 
-    std::cout << "current_velocity_slave:"<<current_velocity_slave(0,0) << " " << msg->twist.twist.linear.x << " " << slave_velocity_min(0,0)<< std::endl;
-    std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
+    //std::cout << "current_velocity_slave:"<<current_velocity_slave(0,0) << " " << msg->twist.twist.linear.x << " " << master_min(0,0)<< " " << master_max(0,0)<< std::endl;
+    //    std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
 
 
     slave_new_readings=true;
-
-    if(master_new_readings && control_event)
-    {
-        //feedback();
-    }
+    feedback();
+    previous_pose_slave=current_pose_slave;
 }
 
 void MasterController::feedback()
 {
-    //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
-    Eigen::Matrix<double,6,1> r=lambda*current_pose_master;
-
-    Eigen::Matrix<double,6,6> feeback_matrix = (current_pose_slave     -  current_pose_master) * Kp.transpose() +
-            (current_velocity_slave -  r)                   * Kd.transpose() +
-            (-current_velocity_slave*Bd.transpose());
-    std::cout << "current pose master:" <<     (current_pose_master).transpose() << std::endl;
-    std::cout << "current velocity slave:" <<  (current_velocity_master).transpose() << std::endl;
-    std::cout << "master velocity error:" <<   (current_velocity_slave - r).transpose() << std::endl;
-
     phantom_omni::OmniFeedback force_msg;
+    if(control_event)
+    {
+        //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
+        Eigen::Matrix<double,6,1> r=current_pose_master;
 
-    // weird mapping
-    force_msg.force.x=feeback_matrix(1,1);
-    force_msg.force.y=feeback_matrix(2,2);
-    force_msg.force.z=feeback_matrix(0,0);
+        Eigen::Matrix<double,6,6> feeback_matrix = (current_pose_slave     -  current_pose_master) * Kp.transpose() +
+                (current_velocity_slave -  r)                   * Kd.transpose() +
+                (-current_velocity_slave*Bd.transpose());
+
+        std::cout << "current velocity slave:" <<  current_velocity_slave(0,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0) << " TIMES K:" << (current_velocity_slave(0,0) -  r(0,0))                   * Kd(0,0)<< std::endl;
+
+        // weird mapping
+        force_msg.force.x=feeback_matrix(1,1);
+        force_msg.force.y=feeback_matrix(2,2);
+        force_msg.force.z=feeback_matrix(0,0);
+
+
+        master_new_readings=false;
+        slave_new_readings=false;
+    }
     cmd_pub.publish(force_msg);
 
-    previous_pose_slave=current_pose_slave;
-    previous_pose_master=current_pose_master;
-    master_new_readings=false;
-    slave_new_readings=false;
 }
 
