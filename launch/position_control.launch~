@@ -2,6 +2,4 @@
   <node name="position_controller" pkg="navigation" type="uav_commander" ns="uav" output="screen">
     <rosparam command="load" file="$(find navigation)/config/pid_params.yaml" />
   </node>
-
-  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" output="screen"/>
 </launch>

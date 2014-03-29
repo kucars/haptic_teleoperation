@@ -5,14 +5,14 @@ kp_y: 0.0
 kp_z: 0.0
 kp_roll: 0.0
 kp_pitch: 0.0
-kp_yaw: 10.0
+kp_yaw: 0.0
 
 kd_x: 1.0
 kd_y: 1.0
 kd_z: 1.0
 kd_roll: 0.0
 kd_pitch: 0.0
-kd_yaw: 10.0
+kd_yaw: 1.0
 
 lambda_x: 0.1
 lambda_y: 0.1

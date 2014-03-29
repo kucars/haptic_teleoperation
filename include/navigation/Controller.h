@@ -61,11 +61,20 @@ class Controller
 		Eigen::Matrix<double,6,1> previous_pose_master;
 		Eigen::Matrix<double,6,1> current_pose_master;
 
+		Eigen::Matrix<double,6,1> previous_pose_master_scaled;
+		Eigen::Matrix<double,6,1> current_pose_master_scaled;
+
 		Eigen::Matrix<double,6,1> previous_pose_slave;
 		Eigen::Matrix<double,6,1> current_pose_slave;
 
+		Eigen::Matrix<double,6,1> previous_pose_slave_scaled;
+		Eigen::Matrix<double,6,1> current_pose_slave_scaled;
+
 		Eigen::Matrix<double,6,1> current_velocity_master;
 		Eigen::Matrix<double,6,1> current_velocity_slave;
+
+		Eigen::Matrix<double,6,1> current_velocity_master_scaled;
+		Eigen::Matrix<double,6,1> current_velocity_slave_scaled;
 
 		Eigen::Matrix<double,6,1> master_min;
 		Eigen::Matrix<double,6,1> master_max;
@@ -78,7 +87,7 @@ class Controller
 		Eigen::Matrix<double,6,1> slave_velocity_min;
 		Eigen::Matrix<double,6,1> slave_velocity_max;
 
-        	timespec previous_time;
+        	ros::Time previous_time;
 
 		double yaw_master_joint_previous;
 

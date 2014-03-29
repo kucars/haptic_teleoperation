@@ -32,7 +32,7 @@ class ForceField
 			param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
   			param_server.setCallback(param_callback_type);
 
-			visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field", 1);
+			visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
 			velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/RosAria/cmd_vel", 1);
 
 			force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
@@ -114,6 +114,9 @@ class ForceField
 
 		std::vector<Eigen::Vector3d> obstacles_positions_current;
 		std::vector<Eigen::Vector3d> obstacles_positions_previous;
+
+		ros::Time previous_time;
+		int count;
 
 		Eigen::Vector3d resulting_force;
 
@@ -250,6 +253,7 @@ class ForceField
 
 			computeForceField();
 			feedbackMaster();
+            //feedbackSlave();
 			obstacles_positions_previous=obstacles_positions_current;
 		}
 
@@ -257,9 +261,16 @@ class ForceField
 		void feedbackSlave()
 		{
 			// Compute linear velocity (x velocity)
-			double linear_speed=resulting_force.x()/(freq*robot_mass); // LINEAR SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN X (normal component)
+			ros::Time current_time=ros::Time::now();
+			double period=current_time.toSec()-previous_time.toSec();
+			previous_time=current_time;
+			double threshold=0.2;
+			if(period>threshold)
+				return;
+				
+			double linear_speed=resulting_force.x()*period/(robot_mass); // LINEAR SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN X (normal component)
 
-			double angular_speed=(resulting_force.y()/(robot_mass*robot_radius))*freq; // ROTATIONAL SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN Y (perpendicular component)
+			double angular_speed=(resulting_force.y()/(robot_mass*robot_radius))*period; // ROTATIONAL SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN Y (perpendicular component)
 			geometry_msgs::Twist twist_msg;
 			twist_msg.linear.x=linear_speed;
 			twist_msg.angular.z=angular_speed;
