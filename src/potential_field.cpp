@@ -1,4 +1,3 @@
-
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "nav_msgs/Odometry.h"
@@ -8,19 +7,18 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Eigen>
 #include <cmath>
-#include <phantom_omni/OmniFeedback.h>
+//#include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-#include <navigation/ForceFieldConfig.h>
+//#include <navigation/ForceFieldConfig.h>
 
 const double PI=3.14159265359;
 #define BILLION 1000000000
 class ForceField
 {
     public:
-        dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
-        dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
+    //    dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
+     //   dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
         std::vector<double> previous_potential_field;
-
         timespec previous_time;
         bool obstacles_new_readings;
         bool odometry_new_readings;
@@ -38,41 +36,27 @@ class ForceField
                       0, kd.y(), 0,
                       0, 0, kd.z();
 
-            param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
-            param_server.setCallback(param_callback_type);
+          //  param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
+          //  param_server.setCallback(param_callback_type);
 
             visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field", 1);
             velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/RosAria/cmd_vel", 1);
-
-            force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+            repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
+            potential_out = n.advertise<geometry_msgs::Twist>( "/potential_field/potential", 1);
+           // force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
 
             init_flag=false;
-
+	//robot_odometry_sub = n.subscribe(pose_topic_name, 1, &potentialField::slaveOdometryCallback, this);
             obstacle_readings_sub = n.subscribe("/RosAria/sonar", 1, &ForceField::sonarCallback, this);
 
             std::cout << "out" << std::endl;
-        }
+        };
 
 
-
-        // OLD //
-       /* void odometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
-        {
-            master_velocity_current=Eigen::Vector3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y,msg->twist.twist.linear.z);
-
-            obstacles_new_readings=true;
-            if(odometry_new_readings)
-            {
-                computePotentialField();
-
-                odometry_new_readings=false;
-                obstacles_new_readings=false;
-            }
-        }*/
 
         void computePotentialField()
         {
-            std::cout << "potential callback start" << std::endl;
+            std::cout << "potential callback start 1" << std::endl;
 
             std::vector<double> potential_field;
             timespec current_time;
@@ -101,6 +85,14 @@ class ForceField
 
 
                 potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
+		// create a msg and publish the potenntial field in x and y directions /// ???? should I do a summation of the potential field ???? 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		geometry_msgs::Twist twist_msg_potential;
+                twist_msg_potential.linear.x= potential_field[1];
+                twist_msg_potential.linear.y=potential_field[2];
+                potential_out.publish(twist_msg_potential);   
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
             }
 
 
@@ -116,28 +108,41 @@ class ForceField
             {
                 double force_magnitude=(potential_field[i]-previous_potential_field[i])/period; // Gradient of the potential field
 
-                //std::cout << "force magnitute:"<< force_magnitude << std::endl;
+                std::cout << "force magnitute:"<< std::endl;
                 force_field.push_back(force_magnitude*(obstacles_positions_current[i].normalized()));
             }
-            std::cout << "potential callback start" << std::endl;
+            std::cout << "potential callback start###" << std::endl;
 
             resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
             for(int i=0; i<force_field.size(); ++i)
             {
                 resulting_force+=force_field[i];
+            	std::cout << "force field" << std::endl  ; 
+		
             }
-
+		std::cout << "resulting force " << std::endl ;   
 
             std::cout << resulting_force << std::endl;
+		
+	    // creat a msg and publish it for the repulsive force for x,y  directions 
+    	        geometry_msgs::Twist twist_msg_resulting_force;
+                twist_msg_resulting_force.linear.x= resulting_force[1];
+                twist_msg_resulting_force.linear.y=resulting_force[2];
+                repulsive_force_out.publish(twist_msg_resulting_force);
+   
 
             // Publish visual markers to see in rviz
             ROS_INFO("ENTROU2");
 
-            visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("force_field"));
+            visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
+	    	 
             visualization_msgs::Marker marker=rviz_arrow(resulting_force, Eigen::Vector3d(0,0,0), 0, std::string("resulting_force"));
             marker_array.markers.push_back(marker);
             visualization_markers_pub.publish(marker_array);
+		
 
+
+		/// do the summation of the potential field and publish it ( for visual markers and for rqt_plot ) 
             previous_potential_field=potential_field;
 
         }
@@ -165,6 +170,8 @@ class ForceField
         ros::Publisher velocity_cmd_pub;
         ros::Publisher visualization_markers_pub;
         ros::Publisher force_out;
+	ros::Publisher potential_out ; 
+	ros::Publisher repulsive_force_out ; 
 
         std::string pose_topic_name;
         std::string sonar_topic_name;
@@ -190,36 +197,7 @@ class ForceField
 
         Eigen::Vector3d resulting_force;
 
-        void paramsCallback(navigation::ForceFieldConfig &config, uint32_t level)
-        {
-            ROS_DEBUG_STREAM("Force field reconfigure Request ->" << " kp_x:" << config.kp_x
-                                              << " kp_y:" << config.kp_y
-                                              << " kp_z:" << config.kp_z
-                                              << " kd_x:" << config.kd_x
-                                              << " kd_y:" << config.kd_y
-                                              << " kd_z:" << config.kd_z
-                                                                  << " ro:"   << config.ro);
-
-            kp << config.kp_x,
-                  config.kp_y,
-                  config.kp_z;
-
-            kd << config.kd_x,
-                  config.kd_y,
-                  config.kd_z;
-
-            kp_mat << kp.x(), 0, 0,
-                      0, kp.y(), 0,
-                      0, 0, kp.z();
-            kd_mat << kd.x(), 0, 0,
-                      0, kd.y(), 0,
-                      0, 0, kd.z();
-
-            ro = config.ro;
-
-            laser_max_distance = config.laser_max_distance;
-            //slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_workspace_size.x/config.slave_workspace_size.x), fabs(config.master_workspace_size.y/config.slave_workspace_size.y), fabs(config.master_workspace_size.z/config.slave_workspace_size.z));
-        }
+       
 
         visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const Eigen::Vector3d & arrow_origin, int id, std::string name_space )
         {
@@ -262,12 +240,7 @@ class ForceField
             marker.pose.orientation.y = rotation.y();
             marker.pose.orientation.z = rotation.z();
             marker.pose.orientation.w = rotation.w();
-            //std::cout <<"position:" <<marker.pose.position << std::endl;
-            //std::cout <<"orientation:" <<marker.pose.orientation << std::endl;
-            //marker.pose.orientation.x = 0;
-            //marker.pose.orientation.y = 0;
-            //marker.pose.orientation.z = 0;
-            //marker.pose.orientation.w = 1;
+      
             if(arrow.norm()<0.0001)
             {
                 marker.scale.x = 0.001;
@@ -300,14 +273,17 @@ class ForceField
 
         void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
         {
-            std::cout << "sonar callback start" << std::endl;
+            std::cout << "sonar callback start **** " << std::endl;
             obstacles_positions_current.clear();
             for(int i=0; i< msg->points.size(); ++i)
             {
                 Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,0.0);
+		std::cout << "laser_max_distanse" << laser_max_distance << std::endl ; 
+		std::cout << "obstacle.norm" << obstacle.norm() << std::endl ; 
                 if(obstacle.norm()<laser_max_distance-0.01)
                 //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
                 {
+std::cout << " filling the obstacles " << std::endl ; 
                     //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
                     obstacles_positions_current.push_back(obstacle);
                 }
@@ -322,17 +298,20 @@ class ForceField
             }
             //ROS_INFO_STREAM("obstacles:" << obstacles_positions.size());
             //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
-            obstacles_new_readings=true;
-            if(obstacles_positions_current.size()>0)
+         //  if ( obstacles_new_readings=true)
+          if(obstacles_positions_current.size()>0)
             {
                 computePotentialField();
 
                // odometry_new_readings=false;
                 obstacles_new_readings=false;
             }
+	    else
+std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ; 	
+
             //feedbackMaster();
-            obstacles_positions_previous=obstacles_positions_current;            std::cout << "sonar callback start" << std::endl;
-            std::cout << "sonar callback end" << std::endl;
+            obstacles_positions_previous=obstacles_positions_current;            
+            std::cout << "sonar callback end ***" << std::endl;
 
         }
 
@@ -352,34 +331,20 @@ class ForceField
         void feedbackMaster()
         {
             // WEIRD MAPPING!!!
-            phantom_omni::OmniFeedback force_feedback;
-            force_feedback.force.x=resulting_force.y();
-            force_feedback.force.y=resulting_force.z();
-            force_feedback.force.z=resulting_force.x();
-            force_out.publish(force_feedback);
+          //  phantom_omni::OmniFeedback force_feedback;
+         //   force_feedback.force.x=resulting_force.y();
+         //   force_feedback.force.y=resulting_force.z();
+         //   force_feedback.force.z=resulting_force.x();
+          //  force_out.publish(force_feedback);
         }
 };
 
 int main(int argc, char **argv)
 {
-    /**
-       * The ros::init() function needs to see argc and argv so that it can perform
-       * any ROS arguments and name remapping that were provided at the command line. For programmatic
-       * remappings you can use a different version of init() which takes remappings
-       * directly, but for most command-line programs, passing argc and argv is the easiest
-       * way to do it.  The third argument to init() is the name of the node.
-       *
-       * You must call one of the versions of ros::init() before using any other
-       * part of the ROS system.
-    */
-    ros::init(argc, argv, "potential_field");
-    /**
-    * NodeHandle is the main access point to communications with the ROS system.
-    * The first NodeHandle constructed will fully initialize this node, and the last
-    * NodeHandle destructed will close down the node.
-    */
-    ros::NodeHandle n;
 
+    std:: cout << " MAIN " << std::endl ; 
+    ros::init(argc, argv, "potential_field");
+    ros::NodeHandle n;
     ros::NodeHandle n_priv("~");
 
     // parameters
@@ -389,7 +354,6 @@ int main(int argc, char **argv)
     double robot_mass;
     double robot_radius;
 
-
     double kp_x;
     double kp_y;
     double kp_z;
@@ -398,10 +362,10 @@ int main(int argc, char **argv)
     double kd_z;
 
     // Control gains
-        n_priv.param<double>("Kp_x", kp_x, 1.0);
+        n.param<double>("/potential_field/gain", kp_x, 1.0);
         n_priv.param<double>("Kp_y", kp_y, 1.0);
         n_priv.param<double>("Kp_z", kp_z, 1.0);
-    n_priv.param<double>("Kp_x", kd_x, 1.0);
+   	n_priv.param<double>("Kp_x", kd_x, 1.0);
         n_priv.param<double>("Kp_y", kd_y, 1.0);
         n_priv.param<double>("Kp_z", kd_z, 1.0);
 
@@ -411,7 +375,7 @@ int main(int argc, char **argv)
     double laser_max_distance;
 
     //initialize operational parameters
-        n_priv.param<double>("laser_max_distance", laser_max_distance, 0.2);
+        n_priv.param<double>("laser_max_distance", laser_max_distance,0.2);
         n_priv.param<double>("ro", ro, 3.0);
         n_priv.param<double>("frequency", freq, 10.0);
         n_priv.param<double>("acc_max", a_max, 1.0);
@@ -428,3 +392,4 @@ int main(int argc, char **argv)
     ros::spin();
     return 0;
 }
+
