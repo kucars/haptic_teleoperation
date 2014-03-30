@@ -1,0 +1,18 @@
+<launch>
+  <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
+  </node>
+
+  <node name="master_controller" pkg="navigation" type="controller_ros" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
+  </node>
+
+  <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
+  </node>
+
+</launch>
