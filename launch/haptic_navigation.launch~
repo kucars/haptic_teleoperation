@@ -12,9 +12,9 @@
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
   </node>
 
-  <node name="force_field" pkg="navigation" type="force_field" output="screen">
+  <!--<node name="force_field" pkg="navigation" type="force_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
-  </node>
+  </node>-->
 
 
   <!--<node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" output="screen"/>-->

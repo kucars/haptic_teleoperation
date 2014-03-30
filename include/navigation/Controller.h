@@ -90,6 +90,7 @@ class Controller
         	ros::Time previous_time;
 
 		double yaw_master_joint_previous;
+		double yaw_slave_previous;
 
 		// aux
 		bool master_new_readings;
@@ -97,6 +98,7 @@ class Controller
 		bool control_event;
 		bool linear_button_pressed;
 		bool angular_button_pressed;
+		bool init_slave_readings;
 
       		tf::TransformListener listener;
       		tf::StampedTransform transform;

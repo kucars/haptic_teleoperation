@@ -41,8 +41,8 @@ MasterController::MasterController(ros::NodeHandle & n_,
     Controller(n_,freq_, Kp_, Kd_, Bd_, lambda_, master_min_, master_max_, slave_min_, slave_max_,slave_velocity_min_,slave_velocity_max_)
 {
     initParams();
-    master_callback_type = boost::bind(&MasterController::paramsCallback, this, _1, _2);
-    master_server.setCallback(master_callback_type);
+    //master_callback_type = boost::bind(&MasterController::paramsCallback, this, _1, _2);
+    //master_server.setCallback(master_callback_type);
 
     // Feedback publish
     cmd_pub = n.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
@@ -275,25 +275,27 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
     }
     yaw_master_joint_previous=yaw_master_joint;
 
-    // Pose master
-    current_pose_master << x_master, y_master, z_master, 0.0, 0.0, yaw_master;
-
-    //std::cout << current_pose_master << std::endl;
-    // Velocity master
-    // Velocity master
+    yaw_master_joint_previous=yaw_master_joint;
     ros::Time current_time=ros::Time::now();
     double period = current_time.toSec()-previous_time.toSec();
-    previous_pose_master=current_pose_master;
+    previous_time=current_time;
+    //std::cout << "period:"<< period << std::endl;
+    // Pose master
+    // x and y are mirrored
+    // angles are relative
+    current_pose_master <<
+                           (-x_master + master_min(0,0)+master_max(0,0)),
+            (-y_master + master_min(1,0)+master_max(1,0)),
+            z_master,
+            0.0,
+            0.0,
+            yaw_master;
 
-    current_velocity_master(0,0)= x_master;
-    current_velocity_master(1,0)= y_master;
-    current_velocity_master(2,0)= z_master;
-    current_velocity_master(3,0)=( current_pose_master(3,0)-previous_pose_master(3,0))/period;
-    current_velocity_master(4,0)=( current_pose_master(4,0)-previous_pose_master(4,0))/period;
-    current_velocity_master(5,0)=( current_pose_master(5,0)-previous_pose_master(5,0))/period;
+
+    current_velocity_master=(current_pose_master-previous_pose_master)/period;
 
     master_new_readings=true;
-    //feedback();
+    feedback();
     previous_pose_master=current_pose_master;
     
 }
@@ -310,25 +312,43 @@ void MasterController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr&
     double pitch = euler(1,0);
     double roll = euler(2,0);
 
-    // WE DON-T CARE ABOUT THE LINEAR POSE
-    /*current_pose_slave << (msg->pose.pose.position.x-slave_min(0,0))*slave_to_master_scale(0,0) + master_min(0,0),
-                                          (msg->pose.pose.position.y-slave_min(1,0))*slave_to_master_scale(1,0) + master_min(1,0),
-                                          (msg->pose.pose.position.z-slave_min(2,0))*slave_to_master_scale(2,0) + master_min(2,0),
-                                          (roll                     -slave_min(3,0))*slave_to_master_scale(3,0) + master_min(3,0),
-                                          (pitch                    -slave_min(4,0))*slave_to_master_scale(4,0) + master_min(4,0),
-                                          (yaw                      -slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);*/
 
-    current_pose_slave <<
-                          0.0,
-            0.0,
-            0.0,
-            (roll                     -slave_min(3,0))*slave_to_master_scale(3,0) + master_min(3,0),
-            (pitch                    -slave_min(4,0))*slave_to_master_scale(4,0) + master_min(4,0),
-            (yaw                      -slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);
+    if(!init_slave_readings)
+    {
+        previous_pose_slave << msg->pose.pose.position.x,
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z,
+                roll-previous_pose_slave(3,0),
+                pitch-previous_pose_slave(4,0),
+                yaw; // should be relative
+        yaw_slave_previous=yaw;
+        init_slave_readings=true;
+        return;
+    }
+    else
+    {
+        current_pose_slave << msg->pose.pose.position.x,
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z,
+                roll-previous_pose_slave(3,0),
+                pitch-previous_pose_slave(4,0),
+                yaw-yaw_slave_previous; // should be relative
+        //std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
 
-    current_velocity_slave << (msg->twist.twist.linear.x-slave_velocity_min(0,0)) * (-slave_velocity_master_pose_scale(0,0)) + master_max(0,0),
-            (msg->twist.twist.linear.y-slave_velocity_min(1,0)) * (-slave_velocity_master_pose_scale(1,0)) + master_max(1,0),
-            (msg->twist.twist.linear.z-slave_velocity_min(2,0)) * slave_velocity_master_pose_scale(2,0) + master_min(2,0),
+        yaw_slave_previous=yaw;
+    }
+
+
+    current_pose_slave_scaled(0,0)=(current_pose_slave(0,0)-slave_min(0,0))*slave_to_master_scale(0,0) + master_min(0,0);
+    current_pose_slave_scaled(1,0)=(current_pose_slave(1,0)-slave_min(1,0))*slave_to_master_scale(1,0) + master_min(1,0);
+    current_pose_slave_scaled(2,0)=(current_pose_slave(2,0)-slave_min(2,0))*slave_to_master_scale(2,0) + master_min(2,0);
+    current_pose_slave_scaled(3,0)=(current_pose_slave(3,0)-slave_min(3,0))*slave_to_master_scale(3,0) + master_min(3,0);
+    current_pose_slave_scaled(4,0)=(current_pose_slave(4,0)-slave_min(4,0))*slave_to_master_scale(4,0) + master_min(4,0);
+    current_pose_slave_scaled(5,0)=(current_pose_slave(5,0)-slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);
+
+    current_velocity_slave << (msg->twist.twist.linear.x-slave_velocity_min(0,0)) * slave_velocity_master_pose_scale(0,0) + master_min(0,0),
+            (msg->twist.twist.linear.y-slave_velocity_min(1,0)) * slave_velocity_master_pose_scale(1,0) + master_min(1,0),
+            (msg->twist.twist.linear.z-slave_velocity_min(2,0)) * slave_velocity_master_pose_scale(2,0)  + master_min(2,0),
             (msg->twist.twist.angular.x-slave_velocity_min(3,0)) * slave_velocity_master_pose_scale(3,0) + master_min(3,0),
             (msg->twist.twist.angular.y-slave_velocity_min(4,0)) * slave_velocity_master_pose_scale(4,0) + master_min(4,0),
             (msg->twist.twist.angular.z-slave_velocity_min(5,0)) * slave_velocity_master_pose_scale(5,0) + master_min(5,0);
@@ -350,11 +370,12 @@ void MasterController::feedback()
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
 
-        Eigen::Matrix<double,6,6> feeback_matrix = (current_pose_slave     -  current_pose_master) * Kp.transpose() +
+        Eigen::Matrix<double,6,6> feeback_matrix = (current_pose_slave_scaled     -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
-                (-current_velocity_slave*Bd.transpose());
+                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose();
 
-        std::cout << "current velocity slave:" <<  current_velocity_slave(0,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0) << " TIMES K:" << (current_velocity_slave(0,0) -  r(0,0))                   * Kd(0,0)<< std::endl;
+        //std::cout << "current velocity slave:" <<  current_velocity_slave(0,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0);
+        //std::cout << "angle velocity error velocity slave:" <<  current_velocity_slave(5,0)-current_velocity_master(5,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0);
 
         // weird mapping
         force_msg.force.x=feeback_matrix(1,1);
@@ -366,6 +387,5 @@ void MasterController::feedback()
         slave_new_readings=false;
     }
     cmd_pub.publish(force_msg);
-
 }
 

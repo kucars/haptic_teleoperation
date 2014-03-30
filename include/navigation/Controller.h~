@@ -74,7 +74,7 @@ class Controller
 		Eigen::Matrix<double,6,1> current_velocity_slave;
 
 		Eigen::Matrix<double,6,1> current_velocity_master_scaled;
-		Eigen::Matrix<double,6,1> current_velocity_slave;
+		Eigen::Matrix<double,6,1> current_velocity_slave_scaled;
 
 		Eigen::Matrix<double,6,1> master_min;
 		Eigen::Matrix<double,6,1> master_max;
@@ -97,6 +97,7 @@ class Controller
 		bool control_event;
 		bool linear_button_pressed;
 		bool angular_button_pressed;
+		bool init_slave_readings;
 
       		tf::TransformListener listener;
       		tf::StampedTransform transform;

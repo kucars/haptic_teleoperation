@@ -53,7 +53,9 @@ Controller::Controller(ros::NodeHandle & n_,
     control_event(false),
     linear_button_pressed(false),
     angular_button_pressed(false),
-    yaw_master_joint_previous(0.0)
+    yaw_master_joint_previous(0.0),
+    yaw_slave_previous(0.0),
+    init_slave_readings(false)
 {
     previous_time=ros::Time::now();
     button_sub = n_.subscribe<phantom_omni::PhantomButtonEvent>("/omni1_button", 1, &Controller::buttonCallback, this);
