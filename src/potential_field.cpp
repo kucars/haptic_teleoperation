@@ -7,9 +7,8 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Eigen>
 #include <cmath>
-//#include <phantom_omni/OmniFeedback.h>
+#include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-//#include <navigation/ForceFieldConfig.h>
 
 const double PI=3.14159265359;
 #define BILLION 1000000000
@@ -42,8 +41,8 @@ class ForceField
             visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field", 1);
             velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/RosAria/cmd_vel", 1);
             repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
-            potential_out = n.advertise<geometry_msgs::Twist>( "/potential_field/potential", 1);
-           // force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+           // potential_out = n.advertise<geometry_msgs::Twist>( "/potential_field/potential", 1);
+            force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
 
             init_flag=false;
 	//robot_odometry_sub = n.subscribe(pose_topic_name, 1, &potentialField::slaveOdometryCallback, this);
@@ -87,10 +86,10 @@ class ForceField
                 potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
 		// create a msg and publish the potenntial field in x and y directions /// ???? should I do a summation of the potential field ???? 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		geometry_msgs::Twist twist_msg_potential;
-                twist_msg_potential.linear.x= potential_field[1];
-                twist_msg_potential.linear.y=potential_field[2];
-                potential_out.publish(twist_msg_potential);   
+    //	geometry_msgs::Twist twist_msg_potential;
+      //          twist_msg_potential.linear.x= potential_field[1];
+     //           twist_msg_potential.linear.y=potential_field[2];
+        //        potential_out.publish(twist_msg_potential);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             }
@@ -309,7 +308,7 @@ std::cout << " filling the obstacles " << std::endl ;
 	    else
 std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ; 	
 
-            //feedbackMaster();
+            feedbackMaster();
             obstacles_positions_previous=obstacles_positions_current;            
             std::cout << "sonar callback end ***" << std::endl;
 
@@ -331,11 +330,11 @@ std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ;
         void feedbackMaster()
         {
             // WEIRD MAPPING!!!
-          //  phantom_omni::OmniFeedback force_feedback;
-         //   force_feedback.force.x=resulting_force.y();
-         //   force_feedback.force.y=resulting_force.z();
-         //   force_feedback.force.z=resulting_force.x();
-          //  force_out.publish(force_feedback);
+            phantom_omni::OmniFeedback force_feedback;
+            force_feedback.force.x=resulting_force.y();
+            force_feedback.force.y=resulting_force.z();
+            force_feedback.force.z=resulting_force.x();
+            force_out.publish(force_feedback);
         }
 };
 
