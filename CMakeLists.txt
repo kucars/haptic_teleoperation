@@ -12,7 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   phantom_omni
   dynamic_reconfigure
-)
+  message_generation
+ )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED)
@@ -58,11 +59,11 @@ generate_dynamic_reconfigure_options(
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   FILES
+   TwistArray.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -79,10 +80,10 @@ generate_dynamic_reconfigure_options(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   nav_msgs#   sensor_msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   geometry_msgs  sensor_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -96,7 +97,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rosaria_nav
-#  CATKIN_DEPENDS nav_msgs roscpp sensor_msgs 
+  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs 
 #  DEPENDS system_lib
 )
 
@@ -130,11 +131,11 @@ target_link_libraries(force_field
  )
 
 add_executable(potential_field src/potential_field.cpp)
-add_dependencies(potential_field ${PROJECT_NAME}_gencfg)
+add_dependencies(potential_field ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(potential_field
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
- )
+)
 
 
 add_executable(controller_ros src/ControllerRos.cpp)

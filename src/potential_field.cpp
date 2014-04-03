@@ -9,7 +9,7 @@
 #include <cmath>
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-
+#include <navigation/TwistArray.h>
 
 const double PI=3.14159265359;
 #define BILLION 1000000000
@@ -42,7 +42,9 @@ public:
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "risk_vector_marker", 1);
         velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/RosAria/cmd_vel", 1);
         //    resulting_risk_vector_pub = n.advertise<geometry_msgs::Twist>( "/potential_field/resulting_risk_vector", 1);
-        repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
+        repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
+
+        obstacle_velocities_pub = n.advertise<navigation::TwistArray>("/obstacles_velocities", 1);
 
         // potential_out =  n.advertise<std_msgs::Int32MultiArray>("/potential_field/points", 100);
 
@@ -86,6 +88,7 @@ public:
 
         std::vector<Eigen::Vector3d> current_v;
         current_v.resize(aux_it);
+        navigation::TwistArray twist_msg_obstacle_velocities;
         for(int i=0; i<aux_it; ++i)
         {
             current_v[i]=(obstacles_positions_current[i]-obstacles_positions_previous[i])/period;
@@ -93,7 +96,10 @@ public:
             double velocity_sign=1.0;
             if(current_v[i].dot(Eigen::Vector3d::UnitX())<0)
                 velocity_sign=-1.0; // Moving away from the obstacle
-
+            geometry_msgs::Twist twist_msg_obstacle_velocity;
+            twist_msg_obstacle_velocity.linear.x=current_v[i].x();
+            twist_msg_obstacle_velocity.linear.y=current_v[i].y();
+            twist_msg_obstacle_velocities.twist_array.push_back(twist_msg_obstacle_velocity);
             potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
         }
 
@@ -144,6 +150,10 @@ public:
         repulsive_force_out_pub.publish(twist_msg_resulting_force);
 
 
+
+        obstacle_velocities_pub.publish(twist_msg_obstacle_velocities);
+
+
         // Publish visual markers to see in rviz
         ROS_INFO("ENTROU2");
 
@@ -187,9 +197,12 @@ private:
     ros::Subscriber obstacle_readings_sub;
     ros::Publisher velocity_cmd_pub;
     ros::Publisher visualization_markers_pub;
+
+
     ros::Publisher force_out;
     ros::Publisher potential_out ;
     ros::Publisher repulsive_force_out_pub ;
+    ros::Publisher obstacle_velocities_pub;
     //  ros::Publisher resulting_risk_vector_pub ;
 
     std::string pose_topic_name;
