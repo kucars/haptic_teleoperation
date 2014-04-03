@@ -164,6 +164,9 @@ public:
 
     double getPotentialPoint(const double & d, const double & v_i, const double & a_max, const double & gain)
     {
+        /*
+
+        */
         float dstop = (v_i*v_i) / (2*a_max ) ;
         float dres ;
         if ( v_i <= 0 ) dres = d + dstop ;
