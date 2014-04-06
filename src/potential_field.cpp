@@ -10,6 +10,9 @@
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
 #include <navigation/TwistArray.h>
+#include <navigation/ContourData.h>
+
+navigation::ContourData contour_data_msg;
 
 const double PI=3.14159265359;
 #define BILLION 1000000000
@@ -54,14 +57,23 @@ public:
         init_flag=false;
 
         force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+        contour_out = n.advertise<navigation::ContourData>( "/contour_data", 1);
+
 
         init_flag=false;
-        //robot_odometry_sub = n.subscribe(pose_topic_name, 1, &potentialField::slaveOdometryCallback, this);
+        robot_odometry_sub = n.subscribe(pose_topic_name, 1, &ForceField::slaveOdometryCallback, this);
         obstacle_readings_sub = n.subscribe("/RosAria/sonar", 1, &ForceField::sonarCallback, this);
 
         std::cout << "out" << std::endl;
     };
 
+
+    void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+    {
+        //std::cout << *msg << std::endl;
+
+        contour_data_msg.robot_pose=*msg;
+    }
 
 
     void computePotentialField()
@@ -89,6 +101,7 @@ public:
         std::vector<Eigen::Vector3d> current_v;
         current_v.resize(aux_it);
         navigation::TwistArray twist_msg_obstacle_velocities;
+        contour_data_msg.obstacles_velocities.twist_array.clear();
         for(int i=0; i<aux_it; ++i)
         {
             current_v[i]=(obstacles_positions_current[i]-obstacles_positions_previous[i])/period;
@@ -100,9 +113,10 @@ public:
             twist_msg_obstacle_velocity.linear.x=current_v[i].x();
             twist_msg_obstacle_velocity.linear.y=current_v[i].y();
             twist_msg_obstacle_velocities.twist_array.push_back(twist_msg_obstacle_velocity);
+            contour_data_msg.obstacles_velocities.twist_array.push_back(twist_msg_obstacle_velocity);
+
             potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
         }
-
         std::cout << "potential callback ..." << std::endl;
 
         // Get risk vectors directions
@@ -139,16 +153,15 @@ public:
         }
         std::cout << "resulting_risk_vector " << std::endl ;
 
-        std::cout << resulting_risk_vector << std::endl;
+        //std::cout << resulting_risk_vector << std::endl;
 
         // creat a msg and publish it for the repulsive force for x,y  directions // final risk vector is the potential field
         geometry_msgs::Twist twist_msg_resulting_force;
         twist_msg_resulting_force.linear.x= resulting_force.x();
         twist_msg_resulting_force.linear.y=resulting_force.y();
-      //  twist_msg_resulting_force.linear.z=resulting_force.z();
+        //  twist_msg_resulting_force.linear.z=resulting_force.z();
 
         repulsive_force_out_pub.publish(twist_msg_resulting_force);
-
 
 
         obstacle_velocities_pub.publish(twist_msg_obstacle_velocities);
@@ -160,6 +173,10 @@ public:
         visualization_msgs::MarkerArray marker_array=rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_risk_vector, Eigen::Vector3d(0,0,0), 0, std::string("resulting_risk_vector"));
         marker_array.markers.push_back(marker);
+        contour_data_msg.potential_field=marker;
+
+        contour_out.publish(contour_data_msg);
+
         visualization_markers_pub.publish(marker_array);
 
         // find the repulsive force and publish it to rqt plot NOT to Rviz // it should be the gradiant of the resulting risk vector
@@ -193,9 +210,10 @@ public:
 private:
     // ROS
     ros::NodeHandle n;
-
+    ros::Subscriber robot_odometry_sub;
     ros::Subscriber obstacle_readings_sub;
     ros::Publisher velocity_cmd_pub;
+    ros::Publisher contour_out;
     ros::Publisher visualization_markers_pub;
 
 
@@ -247,7 +265,7 @@ private:
 
         visualization_msgs::Marker marker;
         marker.header.frame_id = "base_link";
-        marker.header.stamp = ros::Time();
+        marker.header.stamp = ros::Time::now();
         marker.id = id;
         if(id==0)
         {

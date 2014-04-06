@@ -62,6 +62,7 @@ generate_dynamic_reconfigure_options(
  add_message_files(
    FILES
    TwistArray.msg
+   ContourData.msg
 #   Message2.msg
  )
 
@@ -82,7 +83,7 @@ generate_dynamic_reconfigure_options(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
-   geometry_msgs  sensor_msgs
+   geometry_msgs  sensor_msgs nav_msgs visualization_msgs
 )
 
 ###################################
@@ -123,6 +124,7 @@ add_library(controller
 
 ## Declare a cpp executable
 # add_executable(rosaria_nav_node src/rosaria_nav_node.cpp)
+#add_executable(transform src/transform.cpp)
 add_executable(force_field src/force_field.cpp)
 add_dependencies(force_field ${PROJECT_NAME}_gencfg)
 target_link_libraries(force_field
