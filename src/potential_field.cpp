@@ -11,9 +11,10 @@
 #include <dynamic_reconfigure/server.h>
 #include <navigation/TwistArray.h>
 #include <navigation/ContourData.h>
+#include <laser_geometry/laser_geometry.h>
+#include <tf/transform_listener.h>
 
 navigation::ContourData contour_data_msg;
-
 const double PI=3.14159265359;
 #define BILLION 1000000000
 class ForceField
@@ -43,7 +44,7 @@ public:
         //  param_server.setCallback(param_callback_type);
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "risk_vector_marker", 1);
-        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/RosAria/cmd_vel", 1);
+        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/Pioneer3At/cmd_vel", 1);
         //    resulting_risk_vector_pub = n.advertise<geometry_msgs::Twist>( "/potential_field/resulting_risk_vector", 1);
         repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
 
@@ -62,8 +63,8 @@ public:
 
         init_flag=false;
         robot_odometry_sub = n.subscribe(pose_topic_name, 1, &ForceField::slaveOdometryCallback, this);
-        obstacle_readings_sub = n.subscribe("/RosAria/sonar", 1, &ForceField::sonarCallback, this);
-
+        //obstacle_readings_sub = n.subscribe("/RosAria/sonar", 1, &ForceField::sonarCallback, this);
+	scan_sub_ = n.subscribe<sensor_msgs::LaserScan> ("/scan", 100, &ForceField::scanCallback, this);
         std::cout << "out" << std::endl;
     };
 
@@ -208,6 +209,10 @@ public:
     }
 
 private:
+
+
+
+
     // ROS
     ros::NodeHandle n;
     ros::Subscriber robot_odometry_sub;
@@ -248,6 +253,15 @@ private:
     Eigen::Vector3d resulting_force;
     Eigen::Vector3d resulting_risk_vector ;
 
+    //laser 
+    laser_geometry::LaserProjection projector_;
+
+    // listener
+    tf::TransformListener listener_;
+
+
+    // subscriber 
+    ros::Subscriber scan_sub_;
 
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const Eigen::Vector3d & arrow_origin, int id, std::string name_space )
     {
@@ -319,6 +333,63 @@ private:
         return marker_array;
     }
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
+    {
+        std::cout << "scan callback start ###" << std::endl;
+	if(!listener_.waitForTransform(
+        scan->header.frame_id,"/base_link",
+        scan->header.stamp + ros::Duration().fromSec(scan->ranges.size()*scan->time_increment),
+        ros::Duration(1.0))){return;}
+
+  	sensor_msgs::PointCloud cloud;
+ 	projector_.transformLaserScanToPointCloud("/base_link",*scan,cloud,listener_);
+
+	
+	obstacles_positions_current.clear();
+        for(int i=0; i< cloud.points.size(); ++i)
+        {
+            Eigen::Vector3d obstacle(cloud.points[i].x,cloud.points[i].y,0.0);
+            std::cout << "laser_max_distanse" << laser_max_distance << std::endl ;
+            std::cout << "obstacle.norm" << obstacle.norm() << std::endl ;
+            if(obstacle.norm()<laser_max_distance-0.01)
+                //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
+            {
+                std::cout << " filling the obstacles " << std::endl ;
+                //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
+                obstacles_positions_current.push_back(obstacle);
+            }
+        }
+
+        if(!init_flag)
+        {
+            ROS_INFO("HELLO");
+            init_flag=true;
+            obstacles_positions_previous=obstacles_positions_current;
+            return;
+        }
+        //ROS_INFO_STREAM("obstacles:" << obstacles_positions.size());
+        //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
+        //  if ( obstacles_new_readings=true)
+        if(obstacles_positions_current.size()>0)
+        {
+            computePotentialField();
+
+            // odometry_new_readings=false;
+            obstacles_new_readings=false;
+        }
+        else
+            std::cout << " SCAN NO CALL " << std::endl ;
+
+        feedbackMaster();
+        obstacles_positions_previous=obstacles_positions_current;
+        std::cout << "scan callback end ***" << std::endl;
+
+    }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)

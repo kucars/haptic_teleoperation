@@ -1,5 +1,5 @@
 <launch>
-  <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
+    <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />

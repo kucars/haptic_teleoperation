@@ -1,0 +1,8 @@
+<launch>
+<node pkg="tf" type="static_transform_publisher" name="right_up_corner" args="5 -2 2 0 0 0  world /obstacle/right_up_corner 200" />
+<node pkg="tf" type="static_transform_publisher" name="left_up_corner" args="5 2 2 0 0 0  world /obstacle/left_up_corner 200" />
+<node pkg="tf" type="static_transform_publisher" name="right_corner" args="5 -2 0 0 0 0 world /obstacle/right_corner 200" />
+<node pkg="tf" type="static_transform_publisher" name="left_corner" args="5 2 0 0 0 0 world /obstacle/left_corner 200" />
+
+<node pkg="tf" type="static_transform_publisher" name="middle" args="5 0 0 0 0 0  world midle 100" />
+</launch>

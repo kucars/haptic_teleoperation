@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   phantom_omni
   dynamic_reconfigure
   message_generation
+  laser_geometry
  )
 
 ## System dependencies are found with CMake's conventions
@@ -24,6 +25,7 @@ generate_dynamic_reconfigure_options(
   cfg/MasterController.cfg
   cfg/SlaveController.cfg
   cfg/ForceField.cfg
+
   #...
 )
 
@@ -98,7 +100,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rosaria_nav
-  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs 
+  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs
 #  DEPENDS system_lib
 )
 
@@ -125,12 +127,12 @@ add_library(controller
 ## Declare a cpp executable
 # add_executable(rosaria_nav_node src/rosaria_nav_node.cpp)
 #add_executable(transform src/transform.cpp)
-add_executable(force_field src/force_field.cpp)
-add_dependencies(force_field ${PROJECT_NAME}_gencfg)
-target_link_libraries(force_field
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
- )
+#add_executable(force_field src/force_field.cpp)
+#add_dependencies(force_field ${PROJECT_NAME}_gencfg)
+#target_link_libraries(force_field
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+# )
 
 add_executable(potential_field src/potential_field.cpp)
 add_dependencies(potential_field ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
@@ -140,16 +142,16 @@ target_link_libraries(potential_field
 )
 
 
-add_executable(controller_ros src/ControllerRos.cpp)
-add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
-target_link_libraries(controller_ros
-   controller
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
+#add_executable(controller_ros src/ControllerRos.cpp)
+#add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
+#target_link_libraries(controller_ros
+#   controller
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
 
-add_executable(uav_commander src/uav_commander.cpp)
-target_link_libraries(uav_commander
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
+#add_executable(uav_commander src/uav_commander.cpp)
+#target_link_libraries(uav_commander
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
