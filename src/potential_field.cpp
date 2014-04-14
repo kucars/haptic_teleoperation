@@ -13,7 +13,7 @@
 #include <navigation/ContourData.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
-
+using namespace std ; 
 navigation::ContourData contour_data_msg;
 const double PI=3.14159265359;
 #define BILLION 1000000000
@@ -43,7 +43,7 @@ public:
         //  param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         //  param_server.setCallback(param_callback_type);
 
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "risk_vector_marker", 1);
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
         velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/Pioneer3At/cmd_vel", 1);
         //    resulting_risk_vector_pub = n.advertise<geometry_msgs::Twist>( "/potential_field/resulting_risk_vector", 1);
         repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
@@ -63,17 +63,19 @@ public:
 
         init_flag=false;
         robot_odometry_sub = n.subscribe(pose_topic_name, 1, &ForceField::slaveOdometryCallback, this);
-        //obstacle_readings_sub = n.subscribe("/RosAria/sonar", 1, &ForceField::sonarCallback, this);
-	scan_sub_ = n.subscribe<sensor_msgs::LaserScan> ("/scan", 100, &ForceField::scanCallback, this);
+	//cout << "
+        obstacle_readings_sub = n.subscribe("cloud",1, &ForceField::sonarCallback, this);
+	//scan_sub_ = n.subscribe<sensor_msgs::LaserScan> ("/scan", 100, &ForceField::scanCallback, this);
         std::cout << "out" << std::endl;
     };
 
 
     void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
-        //std::cout << *msg << std::endl;
+        std::cout << "In the slaveOdometryCallback"  << std::endl;
 
         contour_data_msg.robot_pose=*msg;
+	
     }
 
 
@@ -183,7 +185,7 @@ public:
         // find the repulsive force and publish it to rqt plot NOT to Rviz // it should be the gradiant of the resulting risk vector
         // there are two ways to find the final avoidance vector
         // 1- taking the graident of each risk vector and some it together ( this what I am doing because I dont know how to do the other one )
-        // 2- getting the risk vectors and sumimg them to the resulting risk vector then finding the force feedback (HOW) ?
+        // 2- getting the risk vectors and sumimg them to the resulting risk vector then finding the force feedback 
         // Now we have a resulting force according to # 1 and it needs to be send to the phantom Omni device
 
         previous_potential_field=potential_field;
@@ -278,7 +280,7 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "base_link";
+        marker.header.frame_id = "/Pioneer3AT/base_link";
         marker.header.stamp = ros::Time::now();
         marker.id = id;
         if(id==0)
@@ -335,66 +337,14 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
-    {
-        std::cout << "scan callback start ###" << std::endl;
-	if(!listener_.waitForTransform(
-        scan->header.frame_id,"/base_link",
-        scan->header.stamp + ros::Duration().fromSec(scan->ranges.size()*scan->time_increment),
-        ros::Duration(1.0))){return;}
-
-  	sensor_msgs::PointCloud cloud;
- 	projector_.transformLaserScanToPointCloud("/base_link",*scan,cloud,listener_);
-
-	
-	obstacles_positions_current.clear();
-        for(int i=0; i< cloud.points.size(); ++i)
-        {
-            Eigen::Vector3d obstacle(cloud.points[i].x,cloud.points[i].y,0.0);
-            std::cout << "laser_max_distanse" << laser_max_distance << std::endl ;
-            std::cout << "obstacle.norm" << obstacle.norm() << std::endl ;
-            if(obstacle.norm()<laser_max_distance-0.01)
-                //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
-            {
-                std::cout << " filling the obstacles " << std::endl ;
-                //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
-                obstacles_positions_current.push_back(obstacle);
-            }
-        }
-
-        if(!init_flag)
-        {
-            ROS_INFO("HELLO");
-            init_flag=true;
-            obstacles_positions_previous=obstacles_positions_current;
-            return;
-        }
-        //ROS_INFO_STREAM("obstacles:" << obstacles_positions.size());
-        //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
-        //  if ( obstacles_new_readings=true)
-        if(obstacles_positions_current.size()>0)
-        {
-            computePotentialField();
-
-            // odometry_new_readings=false;
-            obstacles_new_readings=false;
-        }
-        else
-            std::cout << " SCAN NO CALL " << std::endl ;
-
-        feedbackMaster();
-        obstacles_positions_previous=obstacles_positions_current;
-        std::cout << "scan callback end ***" << std::endl;
-
-    }
-
-
+ 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
     {
         std::cout << "sonar callback start **** " << std::endl;
+
         obstacles_positions_current.clear();
         for(int i=0; i< msg->points.size(); ++i)
         {
@@ -506,7 +456,9 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(freq);
 
-    std::string pose_topic_name = "/RosAria/pose" ;
+    //std::string pose_topic_name = "/RosAria/pose" ;
+      std::string pose_topic_name = "/Pioneer3AT/pose";
+
     std::string sonar_topic_name = "/RosAria/sonar";
 
     ForceField potential_field(n, freq, ro, kp, kd, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);

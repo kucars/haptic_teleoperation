@@ -142,6 +142,13 @@ target_link_libraries(potential_field
 )
 
 
+add_executable(laser2pointcloud src/laser2pointcloud.cpp)
+add_dependencies(laser2pointcloud ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(laser2pointcloud
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
+
 #add_executable(controller_ros src/ControllerRos.cpp)
 #add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
 #target_link_libraries(controller_ros
