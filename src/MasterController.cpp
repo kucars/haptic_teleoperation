@@ -51,7 +51,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
 
     // Slave pose and velocity subscriber
-    slave_sub = n.subscribe("/RosAria/pose", 1, &MasterController::slaveOdometryCallback, this);
+    slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this);
 }
 
 void MasterController::initParams()
