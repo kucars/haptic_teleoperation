@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   message_generation
   laser_geometry
+  gazebo_msgs
  )
 
 ## System dependencies are found with CMake's conventions
@@ -75,7 +76,7 @@ generate_dynamic_reconfigure_options(
 #   Service2.srv
 # )
 
-## Generate actions in the 'action' folder
+## Generate actions in the 'action' folder  nav_msgs
 # add_action_files(
 #   FILES
 #   Action1.action
@@ -100,7 +101,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rosaria_nav
-  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs
+  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs gazebo_msgs
 #  DEPENDS system_lib
 )
 
@@ -153,6 +154,13 @@ add_executable(controller_ros src/ControllerRos.cpp)
 add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
 target_link_libraries(controller_ros
    controller
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
+
+add_executable(ModelState src/ModelState.cpp)
+add_dependencies(ModelState ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(ModelState
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
 )
