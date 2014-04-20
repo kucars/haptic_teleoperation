@@ -44,7 +44,7 @@ public:
         //  param_server.setCallback(param_callback_type);
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/Pioneer3At/cmd_vel", 1);
+        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
         //    resulting_risk_vector_pub = n.advertise<geometry_msgs::Twist>( "/potential_field/resulting_risk_vector", 1);
         repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
 

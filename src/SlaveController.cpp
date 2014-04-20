@@ -47,13 +47,13 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     //slave_server.setCallback(slave_callback_type);
 
     // Feedback publish
-    cmd_pub = n.advertise<geometry_msgs::Twist>("/Pioneer3AT/cmd_vel", 1);
+    cmd_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 
     // Master joint states subscriber
     master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveController::masterJointsCallback, this);
 
     // Slave pose and velocity subscriber
-    slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &SlaveController::slaveOdometryCallback, this);
+    slave_sub = n.subscribe("/pose", 1, &SlaveController::slaveOdometryCallback, this);
 }
 
 void SlaveController::initParams()

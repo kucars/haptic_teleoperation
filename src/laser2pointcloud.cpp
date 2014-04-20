@@ -17,7 +17,7 @@ public:
   LaserScanToPointCloud(ros::NodeHandle n): 
     n_(n),
    // laser_sub_(n_, "base_scan", 10),
-    laser_sub_(n_, "/Pioneer3AT/laserscan", 10),
+    laser_sub_(n_, "laserscan", 10),
     laser_notifier_(laser_sub_,listener_, "/Pioneer3AT/base_link", 10)
   	{
    	 	laser_notifier_.registerCallback(
