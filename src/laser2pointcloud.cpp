@@ -17,13 +17,13 @@ public:
   LaserScanToPointCloud(ros::NodeHandle n): 
     n_(n),
    // laser_sub_(n_, "base_scan", 10),
-    laser_sub_(n_, "laserscan", 10),
-    laser_notifier_(laser_sub_,listener_, "/Pioneer3AT/base_link", 10)
+    laser_sub_(n_, "laserscan", 1),
+    laser_notifier_(laser_sub_,listener_, "/Pioneer3AT/base_link", 1)
   	{
    	 	laser_notifier_.registerCallback(
     	 	boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
-   		laser_notifier_.setTolerance(ros::Duration(0.01));
-   		scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",1);
+        laser_notifier_.setTolerance(ros::Duration(0.01));// 0.01
+        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",1);
   	}
 
   void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in)
@@ -51,9 +51,17 @@ int main(int argc, char** argv)
   
   ros::init(argc, argv, "my_scan_to_cloud");
   ros::NodeHandle n;
+  ros::NodeHandle n_priv("~");
+  double freq;
+  n_priv.param<double>("frequency", freq, 10.0);
+  ros::Rate loop_rate(freq);
+
   LaserScanToPointCloud lstopc(n);
   
-  ros::spin();
-  
+  while(ros::ok())
+  {
+      ros::spinOnce();
+      loop_rate.sleep();
+  }
   return 0;
 }

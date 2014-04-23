@@ -15,11 +15,15 @@
   </node>
 
 
-  <!--<node name="force_field" pkg="navigation" type="force_field" output="screen">
+  <node name="force_field" pkg="navigation" type="force_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
     <remap from="/cmd_vel" to="/RosAria/cmd_vel"/>
-  </node>-->
+  </node>
 
+ <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" output="screen">
+    <remap from="/laserscan" to="/Pioneer3AT/laserscan"/>
+    <remap from="base_link" to="/Pioneer3AT/base_link"/>
+  </node>
 
   <!--<node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" output="screen"/>-->
   <!--<node name="rviz" pkg="rviz" type="rviz" args="-d $(find navigation)/rviz/config.rviz" required="true" />-->

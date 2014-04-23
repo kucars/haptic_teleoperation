@@ -27,6 +27,7 @@ public:
     bool obstacles_new_readings;
     bool odometry_new_readings;
     double gain;
+    std::vector<double> robot_position;
 
     ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) : n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_), odometry_new_readings(false), obstacles_new_readings(false)
     {
@@ -40,8 +41,7 @@ public:
                 0, kd.y(), 0,
                 0, 0, kd.z();
 
-        //  param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
-        //  param_server.setCallback(param_callback_type);
+
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
         velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
@@ -72,10 +72,10 @@ public:
 
     void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
+
         std::cout << "In the slaveOdometryCallback"  << std::endl;
 
         contour_data_msg.robot_pose=*msg;
-	
     }
 
 
@@ -119,6 +119,11 @@ public:
             contour_data_msg.obstacles_velocities.twist_array.push_back(twist_msg_obstacle_velocity);
 
             potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
+        }
+        // resolution
+        for ( int i = 0; i < aux_it ; i++)
+        {
+            potential_field[i]=potential_field[i] / aux_it ;
         }
         std::cout << "potential callback ..." << std::endl;
 
@@ -356,6 +361,18 @@ private:
             {
                 std::cout << " filling the obstacles " << std::endl ;
                 //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
+                // Condition for testing ( we only send one point )
+                // define the dalta
+//                float Delta = 0.00001 ;
+
+//                for ( int i =0; i < obstacles_positions_current.size() ; i++)
+//                {
+//                    if (fabs(obstacles_positions_current[i].x() - contour_data_msg.robot_pose.pose.pose.position.x) < Delta )
+
+//                        obstacle = obstacles_positions_current[i] ;
+//                }
+
+
                 obstacles_positions_current.push_back(obstacle);
             }
         }

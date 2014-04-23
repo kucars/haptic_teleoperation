@@ -33,14 +33,14 @@ public:
         param_server.setCallback(param_callback_type);
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
-        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/RosAria/cmd_vel", 1);
+        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
         repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
 
         force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
 
         init_flag=false;
 
-        obstacle_readings_sub = n.subscribe(sonar_topic_name, 1, &ForceField::sonarCallback, this);
+        obstacle_readings_sub = n.subscribe("cloud", 1, &ForceField::sonarCallback, this);
     };
 
     void computeForceField()
@@ -60,6 +60,7 @@ public:
         for(int i=0; i<aux_it; ++i)
         {
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
+            force_field[i] = force_field[i] / aux_it ;
             resulting_force+=force_field[i];
         }
         //std::cout << "resulting force: " << resulting_force.transpose() << std::endl;
@@ -168,7 +169,7 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "base_link";
+        marker.header.frame_id = "Pioneer3AT/base_link";
         marker.header.stamp = ros::Time();
         marker.id = id;
         if(id==0)
