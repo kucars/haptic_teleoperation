@@ -17,8 +17,8 @@ public:
   LaserScanToPointCloud(ros::NodeHandle n): 
     n_(n),
    // laser_sub_(n_, "base_scan", 10),
-    laser_sub_(n_, "laserscan", 1),
-    laser_notifier_(laser_sub_,listener_, "/Pioneer3AT/base_link", 1)
+    laser_sub_(n_, "/laserscan", 1),
+    laser_notifier_(laser_sub_,listener_, "/base_link", 1)
   	{
    	 	laser_notifier_.registerCallback(
     	 	boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
@@ -32,7 +32,7 @@ public:
     try
     {
         projector_.transformLaserScanToPointCloud(
-          "/Pioneer3AT/base_link",*scan_in, cloud,listener_);
+          "/base_link",*scan_in, cloud,listener_);
     }
     catch (tf::TransformException& e)
     {

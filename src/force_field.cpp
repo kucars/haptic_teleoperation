@@ -33,7 +33,7 @@ public:
         param_server.setCallback(param_callback_type);
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
-        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
+        //velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
         repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
 
         force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
@@ -91,7 +91,7 @@ private:
     ros::NodeHandle n;
 
     ros::Subscriber obstacle_readings_sub;
-    ros::Publisher velocity_cmd_pub;
+    //ros::Publisher velocity_cmd_pub;
     ros::Publisher visualization_markers_pub;
     ros::Publisher force_out;
     ros::Publisher repulsive_force_out;
@@ -261,7 +261,7 @@ private:
     }
 
     // AUTONOMOUS CASE
-    void feedbackSlave()
+    /*void feedbackSlave()
     {
         // Compute linear velocity (x velocity)
         ros::Time current_time=ros::Time::now();
@@ -278,7 +278,7 @@ private:
         twist_msg.linear.x=linear_speed;
         twist_msg.angular.z=angular_speed;
         velocity_cmd_pub.publish(twist_msg);
-    }
+    }*/
 
     void feedbackMaster()
     {

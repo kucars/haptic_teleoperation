@@ -51,7 +51,9 @@ MasterController::MasterController(ros::NodeHandle & n_,
     master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
 
     // Slave pose and velocity subscriber
-    slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this);
+  //  slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
+    slave_sub = n.subscribe("/ground_truth_to_tf/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+
 }
 
 void MasterController::initParams()

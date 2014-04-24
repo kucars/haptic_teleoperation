@@ -44,11 +44,11 @@ public:
 
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-        velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
-        //    resulting_risk_vector_pub = n.advertise<geometry_msgs::Twist>( "/potential_field/resulting_risk_vector", 1);
-        repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
+        //velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
 
-        obstacle_velocities_pub = n.advertise<navigation::TwistArray>("/obstacles_velocities", 1);
+       // repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
+
+      //  obstacle_velocities_pub = n.advertise<navigation::TwistArray>("/obstacles_velocities", 1);
 
         // potential_out =  n.advertise<std_msgs::Int32MultiArray>("/potential_field/points", 100);
 
@@ -58,11 +58,11 @@ public:
         init_flag=false;
 
         force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
-        contour_out = n.advertise<navigation::ContourData>( "/contour_data", 1);
+        //contour_out = n.advertise<navigation::ContourData>( "/contour_data", 1);
 
 
         init_flag=false;
-        robot_odometry_sub = n.subscribe(pose_topic_name, 1, &ForceField::slaveOdometryCallback, this);
+        robot_odometry_sub = n.subscribe("pose", 1, &ForceField::slaveOdometryCallback, this);
 	//cout << "
         obstacle_readings_sub = n.subscribe("cloud",1, &ForceField::sonarCallback, this);
 	//scan_sub_ = n.subscribe<sensor_msgs::LaserScan> ("/scan", 100, &ForceField::scanCallback, this);
@@ -169,21 +169,20 @@ public:
         twist_msg_resulting_force.linear.y=resulting_force.y();
         //  twist_msg_resulting_force.linear.z=resulting_force.z();
 
-        repulsive_force_out_pub.publish(twist_msg_resulting_force);
+        //repulsive_force_out_pub.publish(twist_msg_resulting_force);
 
 
-        obstacle_velocities_pub.publish(twist_msg_obstacle_velocities);
+        //obstacle_velocities_pub.publish(twist_msg_obstacle_velocities);
 
 
         // Publish visual markers to see in rviz
-        ROS_INFO("ENTROU2");
 
         visualization_msgs::MarkerArray marker_array=rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_risk_vector, Eigen::Vector3d(0,0,0), 0, std::string("resulting_risk_vector"));
         marker_array.markers.push_back(marker);
         contour_data_msg.potential_field=marker;
 
-        contour_out.publish(contour_data_msg);
+        //contour_out.publish(contour_data_msg);
 
         visualization_markers_pub.publish(marker_array);
 
@@ -224,7 +223,7 @@ private:
     ros::NodeHandle n;
     ros::Subscriber robot_odometry_sub;
     ros::Subscriber obstacle_readings_sub;
-    ros::Publisher velocity_cmd_pub;
+    //ros::Publisher velocity_cmd_pub;
     ros::Publisher contour_out;
     ros::Publisher visualization_markers_pub;
 
@@ -233,7 +232,7 @@ private:
     ros::Publisher potential_out ;
     ros::Publisher repulsive_force_out_pub ;
     ros::Publisher obstacle_velocities_pub;
-    //  ros::Publisher resulting_risk_vector_pub ;
+    //ros::Publisher resulting_risk_vector_pub ;
 
     std::string pose_topic_name;
     std::string sonar_topic_name;
@@ -285,7 +284,9 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "/Pioneer3AT/base_link";
+        // marker.header.frame_id = "/Pioneer3AT/base_link"; // for pioneer
+        marker.header.frame_id = "/base_link";
+
         marker.header.stamp = ros::Time::now();
         marker.id = id;
         if(id==0)
@@ -404,7 +405,7 @@ private:
     }
 
     // AUTONOMOUS CASE
-    void feedbackSlave()
+    /*void feedbackSlave()
     {
         // Compute linear velocity (x velocity)
         double linear_speed=resulting_force.x()/(freq*robot_mass); // LINEAR SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN X (normal component)
@@ -414,7 +415,7 @@ private:
         twist_msg.linear.x=linear_speed;
         twist_msg.angular.z=angular_speed;
         velocity_cmd_pub.publish(twist_msg);
-    }
+    }*/
 
     void feedbackMaster()
     {
@@ -474,7 +475,9 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(freq);
 
     //std::string pose_topic_name = "/RosAria/pose" ;
-      std::string pose_topic_name = "/Pioneer3AT/pose";
+
+     // std::string pose_topic_name = "/Pioneer3AT/pose"; // for pioneer
+      std::string pose_topic_name = "/ground_truth_to_tf/pose";
 
     std::string sonar_topic_name = "/RosAria/sonar";
 
