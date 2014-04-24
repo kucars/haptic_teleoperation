@@ -12,21 +12,23 @@
 
 class ModelState{
 public: 
-	ros::NodeHandle n_;
-  	ModelState(ros::NodeHandle n)
+	ros::NodeHandle n_, n_priv_;
+
+  	ModelState(ros::NodeHandle & n) : n_(n), n_priv_("~")
   	{
-   	 	
-	        nav_msgs_sub = n.subscribe("/RosAria/pose",1, &ModelState::positionCallback, this);
-   		model_state_pub = n.advertise<gazebo_msgs::ModelState>("/gazebo_server/set_model_state", 1);
+   	 	n_priv_.param<std::string>("model_name", model_name , "quadrotor");
+	        nav_msgs_sub = n_.subscribe("/pose",1, &ModelState::positionCallback, this);
+   		model_state_pub = n_.advertise<gazebo_msgs::ModelState>("/set_model_state", 1);
   	};
 
 
 private:
   ros::Publisher model_state_pub ; 
   ros::Subscriber nav_msgs_sub;
- void positionCallback (const nav_msgs::Odometry::ConstPtr& msg )
+  std::string model_name;
+  void positionCallback (const nav_msgs::Odometry::ConstPtr& msg )
   {
-std::cout << "In the call function" << std::endl ; 
+	std::cout << "In the call function" << std::endl ; 
 	//gazebo_msgs::ModelState model; 
 	// filling the msgs 	
 	geometry_msgs::Pose start_pose;
@@ -47,7 +49,7 @@ std::cout << "In the call function" << std::endl ;
         start_twist.angular.z = msg->twist.twist.angular.z;
 
         gazebo_msgs::ModelState modelstate;
-        modelstate.model_name = (std::string) "Pioneer3AT";
+        modelstate.model_name = model_name;
         modelstate.reference_frame = (std::string) "world";
         modelstate.pose = start_pose;
         modelstate.twist = start_twist;
