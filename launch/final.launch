@@ -2,7 +2,7 @@
 <launch>
   <arg name="force_or_potential" /> 
   <arg name="cmd_vel_topic" value="/cmd_vel" /> 
-  <arg name="pose_topic" value="/ground_truth_to_tf/pose" />
+  <arg name="pose_topic" value="/ground_truth/state" />
   <arg name="laser_scan_topic" value="/scan" />
 
  <!-- Run the slave controller  -->
