@@ -421,9 +421,12 @@ private:
     {
         // WEIRD MAPPING!!!
         phantom_omni::OmniFeedback force_feedback;
-        force_feedback.force.x=resulting_force.y();
-        force_feedback.force.y=resulting_force.z();
-        force_feedback.force.z=resulting_force.x();
+        force_feedback.force.x=resulting_risk_vector.y();
+        force_feedback.force.y=resulting_risk_vector.z();
+        force_feedback.force.z=resulting_risk_vector.x();
+       // force_feedback.force.x=resulting_force.y();
+        //force_feedback.force.y=resulting_force.z();
+        //force_feedback.force.z=resulting_force.x();
         force_out.publish(force_feedback);
     }
 };

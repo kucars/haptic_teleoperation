@@ -1,14 +1,11 @@
+<?xml version="1.0"?>
+
 <launch>
-<!-- Start Gazebo with wg world running in (max) realtime -->
-<include file="$(find navigation)/launch/rolling_landscape_120m.launch"/>
 
+  <!-- Start Gazebo with wg world running in (max) realtime -->
+  <include file="$(find navigation)/launch/box.launch"/>
 
-
-<!--	<node pkg="gazebo_ros" type="gzserver" name="gazebo_server" 
-	<node pkg="gazebo_ros" type="gzserver" name="gazebo_server" 
-	      args="$(find pioneer3at)/config/gazebo/world2.sdf"/>
--->
-<!-- Spawn simulated quadrotor uav -->
+  <!-- Spawn simulated quadrotor uav -->
 <include file="$(find hector_quadrotor_gazebo)/launch/spawn_quadrotor.launch">
   <arg name="x" value="0.0"/>
   <arg name="y" value="0.0"/>

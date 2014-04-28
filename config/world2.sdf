@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <sdf version='1.4'>
   <world name='default'>
     <light name='sun' type='directional'>
@@ -72,44 +73,6 @@
       <background>0.7 0.7 0.7 1</background>
       <shadows>1</shadows>
     </scene>
-    <model name='willowgarage'>
-      <static>1</static>
-      <pose>-20 -20 0 0 -0 0</pose>
-      <link name='walls'>
-        <collision name='collision'>
-          <geometry>
-            <mesh>
-              <uri>model://willowgarage/meshes/willowgarage_collision.dae</uri>
-            </mesh>
-          </geometry>
-          <surface>
-            <bounce/>
-            <friction>
-              <ode/>
-            </friction>
-            <contact>
-              <ode/>
-            </contact>
-          </surface>
-          <max_contacts>10</max_contacts>
-        </collision>
-        <visual name='visual'>
-          <geometry>
-            <mesh>
-              <uri>model://willowgarage/meshes/willowgarage_visual.dae</uri>
-            </mesh>
-          </geometry>
-          <cast_shadows>0</cast_shadows>
-        </visual>
-        <velocity_decay>
-          <linear>0</linear>
-          <angular>0</angular>
-        </velocity_decay>
-        <self_collide>0</self_collide>
-        <kinematic>0</kinematic>
-        <gravity>1</gravity>
-      </link>
-    </model>
     <state world_name='default'>
       <sim_time>1147 329000000</sim_time>
       <real_time>194 930754470</real_time>
