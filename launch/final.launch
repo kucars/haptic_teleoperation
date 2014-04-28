@@ -2,7 +2,7 @@
 <launch>
   <arg name="force_or_potential" /> 
   <arg name="cmd_vel_topic" value="/cmd_vel" /> 
-  <arg name="pose_topic" value="/ground_truth_to_tf/pose" />
+  <arg name="pose_topic" value="/ground_truth/state" />
   <arg name="laser_scan_topic" value="/scan" />
 
  <!-- Run the slave controller  -->
@@ -19,6 +19,7 @@
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
+    <remap from="/ground_truth_to_tf/pose" to="$(arg pose_topic)"/>  
   </node>
 
  <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
@@ -32,7 +33,7 @@
  <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
   <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
-    <remap from="/pose" to="$(arg pose_topic)"/> 
+    <remap from="pose" to="$(arg pose_topic)"/> 
 
   </node>
 </group>
@@ -41,6 +42,8 @@
 <node name="force_field" pkg="navigation" type="force_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
     <remap from="/cmd_vel" to="$(arg cmd_vel_topic)"/> 
+    <remap from="/RosAria/pose" to="$(arg pose_topic)"/> 
+    <remap from="/RosAria/sonar" to="/cloud"/> 
   </node>
 
 </group>
