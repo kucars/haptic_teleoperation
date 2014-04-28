@@ -1,0 +1,5 @@
+<launch>
+<include file="$(find navigation)/launch/start.launch">
+<arg name="world" value="$(find navigation)/config/world2.sdf"/>
+</include>
+</launch>
