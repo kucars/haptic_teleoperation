@@ -13,6 +13,9 @@
 #include <navigation/ContourData.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
+#include <navigation/potential_fieldConfig.h>
+
+
 using namespace std ; 
 navigation::ContourData contour_data_msg;
 const double PI=3.14159265359;
@@ -20,8 +23,8 @@ const double PI=3.14159265359;
 class ForceField
 {
 public:
-     //   dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
-     //  dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
+       dynamic_reconfigure::Server<navigation::potential_fieldConfig> param_server;
+       dynamic_reconfigure::Server<navigation::potential_fieldConfig>::CallbackType param_callback_type;
     std::vector<double> previous_potential_field;
     ros::Time previous_time;
     bool obstacles_new_readings;
@@ -29,22 +32,23 @@ public:
     double gain;
     std::vector<double> robot_position;
 
-    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) : n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_), odometry_new_readings(false), obstacles_new_readings(false)
+    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_, double & gain_ ,  Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) : n(n_), freq(freq_), ro(ro_), gain(gain_),  kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_), odometry_new_readings(false), obstacles_new_readings(false)
     {
         std::cout << "new force field object" << std::endl;
 
-        //param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
-        //param_server.setCallback(param_callback_type);
 
         gain=1.0;
         a_max=1.0;
+        /*
         kp_mat << kp.x(), 0, 0,
                 0, kp.y(), 0,
                 0, 0, kp.z();
         kd_mat << kd.x(), 0, 0,
                 0, kd.y(), 0,
-                0, 0, kd.z();
+                0, 0, kd.z();*/
 
+        param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
+        param_server.setCallback(param_callback_type);
 
 
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
@@ -272,34 +276,29 @@ private:
 
     // subscriber 
     ros::Subscriber scan_sub_;
-    void paramsCallback(navigation::ForceFieldConfig &config, uint32_t level)
+    void paramsCallback(navigation::potential_fieldConfig &config, uint32_t level)
     {
-        ROS_DEBUG_STREAM("Force field reconfigure Request ->" << " kp_x:" << config.kp_x
-                         << " kp_y:" << config.kp_y
-                         << " kp_z:" << config.kp_z
-                         << " kd_x:" << config.kd_x
-                         << " kd_y:" << config.kd_y
-                         << " kd_z:" << config.kd_z
-                         << " ro:"   << config.ro);
+      //  ROS_DEBUG_STREAM("Force field reconfigure Request ->" << " gain:" << config.gain);
 
-        kp << config.kp_x,
-                config.kp_y,
-                config.kp_z;
+        gain = config.gain ;
+//        kp << config.kp_x,
+//                config.kp_y,
+//                config.kp_z;
 
-        kd << config.kd_x,
-                config.kd_y,
-                config.kd_z;
+//        kd << config.kd_x,
+//                config.kd_y,
+//                config.kd_z;
 
-        kp_mat << kp.x(), 0, 0,
-                0, kp.y(), 0,
-                0, 0, kp.z();
-        kd_mat << kd.x(), 0, 0,
-                0, kd.y(), 0,
-                0, 0, kd.z();
+//        kp_mat << kp.x(), 0, 0,
+//                0, kp.y(), 0,
+//                0, 0, kp.z();
+//        kd_mat << kd.x(), 0, 0,
+//                0, kd.y(), 0,
+//                0, 0, kd.z();
 
-        ro = config.ro;
+//        ro = config.ro;
 
-        laser_max_distance = config.laser_max_distance;
+//        laser_max_distance = config.laser_max_distance;
         //slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_workspace_size.x/config.slave_workspace_size.x), fabs(config.master_workspace_size.y/config.slave_workspace_size.y), fabs(config.master_workspace_size.z/config.slave_workspace_size.z));
     }
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const Eigen::Vector3d & arrow_origin, int id, std::string name_space )
@@ -431,7 +430,7 @@ private:
         else
             std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ;
 
-        feedbackMaster();
+     //   feedbackMaster();
         obstacles_positions_previous=obstacles_positions_current;
         std::cout << "sonar callback end ***" << std::endl;
 
@@ -478,6 +477,7 @@ int main(int argc, char **argv)
     double freq;
     double robot_mass;
     double robot_radius;
+    double gain;
 
     double kp_x;
     double kp_y;
@@ -506,6 +506,8 @@ int main(int argc, char **argv)
     n_priv.param<double>("acc_max", a_max, 1.0);
     n_priv.param<double>("robot_mass", robot_mass, 1.0);
     n_priv.param<double>("robot_radius", robot_radius, 0.2);
+    n_priv.param<double>("gain", gain, 1.0);
+
 
 
     ros::Rate loop_rate(freq);
@@ -517,7 +519,7 @@ int main(int argc, char **argv)
 
     std::string sonar_topic_name = "/RosAria/sonar";
 
-    ForceField potential_field(n, freq, ro, kp, kd, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
+    ForceField potential_field(n, freq, ro,gain, kp, kd, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
     while(ros::ok())
     {
         ros::spinOnce();
