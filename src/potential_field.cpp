@@ -20,8 +20,8 @@ const double PI=3.14159265359;
 class ForceField
 {
 public:
-    //    dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
-    //   dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
+     //   dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
+     //  dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
     std::vector<double> previous_potential_field;
     ros::Time previous_time;
     bool obstacles_new_readings;
@@ -32,6 +32,10 @@ public:
     ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) : n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_), odometry_new_readings(false), obstacles_new_readings(false)
     {
         std::cout << "new force field object" << std::endl;
+
+        //param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
+        //param_server.setCallback(param_callback_type);
+
         gain=1.0;
         a_max=1.0;
         kp_mat << kp.x(), 0, 0,
@@ -268,7 +272,36 @@ private:
 
     // subscriber 
     ros::Subscriber scan_sub_;
+    void paramsCallback(navigation::ForceFieldConfig &config, uint32_t level)
+    {
+        ROS_DEBUG_STREAM("Force field reconfigure Request ->" << " kp_x:" << config.kp_x
+                         << " kp_y:" << config.kp_y
+                         << " kp_z:" << config.kp_z
+                         << " kd_x:" << config.kd_x
+                         << " kd_y:" << config.kd_y
+                         << " kd_z:" << config.kd_z
+                         << " ro:"   << config.ro);
 
+        kp << config.kp_x,
+                config.kp_y,
+                config.kp_z;
+
+        kd << config.kd_x,
+                config.kd_y,
+                config.kd_z;
+
+        kp_mat << kp.x(), 0, 0,
+                0, kp.y(), 0,
+                0, 0, kp.z();
+        kd_mat << kd.x(), 0, 0,
+                0, kd.y(), 0,
+                0, 0, kd.z();
+
+        ro = config.ro;
+
+        laser_max_distance = config.laser_max_distance;
+        //slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_workspace_size.x/config.slave_workspace_size.x), fabs(config.master_workspace_size.y/config.slave_workspace_size.y), fabs(config.master_workspace_size.z/config.slave_workspace_size.z));
+    }
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const Eigen::Vector3d & arrow_origin, int id, std::string name_space )
     {
         Eigen::Quaternion<double> rotation;

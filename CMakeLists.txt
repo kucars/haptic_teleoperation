@@ -26,6 +26,7 @@ generate_dynamic_reconfigure_options(
   cfg/MasterController.cfg
   cfg/SlaveController.cfg
   cfg/ForceField.cfg
+  cfg/potential_field.cfg
 
   #...
 )
