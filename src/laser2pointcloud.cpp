@@ -1,6 +1,8 @@
 #include "ros/ros.h"
 #include "tf/transform_listener.h"
 #include "sensor_msgs/PointCloud.h"
+#include "sensor_msgs/PointCloud2.h"
+
 #include "tf/message_filter.h"
 #include "message_filters/subscriber.h"
 #include "laser_geometry/laser_geometry.h"
@@ -11,6 +13,7 @@ public:
   laser_geometry::LaserProjection projector_;
   tf::TransformListener listener_;
   message_filters::Subscriber<sensor_msgs::LaserScan> laser_sub_;
+ // ros::Publisher point_cloud_publisher_ ;
   tf::MessageFilter<sensor_msgs::LaserScan> laser_notifier_;
   ros::Publisher scan_pub_;
 
@@ -23,16 +26,22 @@ public:
    	 	laser_notifier_.registerCallback(
     	 	boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
         laser_notifier_.setTolerance(ros::Duration(0.01));// 0.01
-        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",1);
+        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("/cloud",1);
+      //  point_cloud_publisher_ = n_.advertise<sensor_msgs::PointCloud2> ("/cloud_in", 1);
+
   	}
 
   void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in)
   {
     sensor_msgs::PointCloud cloud;
+    sensor_msgs::PointCloud2 cloud2;
+
     try
     {
         projector_.transformLaserScanToPointCloud(
           "/base_link",*scan_in, cloud,listener_);
+      //  projector_.transformLaserScanToPointCloud("/base_link", *scan_in, cloud2, listener_);
+
     }
     catch (tf::TransformException& e)
     {

@@ -26,14 +26,16 @@
   <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" output="screen">
 	<remap from="/laserscan" to="$(arg laser_scan_topic)"/>
         <remap from="/base_link" to="base_link"/>
+  	
   </node>
-
+ 
 <group if="$(arg force_or_potential)">
 
  <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
   <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
     <remap from="pose" to="$(arg pose_topic)"/> 
+
 
   </node>
 </group>

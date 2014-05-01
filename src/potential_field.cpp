@@ -39,13 +39,13 @@ public:
 
         gain=1.0;
         a_max=1.0;
-        /*
+
         kp_mat << kp.x(), 0, 0,
                 0, kp.y(), 0,
                 0, 0, kp.z();
         kd_mat << kd.x(), 0, 0,
                 0, kd.y(), 0,
-                0, 0, kd.z();*/
+                0, 0, kd.z();
 
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
@@ -72,7 +72,7 @@ public:
         init_flag=false;
         robot_odometry_sub = n.subscribe("pose", 1, &ForceField::slaveOdometryCallback, this);
 	//cout << "
-        obstacle_readings_sub = n.subscribe("cloud",1, &ForceField::sonarCallback, this);
+        obstacle_readings_sub = n.subscribe("/cloud",1, &ForceField::sonarCallback, this);
 	//scan_sub_ = n.subscribe<sensor_msgs::LaserScan> ("/scan", 100, &ForceField::scanCallback, this);
         std::cout << "out" << std::endl;
     };
@@ -430,7 +430,7 @@ private:
         else
             std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ;
 
-     //   feedbackMaster();
+        feedbackMaster();
         obstacles_positions_previous=obstacles_positions_current;
         std::cout << "sonar callback end ***" << std::endl;
 
