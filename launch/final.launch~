@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="force_or_potential" /> 
+  <arg name="cmd_vel_topic" value="/cmd_vel" /> 
+  <arg name="pose_topic" value="/ground_truth/state" />
+  <arg name="laser_scan_topic" value="/scan" />
+
+ <!-- Run the slave controller  -->
+ <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
+    <remap from="/cmd_vel" to="$(arg cmd_vel_topic)"/> 
+    <remap from="/pose" to="$(arg pose_topic)"/>  
+  </node>
+
+ <!-- Run the master controller controller  -->
+  <node name="master_controller" pkg="navigation" type="controller_ros" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
+    <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
+    <remap from="/ground_truth_to_tf/pose" to="$(arg pose_topic)"/>  
+  </node>
+
+ <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
+  <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" output="screen">
+	<remap from="/laserscan" to="$(arg laser_scan_topic)"/>
+        <remap from="/base_link" to="base_link"/>
+  	
+  </node>
+ <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
+  <node name="laser2PC2" pkg="navigation" type="laser2PC2" output="screen">
+        <remap from="/base_link" to="/base_link"/>
+  	
+  </node>
+<group if="$(arg force_or_potential)">
+
+ <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
+  <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
+    <remap from="pose" to="$(arg pose_topic)"/> 
+
+
+  </node>
+</group>
+<group unless="$(arg force_or_potential)">
+ <!-- Run the force field node that find the envirnmental force that acts on the the robot -->
+<node name="force_field" pkg="navigation" type="force_field" output="screen">
+    <rosparam command="load" file="$(find navigation)/config/force_field_params.yaml" />
+    <remap from="/cmd_vel" to="$(arg cmd_vel_topic)"/> 
+    <remap from="/RosAria/pose" to="$(arg pose_topic)"/> 
+    <remap from="/RosAria/sonar" to="/cloud"/> 
+  </node>
+
+</group>
+ 
+
+</launch>
