@@ -1,0 +1,16 @@
+frequency: 10.0
+gain: 1.0
+mass: 1.0
+acc_max: 1.0
+robot_mass: 30.0
+robot_radius: 0.2
+#pid: {p: 100.0, i: 0.01, d: 10.0}
+kp_x: 1.0
+kp_y: 1.0
+kp_z: 1.0
+kd_x: 10.0
+kd_y: 10.0
+kd_z: 10.0
+ro: 2.0
+laser_max_distance: 5.2
+

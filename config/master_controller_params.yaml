@@ -1,0 +1,33 @@
+frequency: 10.0
+
+kp_x: 0.0
+kp_y: 0.0
+kp_z: 0.0
+kp_roll: 0.0
+kp_pitch: 0.0
+kp_yaw: 0.0
+
+kd_x: 1.0
+kd_y: 0.0
+kd_z: 0.0
+kd_roll: 0.0
+kd_pitch: 0.0
+kd_yaw: 0.1
+
+lambda_x: 1.0
+lambda_y: 1.0
+lambda_z: 1.0
+lambda_roll: 0.0
+lambda_pitch: 0.0
+lambda_yaw: 1.0
+
+bd_x: 0.0
+bd_y: 0.0
+bd_z: 0.0
+bd_roll: 0.0
+bd_pitch: 0.0
+bd_yaw: 0.1
+
+is_master: true
+
+

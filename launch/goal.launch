@@ -1,0 +1,3 @@
+<launch>
+<node pkg="tf" type="static_transform_publisher" name="gaol" args="10 0 0 0 0 0 world goal 100" />
+</launch>
