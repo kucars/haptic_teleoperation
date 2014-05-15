@@ -1,9 +1,19 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="force_or_potential" /> 
+  <!--<arg name="gv_or_mav" />  -->
+
+<!--<group if="$(arg gv_or_mav)"> -->
   <arg name="cmd_vel_topic" value="/cmd_vel" /> 
   <arg name="pose_topic" value="/ground_truth/state" />
   <arg name="laser_scan_topic" value="/scan" />
+<!--</group> -->
+
+<!--<group unless="$(arg gv_or_mav)">
+  <arg name="cmd_vel_topic" value="Pioneer3AT/cmd_vel" /> 
+  <arg name="pose_topic" value="Pioneer3AT/pose" />
+  <arg name="laser_scan_topic" value="/Pioneer3AT/laserscan" />
+</group>-->
 
  <!-- Run the slave controller  -->
  <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
@@ -35,8 +45,6 @@
   <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
     <remap from="pose" to="$(arg pose_topic)"/> 
-
-
   </node>
 </group>
 <group unless="$(arg force_or_potential)">

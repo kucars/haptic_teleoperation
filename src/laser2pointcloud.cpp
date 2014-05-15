@@ -2,7 +2,6 @@
 #include "tf/transform_listener.h"
 #include "sensor_msgs/PointCloud.h"
 #include "sensor_msgs/PointCloud2.h"
-
 #include "tf/message_filter.h"
 #include "message_filters/subscriber.h"
 #include "laser_geometry/laser_geometry.h"
@@ -34,21 +33,18 @@ public:
   void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in)
   {
     sensor_msgs::PointCloud cloud;
-    sensor_msgs::PointCloud2 cloud2;
-
+   // sensor_msgs::PointCloud2 cloud2;
     try
     {
         projector_.transformLaserScanToPointCloud(
           "/base_link",*scan_in, cloud,listener_);
       //  projector_.transformLaserScanToPointCloud("/base_link", *scan_in, cloud2, listener_);
-
     }
     catch (tf::TransformException& e)
     {
         std::cout << e.what();
         return;
     }
-    
 
     scan_pub_.publish(cloud);
 

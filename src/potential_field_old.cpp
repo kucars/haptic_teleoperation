@@ -44,16 +44,49 @@ public:
         kd_mat << kd.x(), 0, 0,
                 0, kd.y(), 0,
                 0, 0, kd.z();
+
+        // run time changing the parameter
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
+
+        // publishing marker arrays to be drawn in rviz
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-        feedback_pub = n.advertise<nav_msgs::Odometry>("/force_feedback", 1);
+
+        // we may need it for data collection and analysis ( becareful use different names for the topics)
+        // velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
+        // obstacle_velocities_pub = n.advertise<navigation::TwistArray>("/obstacles_velocities", 1);
+        // potential_out =  n.advertise<std_msgs::Int32MultiArray>("/potential_field/points", 100);
+                            // n.advertise<geometry_msgs::Twist>( "/potential_field/points", 1);
+        // repulsive_force_out_pub = n.advertise<geometry_msgs::Twist>("/potential_field/repulsive_force", 1);
+
 
         init_flag=false;
+        //publishing the environment force to the haptic device
+      //  force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+
+        // we created new msg that has specific type of data needed to draw a contour but it is not used right now
+        //contour_out = n.advertise<navigation::ContourData>( "/contour_data", 1);
+        // used for the contour msg
+       // robot_odometry_sub = n.subscribe("pose", 1, &ForceField::slaveOdometryCallback, this);
+        // subscribing the obstacle positions from the laser scan data ( this will give us the relative distance from the robot to the obstacle)
         obstacle_readings_sub = n.subscribe("/cloud",1, &ForceField::sonarCallback, this);
+        // from the position we take the linear derivative to find the velocity
+        // distance and velocity are needed for the potential function.
+        // NOTE: There is a mid point between the laser scan and this node ( node that conver laser data into pointcloud1 )
+        // this code originaly was implemented to take  data from sonar senser(which is pointcloud)
+        // the right way is to do directly like the following:
+         //scan_sub_ = n.subscribe<sensor_msgs::LaserScan> ("/scan", 100, &ForceField::scanCallback, this);
         std::cout << "end of the constructor" << std::endl;
     };
 
+/* This function reads the position of the robot to the world frame*/
+  //  void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+  //  {
+
+  //      std::cout << "In the slaveOdometryCallback"  << std::endl;
+
+ //       contour_data_msg.robot_pose=*msg;
+ //   }
 
 /* This function compute the potential field for each point and it sums all the points, then it takes the gradiant.
 It is only going to be called when the robot sence the exiatance of the obstacle */
@@ -61,32 +94,60 @@ It is only going to be called when the robot sence the exiatance of the obstacle
     void computePotentialField()
     {
         std::cout << "potential callback start 1" << std::endl;
+        // declare the potential field vector ( it will be an array that has all the potential field values for each point)
         std::vector<double> potential_field;
+        // defining the period to be used in the derivative
         ros::Time current_time=ros::Time::now();
         double period=current_time.toSec()-previous_time.toSec();
         previous_time=current_time;
+
+
         double threshold=0.2;
         if(period>threshold)
             return;
+
+        // for each obstacle compute velocity with respect to that object
         unsigned int aux_it;
         if(obstacles_positions_current.size()<=obstacles_positions_previous.size())
             aux_it=obstacles_positions_current.size();
         else
             aux_it=obstacles_positions_previous.size();
+
         std::vector<Eigen::Vector3d> current_v;
         current_v.resize(aux_it);
+       // navigation::TwistArray twist_msg_obstacle_velocities;
         contour_data_msg.obstacles_velocities.twist_array.clear();
         for(int i=0; i<aux_it; ++i)
         {
             current_v[i]=(obstacles_positions_current[i]-obstacles_positions_previous[i])/period;
+
+
             double velocity_sign=1.0;
             if(current_v[i].dot(Eigen::Vector3d::UnitX())<0)
                 velocity_sign=-1.0; // Moving away from the obstacle
+
+        //    geometry_msgs::Twist twist_msg_obstacle_velocity;
+         //   twist_msg_obstacle_velocity.linear.x=current_v[i].x();
+          //  twist_msg_obstacle_velocity.linear.y=current_v[i].y();
+
+           // twist_msg_obstacle_velocities.twist_array.push_back(twist_msg_obstacle_velocity);
+           // contour_data_msg.obstacles_velocities.twist_array.push_back(twist_msg_obstacle_velocity);
+
             potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
         }
+
+
+       // resolution
+       // for ( int i = 0; i < aux_it ; i++)
+       //  {
+       //    potential_field[i]=potential_field[i] / aux_it ;
+       //  }
         std::cout << "potential callback ..." << std::endl;
+
+        // Get risk vectors directions
         std::vector<Eigen::Vector3d> force_field;
         std::vector<Eigen::Vector3d> risk_vectors;
+
         if(potential_field.size()<=previous_potential_field.size())
             aux_it=potential_field.size();
         else
@@ -94,49 +155,66 @@ It is only going to be called when the robot sence the exiatance of the obstacle
 
         for(int i=0; i<aux_it; ++i)
         {
+
             double force_magnitude=(potential_field[i]-previous_potential_field[i])/period; // Gradient of the potential field
+            //std::cout << "force magnitute:"<< std::endl;
             risk_vectors.push_back(potential_field[i]*(obstacles_positions_current[i].normalized())) ;
+            //forces directions
             force_field.push_back(force_magnitude*(obstacles_positions_current[i].normalized()));
         }
         std::cout << "potential callback start###" << std::endl;
+
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+
         resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
 
         for(int i=0; i<risk_vectors.size(); ++i)
         {
+            // resulting force
             resulting_force+=force_field[i];
+            // std::cout << "force field" << std::endl  ;
+            //final risk vector
             resulting_risk_vector+=risk_vectors[i];
         }
-       // resulting_risk_vector = resulting_risk_vector / risk_vectors.size() ;
+//        resulting_risk_vector = resulting_risk_vector / risk_vectors.size() ;
         std::cout << "resulting_risk_vector " << std::endl ;
+
+        //std::cout << resulting_risk_vector << std::endl;
+
+        // We are not using it right now
+        // creat a msg and publish it for the repulsive force for x,y  directions // final risk vector is the potential field
+        //geometry_msgs::Twist twist_msg_resulting_force;
+        //twist_msg_resulting_force.linear.x= resulting_force.x();
+        //twist_msg_resulting_force.linear.y=resulting_force.y();
+        //twist_msg_resulting_force.linear.z=resulting_force.z();
+
+        //repulsive_force_out_pub.publish(twist_msg_resulting_force);
+
+
+        //obstacle_velocities_pub.publish(twist_msg_obstacle_velocities);
+
+
+        // Publish visual markers to see in rviz
         visualization_msgs::MarkerArray marker_array=rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_risk_vector, Eigen::Vector3d(0,0,0), 0, std::string("resulting_risk_vector"));
         marker_array.markers.push_back(marker);
+      //  contour_data_msg.potential_field=marker;
+
+        //contour_out.publish(contour_data_msg);
+
         visualization_markers_pub.publish(marker_array);
+
+        // find the repulsive force and publish it to rqt plot NOT to Rviz // it should be the gradiant of the resulting risk vector
+        // there are two ways to find the final avoidance vector
+        // 1- taking the graident of each risk vector and some it together ( this what I am doing because I dont know how to do the other one )
+        // 2- getting the risk vectors and sumimg them to the resulting risk vector then finding the force feedback 
+        // Now we have a resulting force according to # 1 and it needs to be send to the phantom Omni device
+
         previous_potential_field=potential_field;
 
-
-
-        nav_msgs::Odometry force_DIR;
-        //set the position
-        std::cout << "resulting_risk_vector" << resulting_risk_vector.x() << std::endl;
-        force_DIR.pose.pose.position.x =  resulting_risk_vector.y();
-        force_DIR.pose.pose.position.y =  resulting_risk_vector.z();
-        force_DIR.pose.pose.position.z =  resulting_risk_vector.x();
-        force_DIR.pose.pose.orientation.x = 0;
-        force_DIR.pose.pose.orientation.y = 0;
-        force_DIR.pose.pose.orientation.z = 0;
-        force_DIR.pose.pose.orientation.w = 1;
-
-        force_DIR.child_frame_id = "base_link";
-        force_DIR.twist.twist.linear.x = 0;
-        force_DIR.twist.twist.linear.y = 0;
-        force_DIR.twist.twist.angular.z = 0;
-
-        feedback_pub.publish(force_DIR);
     }
 
-
+    /* potential field function for each point */
     double getPotentialPoint(const double & d, const double & v_i, const double & a_max, const double & gain)
     {
 
@@ -156,12 +234,24 @@ It is only going to be called when the robot sence the exiatance of the obstacle
 private:
     // ROS
     ros::NodeHandle n;
+    // ros::Subscriber robot_odometry_sub;
     ros::Subscriber obstacle_readings_sub;
+    // ros::Publisher velocity_cmd_pub;
+    // ros::Publisher contour_out;
     ros::Publisher visualization_markers_pub;
-    ros::Publisher feedback_pub ;
+
+
+    //ros::Publisher force_out;
+ //   ros::Publisher potential_out ;
+  //  ros::Publisher repulsive_force_out_pub ;
+  //  ros::Publisher obstacle_velocities_pub;
+    //ros::Publisher resulting_risk_vector_pub ;
+
     std::string pose_topic_name;
     std::string sonar_topic_name;
+
     std::string velocity_cmd_topic_name;
+
     // Parameters
     double a_max;
     double ro;
@@ -194,7 +284,10 @@ private:
 
 
     void paramsCallback(navigation::potential_fieldConfig &config, uint32_t level)
-    { gain = config.gain ;}
+    {
+      //  ROS_DEBUG_STREAM("Force field reconfigure Request ->" << " gain:" << config.gain);
+        gain = config.gain ;
+    }
 
 
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const Eigen::Vector3d & arrow_origin, int id, std::string name_space )
@@ -268,6 +361,13 @@ private:
         }
         return marker_array;
     }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
     {
         std::cout << "sonar callback start **** " << std::endl;
@@ -279,8 +379,10 @@ private:
             std::cout << "laser_max_distanse" << laser_max_distance << std::endl ;
             std::cout << "obstacle.norm" << obstacle.norm() << std::endl ;
             if(obstacle.norm()<laser_max_distance-0.01)
+                //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
             {
                 std::cout << " filling the obstacles " << std::endl ;
+                //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
                 obstacles_positions_current.push_back(obstacle);
             }
         }
@@ -292,10 +394,15 @@ private:
             obstacles_positions_previous=obstacles_positions_current;
             return;
         }
-
+        //ROS_INFO_STREAM("obstacles:" << obstacles_positions.size());
+        //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
+        //  if ( obstacles_new_readings=true)
         if(obstacles_positions_current.size()>0)
         {
             computePotentialField();
+
+            // odometry_new_readings=false;
+          // obstacles_new_readings=false;
         }
         else
             std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ;
@@ -306,6 +413,18 @@ private:
 
     }
 
+    // AUTONOMOUS CASE
+    /*void feedbackSlave()
+    {
+        // Compute linear velocity (x velocity)
+        double linear_speed=resulting_force.x()/(freq*robot_mass); // LINEAR SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN X (normal component)
+
+        double angular_speed=(resulting_force.y()/(robot_mass*robot_radius))*freq; // ROTATIONAL SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN Y (perpendicular component)
+        geometry_msgs::Twist twist_msg;
+        twist_msg.linear.x=linear_speed;
+        twist_msg.angular.z=angular_speed;
+        velocity_cmd_pub.publish(twist_msg);
+    }*/
 
     void feedbackMaster()
     {
@@ -366,11 +485,19 @@ int main(int argc, char **argv)
     n_priv.param<double>("robot_mass", robot_mass, 1.0);
     n_priv.param<double>("robot_radius", robot_radius, 0.2);
     n_priv.param<double>("gain", gain, 1.0);
-    ros::Rate loop_rate(freq);
-    std::string pose_topic_name = "/pose";
-    std::string sonar_topic_name = "/RosAria/sonar";
-    ForceField potential_field(n, freq, ro,gain, kp, kd, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
 
+
+
+    ros::Rate loop_rate(freq);
+
+    //std::string pose_topic_name = "/RosAria/pose" ;
+
+     // std::string pose_topic_name = "/Pioneer3AT/pose"; // for pioneer
+     std::string pose_topic_name = "/pose";
+
+     std::string sonar_topic_name = "/RosAria/sonar";
+
+    ForceField potential_field(n, freq, ro,gain, kp, kd, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
     while(ros::ok())
     {
         ros::spinOnce();

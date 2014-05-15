@@ -1,31 +1,34 @@
+<?xml version="1.0"?>
 <launch>
     <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
- <!--    <remap from="/cmd_vel" to="/RosAria/cmd_vel"/> -->
-   <!-- <remap from="/pose" to="/RosAria/pose"/> -->
-    <remap from="/cmd_vel" to="/cmd_vel"/> <!-- for the airdrone --> 
-    <remap from="/pose" to="/ground_truth_to_tf/pose"/> <!-- for the airdrone --> 
+    <remap from="/cmd_vel" to="/Pioneer3AT/cmd_vel"/> 
+    <remap from="/pose" to="/Pioneer3AT/pose"/> 
+  <!--  <remap from="/cmd_vel" to="/cmd_vel"/> --> <!-- for the airdrone --> 
+     <!--<remap from="/pose" to="/ground_truth/state"/> --> <!-- for the airdrone --> 
   </node>
 
   <node name="master_controller" pkg="navigation" type="controller_ros" output="screen">
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
+    <remap from="/pose" to="/Pioneer3AT/pose"/> 
   </node>
 
   <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
     <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
-    <remap from="/pose" to="/ground_truth_to_tf/pose"/> 
+    <!-- <remap from="/pose" to="/ground_truth_to_tf/pose"/> -->
+    <remap from="/pose" to="/Pioneer3AT/pose"/> 
 	<!-- for the airdrone --> 
   </node>
 
   <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" output="screen">
-   <!-- <remap from="/laserscan" to="/Pioneer3AT/laserscan"/> -->
- <!--   <remap from="/base_link" to="/Pioneer3AT/base_link"/> -->
-	<remap from="/laserscan" to="/scan"/>
-        <remap from="/base_link" to="base_link"/>
+    <remap from="/scan" to="/Pioneer3AT/laserscan"/> 
+    <remap from="/base_link" to="/Pioneer3AT/base_link"/> 
+<!--	<remap from="/laserscan" to="/scan"/>-->
+ <!--       <remap from="/base_link" to="base_link"/>-->
   </node>
 
 </launch>

@@ -17,7 +17,7 @@ public:
   	ModelState(ros::NodeHandle & n) : n_(n), n_priv_("~")
   	{
    	 	n_priv_.param<std::string>("model_name", model_name , "quadrotor");
-	        nav_msgs_sub = n_.subscribe("/pose",1, &ModelState::positionCallback, this);
+            nav_msgs_sub = n_.subscribe("/pose",1, &ModelState::positionCallback, this);
    		model_state_pub = n_.advertise<gazebo_msgs::ModelState>("/set_model_state", 1);
   	};
 

@@ -37,11 +37,11 @@ public:
         repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
 
         force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
-
+        feedback_pub =  n.advertise<nav_msgs::Odometry>( "/force_feedback", 1);
         init_flag=false;
 
         obstacle_readings_sub = n.subscribe("cloud", 1, &ForceField::sonarCallback, this);
-    };
+};
 
     void computeForceField()
     {
@@ -69,6 +69,24 @@ public:
         visualization_msgs::Marker marker=rviz_arrow(resulting_force, Eigen::Vector3d(0,0,0), 0,   std::string("resulting_force"));
         marker_array.markers.push_back(marker);
         visualization_markers_pub.publish(marker_array);
+
+        nav_msgs::Odometry force_DIR;
+        //set the position
+        std::cout << "resulting_risk_vector" << resulting_risk_vector.x() << std::endl;
+        force_DIR.pose.pose.position.x =  resulting_forcer.x();
+        force_DIR.pose.pose.position.y =  resulting_forcer.y();
+        force_DIR.pose.pose.position.z =  resulting_force.z();
+        force_DIR.pose.pose.orientation.x = 0;
+        force_DIR.pose.pose.orientation.y = 0;
+        force_DIR.pose.pose.orientation.z = 0;
+        force_DIR.pose.pose.orientation.w = 1;
+
+        force_DIR.child_frame_id = "base_link";
+        force_DIR.twist.twist.linear.x = 0;
+        force_DIR.twist.twist.linear.y = 0;
+        force_DIR.twist.twist.angular.z = 0;
+
+        feedback_pub.publish(force_DIR);
     }
 
     Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d & c_previous, const double & ro)
@@ -95,7 +113,7 @@ private:
     ros::Publisher visualization_markers_pub;
     ros::Publisher force_out;
     ros::Publisher repulsive_force_out;
-
+    ros::publisher feedback_pub ;
     std::string pose_topic_name;
     std::string sonar_topic_name;
 
@@ -255,7 +273,7 @@ private:
         //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
 
         computeForceField();
-        feedbackMaster();
+      //  feedbackMaster();
         //feedbackSlave();
         obstacles_positions_previous=obstacles_positions_current;
     }
