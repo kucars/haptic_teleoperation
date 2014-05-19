@@ -60,9 +60,16 @@ public:
         for(int i=0; i<aux_it; ++i)
         {
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
-            force_field[i] = force_field[i] / aux_it ;
+        //    force_field[i] = force_field[i] / aux_it ;
             resulting_force+=force_field[i];
         }
+        //resulting_force.x()=resulting_force.x()/(aux_it) ;
+        //resulting_force.y()=resulting_force.y()/(10) ;
+        resulting_force.x()=resulting_force.x()/(100) ;
+        resulting_force.y()=resulting_force.y()/(10) ;
+      //  resulting_force.z()=resulting_force.z()/(aux_it) ;
+
+
         //std::cout << "resulting force: " << resulting_force.transpose() << std::endl;
         // Publish visual markers to see in rviz
         visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("force_field"));
@@ -72,9 +79,14 @@ public:
 
         nav_msgs::Odometry force_DIR;
         //set the position
-        std::cout << "resulting_risk_vector" << resulting_risk_vector.x() << std::endl;
-        force_DIR.pose.pose.position.x =  resulting_forcer.x();
-        force_DIR.pose.pose.position.y =  resulting_forcer.y();
+        std::cout << "number of obstacle " << aux_it << std::endl;
+
+        std::cout << "resulting_risk_vector in x " << resulting_force.x() << std::endl;
+        std::cout << "resulting_risk_vector in y " << resulting_force.y() << std::endl;
+        std::cout << "resulting_risk_vector in z " << resulting_force.z() << std::endl;
+
+        force_DIR.pose.pose.position.x =  resulting_force.x();
+        force_DIR.pose.pose.position.y =  resulting_force.y();
         force_DIR.pose.pose.position.z =  resulting_force.z();
         force_DIR.pose.pose.orientation.x = 0;
         force_DIR.pose.pose.orientation.y = 0;
@@ -113,7 +125,7 @@ private:
     ros::Publisher visualization_markers_pub;
     ros::Publisher force_out;
     ros::Publisher repulsive_force_out;
-    ros::publisher feedback_pub ;
+    ros::Publisher feedback_pub ;
     std::string pose_topic_name;
     std::string sonar_topic_name;
 
@@ -187,7 +199,7 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "Pioneer3AT/base_link";
+        marker.header.frame_id = "/base_link";
         marker.header.stamp = ros::Time();
         marker.id = id;
         if(id==0)

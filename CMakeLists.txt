@@ -130,6 +130,11 @@ add_library(controller
 # add_executable(rosaria_nav_node src/rosaria_nav_node.cpp)
 #add_executable(transform src/transform.cpp)
 
+#add_executable(PID_position_controller src/PID_PositionControl.cpp)
+#add_dependencies(PID_position_controller uav_commander_generate_messages_cpp ${PROJECT_NAME}_gencfg)
+#target_link_libraries(PID_position_controller  ${catkin_LIBRARIES} -lpq )
+
+
 add_executable(force_field src/force_field.cpp)
 add_dependencies(force_field ${PROJECT_NAME}_gencfg)
 target_link_libraries(force_field
@@ -172,6 +177,7 @@ target_link_libraries(ModelState
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
 )
+
 
 #add_executable(uav_commander src/uav_commander.cpp)
 #target_link_libraries(uav_commander
