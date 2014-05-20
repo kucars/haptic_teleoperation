@@ -52,10 +52,13 @@ class MasterController : public Controller
 
 		// SLAVE MEASUREMENTS
 		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+		//void MasterController::feedbackCallback(const geometry_msgs::Point::ConstPtr& force);
 
 		void feedback();
 
   		void initParams();
+		// subscriber 
+		//ros::Subscriber force_feedback;
 
 		Eigen::Matrix<double,6,1> slave_to_master_scale;
 		Eigen::Matrix<double,6,1> slave_velocity_master_pose_scale;

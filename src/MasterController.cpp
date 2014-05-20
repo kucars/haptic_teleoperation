@@ -49,10 +49,13 @@ MasterController::MasterController(ros::NodeHandle & n_,
 
     // Master joint states subscriber
     master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
+    // Master feedback subscriber
+  //  force_feedback = n.subscribe("/feedback_force/repulsive_force", 1, &MasterController::feedbackCallback, this);
+
 
     // Slave pose and velocity subscriber
-    slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
-  //  slave_sub = n.subscribe("/ground_truth/state", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+    //slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
+    slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
 }
 
@@ -212,6 +215,17 @@ void MasterController::paramsCallback(navigation::MasterControllerConfig &config
             0, 0, 0, 0, 0, config.lambda_yaw;
     //slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_size.x/config.slave_size.x), fabs(config.master_size.y/config.slave_size.y), fabs(config.master_size.z/config.slave_size.z));
 }
+
+//void MasterController::feedbackCallback(const geometry_msgs::Point::ConstPtr& force)
+//{
+////    Eigen::Matrix<double,6,1> feedback_fore ;
+////    feedback_fore(1) = force.x() ;
+////    feedback_fore(2) = force.y() ;
+////    feedback_fore[3][1] = force.z() ;
+////}
+//}
+
+
 
 // MASTER MEASUREMENTS
 void MasterController::masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states)

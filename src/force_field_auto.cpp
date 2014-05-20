@@ -12,18 +12,16 @@
 #include <navigation/ForceFieldConfig.h>
 
 const double PI=3.14159265359;
-double lastTimeCalled ;//= ros::Time::now().toSec();
 
 class ForceField
 {
 public:
-   dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
+    dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
     dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
 
-    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) :
-    n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_)
+    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) : n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_)
     {
-        std::cout << "In the class" << std::endl ;
+
         kp_mat << kp.x(), 0, 0,
                 0, kp.y(), 0,
                 0, 0, kp.z();
@@ -31,48 +29,49 @@ public:
                 0, kd.y(), 0,
                 0, 0, kd.z();
 
+        std::cout << kp_mat << std::endl ;
+        std::cout << std::endl ;
+        std::cout << kd_mat << std::endl ;
+        std::cout << std::endl ;
 
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "/force_field_markers", 1);
-       // repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/feedback_force/repulsive_force", 1);
-        force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
+        //velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "/cmd_vel", 1);
+     //   repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/potential_field/repulsive_force", 1);
+
+        feedback_pub =  n.advertise<nav_msgs::Odometry>( "/force_feedback", 1);
         init_flag=false;
-        obstacle_readings_sub = n.subscribe("/cloud", 100, &ForceField::sonarCallback, this);
-        lastTimeCalled = ros::Time::now().toSec();
+
+        obstacle_readings_sub = n.subscribe("/cloud", 1, &ForceField::sonarCallback, this);
 };
 
     void computeForceField()
     {
-        double pf_Start = ros::Time::now().toSec();
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+
         // Compute current robot Velocity based on odometry readings
         std::vector<Eigen::Vector3d> force_field;
+
         // for each obstacle compute velocity with respect to that object
         unsigned int aux_it;
-        double Ve_Start = ros::Time::now().toSec();
         if(obstacles_positions_current.size()<=obstacles_positions_current.size())
             aux_it=obstacles_positions_current.size();
         else
             aux_it=obstacles_positions_previous.size();
+
         for(int i=0; i<aux_it; ++i)
         {
-            //double getPf_Start = ros::Time::now().toSec();
-
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
-           // double getPf_End = ros::Time::now().toSec();
-            //std::cout << "get one pf time" << getPf_End - getPf_Start << std::endl ;
-            //    force_field[i] = force_field[i] / aux_it ;
+        //    force_field[i] = force_field[i] / aux_it ;
             resulting_force+=force_field[i];
         }
-        double Ve_End = ros::Time::now().toSec();       
-        //std::cout << "get velocity time (ms)" << (Ve_End - Ve_Start)*1000 << std::endl ;
-
         //resulting_force.x()=resulting_force.x()/(aux_it) ;
         //resulting_force.y()=resulting_force.y()/(10) ;
         resulting_force.x()=resulting_force.x()/(100) ;
         resulting_force.y()=resulting_force.y()/(10) ;
-        resulting_force.z()=resulting_force.z()/(aux_it) ;
+      //  resulting_force.z()=resulting_force.z()/(aux_it) ;
 
 
         //std::cout << "resulting force: " << resulting_force.transpose() << std::endl;
@@ -82,10 +81,28 @@ public:
         marker_array.markers.push_back(marker);
         visualization_markers_pub.publish(marker_array);
 
-        double pf_End = ros::Time::now().toSec();
-        //std::cout << "calculate PF whole time (ms)" << (pf_End - pf_Start)*1000 << std::endl ;
+        nav_msgs::Odometry force_DIR;
+//        //set the position
+        std::cout << "number of obstacle " << aux_it << std::endl;
 
+        std::cout << "resulting_risk_vector in x " << resulting_force.x() << std::endl;
+        std::cout << "resulting_risk_vector in y " << resulting_force.y() << std::endl;
+        std::cout << "resulting_risk_vector in z " << resulting_force.z() << std::endl;
 
+        force_DIR.pose.pose.position.x =  resulting_force.x();
+        force_DIR.pose.pose.position.y =  resulting_force.y();
+        force_DIR.pose.pose.position.z =  resulting_force.z();
+        force_DIR.pose.pose.orientation.x = 0;
+        force_DIR.pose.pose.orientation.y = 0;
+        force_DIR.pose.pose.orientation.z = 0;
+        force_DIR.pose.pose.orientation.w = 1;
+
+        force_DIR.child_frame_id = "base_link";
+        force_DIR.twist.twist.linear.x = 0;
+        force_DIR.twist.twist.linear.y = 0;
+        force_DIR.twist.twist.angular.z = 0;
+
+        feedback_pub.publish(force_DIR);
     }
 
     Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d & c_previous, const double & ro)
@@ -250,9 +267,6 @@ private:
 
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
     {
-        double pf_Start = ros::Time::now().toSec();
-        std::cout << "I was called : (ms)" << (pf_Start - lastTimeCalled)*1000 << std::endl ;
-        lastTimeCalled = pf_Start;
         obstacles_positions_current.clear();
         for(int i=0; i< msg->points.size(); ++i)
         {
@@ -275,11 +289,8 @@ private:
         //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
 
         computeForceField();
-       // feedbackMaster();
         //feedbackSlave();
         obstacles_positions_previous=obstacles_positions_current;
-        double pf_End = ros::Time::now().toSec();
-        //std::cout << "Call back took : (ms)" << (pf_End - pf_Start)*1000 << std::endl ;
     }
 
     // AUTONOMOUS CASE
@@ -302,29 +313,11 @@ private:
         velocity_cmd_pub.publish(twist_msg);
     }*/
 
-    void feedbackMaster()
-    {
-        // WEIRD MAPPING!!!
-        phantom_omni::OmniFeedback force_feedback;
-        force_feedback.force.x=resulting_force.y();
-        force_feedback.force.y=resulting_force.z();
-        force_feedback.force.z=resulting_force.x();
-        force_out.publish(force_feedback);
 
-//        geometry_msgs::Twist twist_msg_resulting_force;
-//        twist_msg_resulting_force.linear.x= resulting_force.y();
-//        twist_msg_resulting_force.linear.y=resulting_force.x();
-//        twist_msg_resulting_force.linear.z=resulting_force.z();
-
-//       repulsive_force_out.publish(twist_msg_resulting_force);
-
-    }
 };
 
 int main(int argc, char **argv)
 {
-    std::cout << "MAIN" << std::endl ;
-
     /**
        * The ros::init() function needs to see argc and argv so that it can perform
        * any ROS arguments and name remapping that were provided at the command line. For programmatic
