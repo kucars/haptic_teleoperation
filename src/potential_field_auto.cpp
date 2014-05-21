@@ -23,10 +23,9 @@ const double PI=3.14159265359;
 class ForceField
 {
 public:
-       dynamic_reconfigure::Server<navigation::potential_fieldConfig> param_server;
-       dynamic_reconfigure::Server<navigation::potential_fieldConfig>::CallbackType param_callback_type;
-       std::vector<double> previous_potential_field;
-     ros::Time previous_time;
+
+    std::vector<double> previous_potential_field;
+    ros::Time previous_time;
     bool obstacles_new_readings;
     bool odometry_new_readings;
     double gain;
@@ -46,14 +45,13 @@ public:
                 0, 0, kd.z();
 
         std::cout << kp_mat << std::endl ;
-        std::cout << std::endl ;
+        std::endl ;
         std::cout << kd_mat << std::endl ;
-        std::cout << std::endl ;
-        param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
-        param_server.setCallback(param_callback_type);
+        std::endl ;
+        std::endl ;
+
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-       force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
-       // feedback_pub = n.advertise<nav_msgs::Odometry>("/force_feedback", 1);
+        feedback_pub = n.advertise<nav_msgs::Odometry>("/force_feedback_auto", 1);
         init_flag=false;
         obstacle_readings_sub = n.subscribe("/cloud",1, &ForceField::sonarCallback, this);
         std::cout << "end of the constructor" << std::endl;
@@ -112,13 +110,33 @@ It is only going to be called when the robot sence the exiatance of the obstacle
             resulting_force+=force_field[i];
             resulting_risk_vector+=risk_vectors[i];
         }
-        resulting_risk_vector = resulting_risk_vector / risk_vectors.size() ;
+       // resulting_risk_vector = resulting_risk_vector / risk_vectors.size() ;
         std::cout << "resulting_risk_vector " << std::endl ;
         visualization_msgs::MarkerArray marker_array=rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_risk_vector, Eigen::Vector3d(0,0,0), 0, std::string("resulting_risk_vector"));
         marker_array.markers.push_back(marker);
         visualization_markers_pub.publish(marker_array);
         previous_potential_field=potential_field;
+
+
+
+        nav_msgs::Odometry force_DIR;
+        //set the position
+        std::cout << "resulting_risk_vector" << resulting_risk_vector.x() << std::endl;
+        force_DIR.pose.pose.position.x =  resulting_risk_vector.y();
+        force_DIR.pose.pose.position.y =  resulting_risk_vector.z();
+        force_DIR.pose.pose.position.z =  resulting_risk_vector.x();
+        force_DIR.pose.pose.orientation.x = 0;
+        force_DIR.pose.pose.orientation.y = 0;
+        force_DIR.pose.pose.orientation.z = 0;
+        force_DIR.pose.pose.orientation.w = 1;
+
+        force_DIR.child_frame_id = "base_link";
+        force_DIR.twist.twist.linear.x = 0;
+        force_DIR.twist.twist.linear.y = 0;
+        force_DIR.twist.twist.angular.z = 0;
+
+        feedback_pub.publish(force_DIR);
     }
 
 
@@ -143,12 +161,10 @@ private:
     ros::NodeHandle n;
     ros::Subscriber obstacle_readings_sub;
     ros::Publisher visualization_markers_pub;
-    //ros::Publisher feedback_pub ;
+    ros::Publisher feedback_pub ;
     std::string pose_topic_name;
     std::string sonar_topic_name;
     std::string velocity_cmd_topic_name;
-    ros::Publisher force_out;
-
     // Parameters
     double a_max;
     double ro;
@@ -169,19 +185,11 @@ private:
     Eigen::Vector3d resulting_force;
     Eigen::Vector3d resulting_risk_vector ;
 
-    //laser 
-    laser_geometry::LaserProjection projector_;
-
-    // listener
-    tf::TransformListener listener_;
 
 
-    // subscriber 
-    ros::Subscriber scan_sub_;
 
-
-    void paramsCallback(navigation::potential_fieldConfig &config, uint32_t level)
-    { gain = config.gain ;}
+//    void paramsCallback(navigation::potential_fieldConfig &config, uint32_t level)
+//    { gain = config.gain ;}
 
 
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const Eigen::Vector3d & arrow_origin, int id, std::string name_space )
@@ -287,26 +295,14 @@ private:
         else
             std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ;
 
-        feedbackMaster();
+        //feedbackMaster();
         obstacles_positions_previous=obstacles_positions_current;
         std::cout << "sonar callback end ***" << std::endl;
 
     }
 
 
-    void feedbackMaster()
-    {
-        // WEIRD MAPPING!!!
-        phantom_omni::OmniFeedback force_feedback;
-       force_feedback.force.x=resulting_risk_vector.y();
-       force_feedback.force.y=resulting_risk_vector.z();
-       force_feedback.force.z=resulting_risk_vector.x();
 
-      // force_feedback.force.x=resulting_force.y();
-      // force_feedback.force.y=resulting_force.z();
-     //  force_feedback.force.z=resulting_force.x();
-        force_out.publish(force_feedback);
-    }
 };
 
 int main(int argc, char **argv)

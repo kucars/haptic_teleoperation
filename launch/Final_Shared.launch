@@ -29,7 +29,7 @@
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
-    <remap from="/ground_truth_to_tf/pose" to="$(arg pose_topic)"/>  
+    <remap from="/pose" to="$(arg pose_topic)"/>  
   </node>
 
  <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
