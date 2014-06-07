@@ -22,6 +22,7 @@
 #ifndef SLAVE_CONTROLLER_
 #define SLAVE_CONTROLLER_
 #include "navigation/Controller.h"
+#include "ardrone_autonomy/Navdata.h"
 
 class SlaveController : public Controller
 {
@@ -52,10 +53,12 @@ class SlaveController : public Controller
 
 		// SLAVE MEASUREMENTS
 		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+    		void get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg);
 
 		void feedback();
 
   		void initParams();
+
 
 		Eigen::Matrix<double,6,1> master_to_slave_scale;
 		Eigen::Matrix<double,6,1> master_pose_slave_velocity_scale;

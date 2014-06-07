@@ -20,13 +20,15 @@ using namespace std ;
 navigation::ContourData contour_data_msg;
 const double PI=3.14159265359;
 #define BILLION 1000000000
+double lastTimeCalled ;//= ros::Time::now().toSec();
+
 class ForceField
 {
 public:
-       dynamic_reconfigure::Server<navigation::potential_fieldConfig> param_server;
-       dynamic_reconfigure::Server<navigation::potential_fieldConfig>::CallbackType param_callback_type;
-       std::vector<double> previous_potential_field;
-     ros::Time previous_time;
+    dynamic_reconfigure::Server<navigation::potential_fieldConfig> param_server;
+    dynamic_reconfigure::Server<navigation::potential_fieldConfig>::CallbackType param_callback_type;
+    std::vector<double> previous_potential_field;
+    ros::Time previous_time;
     bool obstacles_new_readings;
     bool odometry_new_readings;
     double gain;
@@ -51,16 +53,18 @@ public:
         std::cout << std::endl ;
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-       force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
-       // feedback_pub = n.advertise<nav_msgs::Odometry>("/force_feedback", 1);
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("/risk_vector_marker", 1);
+        //force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+        feedback_pub = n.advertise<geometry_msgs::PoseStamped>("/pf_force_feedback", 1);
         init_flag=false;
         obstacle_readings_sub = n.subscribe("/cloud",1, &ForceField::sonarCallback, this);
         std::cout << "end of the constructor" << std::endl;
+        lastTimeCalled = ros::Time::now().toSec();
+
     };
 
 
-/* This function compute the potential field for each point and it sums all the points, then it takes the gradiant.
+    /* This function compute the potential field for each point and it sums all the points, then it takes the gradiant.
 It is only going to be called when the robot sence the exiatance of the obstacle */
 
     void computePotentialField()
@@ -113,7 +117,13 @@ It is only going to be called when the robot sence the exiatance of the obstacle
             resulting_risk_vector+=risk_vectors[i];
         }
         resulting_risk_vector = resulting_risk_vector / risk_vectors.size() ;
+
         std::cout << "resulting_risk_vector " << std::endl ;
+        std::cout << "resulting_risk_vector.x() " << resulting_risk_vector.x() <<std::endl ;
+        std::cout << "resulting_risk_vector.y() " << resulting_risk_vector.y() <<std::endl ;
+        std::cout << "resulting_risk_vector.z() " << resulting_risk_vector.z() <<std::endl ;
+
+
         visualization_msgs::MarkerArray marker_array=rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_risk_vector, Eigen::Vector3d(0,0,0), 0, std::string("resulting_risk_vector"));
         marker_array.markers.push_back(marker);
@@ -143,11 +153,11 @@ private:
     ros::NodeHandle n;
     ros::Subscriber obstacle_readings_sub;
     ros::Publisher visualization_markers_pub;
-    //ros::Publisher feedback_pub ;
+    ros::Publisher feedback_pub ;
     std::string pose_topic_name;
     std::string sonar_topic_name;
     std::string velocity_cmd_topic_name;
-    ros::Publisher force_out;
+    // ros::Publisher force_out;
 
     // Parameters
     double a_max;
@@ -169,14 +179,14 @@ private:
     Eigen::Vector3d resulting_force;
     Eigen::Vector3d resulting_risk_vector ;
 
-    //laser 
+    //laser
     laser_geometry::LaserProjection projector_;
 
     // listener
     tf::TransformListener listener_;
 
 
-    // subscriber 
+    // subscriber
     ros::Subscriber scan_sub_;
 
 
@@ -257,7 +267,11 @@ private:
     }
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
     {
+        double pf_Start = ros::Time::now().toSec();
+        std::cout << "I was called : (ms)" << (pf_Start - lastTimeCalled)*1000 << std::endl ;
+        lastTimeCalled = pf_Start;
         std::cout << "sonar callback start **** " << std::endl;
+        int counter = 0 ;
 
         obstacles_positions_current.clear();
         for(int i=0; i< msg->points.size(); ++i)
@@ -267,7 +281,8 @@ private:
             std::cout << "obstacle.norm" << obstacle.norm() << std::endl ;
             if(obstacle.norm()<laser_max_distance-0.01)
             {
-                std::cout << " filling the obstacles " << std::endl ;
+                counter = counter +1 ;
+                std::cout << " filling the obstacles " << counter <<  std::endl ;
                 obstacles_positions_current.push_back(obstacle);
             }
         }
@@ -297,15 +312,24 @@ private:
     void feedbackMaster()
     {
         // WEIRD MAPPING!!!
-        phantom_omni::OmniFeedback force_feedback;
-       force_feedback.force.x=resulting_risk_vector.y();
-       force_feedback.force.y=resulting_risk_vector.z();
-       force_feedback.force.z=resulting_risk_vector.x();
 
-      // force_feedback.force.x=resulting_force.y();
-      // force_feedback.force.y=resulting_force.z();
-     //  force_feedback.force.z=resulting_force.x();
-        force_out.publish(force_feedback);
+        //  phantom_omni::OmniFeedback force_feedback;
+        //   force_feedback.force.x=resulting_risk_vector.y();
+        //   force_feedback.force.y=resulting_risk_vector.z();
+        //   force_feedback.force.z=resulting_risk_vector.x();
+
+        // force_feedback.force.x=resulting_force.y();
+        // force_feedback.force.y=resulting_force.z();
+        //  force_feedback.force.z=resulting_force.x();
+        //   force_out.publish(force_feedback);
+
+        geometry_msgs::PoseStamped msg ;
+        msg.header.stamp =  ros::Time::now();
+        msg.pose.position.x=resulting_risk_vector.y();
+        msg.pose.position.y =resulting_risk_vector.z();
+        msg.pose.position.z=resulting_risk_vector.x();
+        feedback_pub.publish(msg);
+
     }
 };
 

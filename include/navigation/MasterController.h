@@ -22,6 +22,8 @@
 #ifndef MASTER_CONTROLLER_
 #define MASTER_CONTROLLER_
 #include "navigation/Controller.h"
+#include <navigation/MasterControllerConfig.h>
+
 
 class MasterController : public Controller
 {
@@ -47,6 +49,9 @@ class MasterController : public Controller
 		void paramsCallback(navigation::MasterControllerConfig &config, uint32_t level);
 
 	private:
+		// Environmental force 
+		void getforce_feedback  (const  geometry_msgs::PoseStamped::ConstPtr     & force);    
+
 		// MASTER MEASUREMENTS
         	void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
 

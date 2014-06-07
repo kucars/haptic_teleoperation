@@ -49,6 +49,9 @@ class Controller
 		ros::Subscriber slave_sub;
 		ros::Publisher cmd_pub;
 		ros::Subscriber button_sub;
+		ros::Subscriber force_feedback_sub ; 
+		ros::Publisher haptic_pub ;
+		ros::Subscriber navedata;
 
 		// params
 		double freq;

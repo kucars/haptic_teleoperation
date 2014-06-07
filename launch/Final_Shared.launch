@@ -58,5 +58,6 @@
 
 </group>
  
+<node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
 
 </launch>

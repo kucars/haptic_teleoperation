@@ -272,7 +272,6 @@ int main(int argc, char **argv)
         while (ros::ok())
         {
             ros::spinOnce();
-
             loop_rate.sleep();
         }
     }
@@ -294,12 +293,12 @@ int main(int argc, char **argv)
                 fabs(slave_velocity_size(5,0)/master_size(5,0));
         std::cout << master_size(0,0) << " " <<  slave_velocity_size(0,0) << std::endl;
         std::cout << "before:" <<master_pose_slave_velocity_scale << std::endl;
-
         SlaveController controller(n, freq, Kp, Kd, Bd, lambda, master_to_slave_scale, master_pose_slave_velocity_scale, master_min, master_max, slave_min, slave_max, slave_velocity_min, slave_velocity_max);
         ros::Rate loop_rate(freq);
 
         while (ros::ok())
         {
+
             ros::spinOnce();
 
             loop_rate.sleep();

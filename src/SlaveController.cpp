@@ -22,7 +22,9 @@
 
 #include "navigation/SlaveController.h"
 #include <time.h>
+#include "ardrone_autonomy/Navdata.h"
 #define RAD_TO_DEG 180/3.14
+double battery_per ;
 
 SlaveController::SlaveController(ros::NodeHandle & n_,
                                  double freq_,
@@ -54,6 +56,7 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
 
     // Slave pose and velocity subscriber
     slave_sub = n.subscribe("/pose", 1, &SlaveController::slaveOdometryCallback, this);
+    navedata            = n.subscribe("/ardrone/navdata" , 1, &SlaveController::get_navdata   , this);
 }
 
 void SlaveController::initParams()
@@ -169,7 +172,12 @@ void SlaveController::initParams()
             fabs(slave_size(5,0)/master_size(5,0));
 
 }
+void SlaveController::get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg)
+{
+     battery_per   = msg->batteryPercent ;
+     std::cout << "Baterry: " << battery_per << std::endl;
 
+}
 void SlaveController::paramsCallback(navigation::SlaveControllerConfig &config, uint32_t level)
 {
     ROS_INFO_STREAM("Slave PID reconfigure Request ->"  << " kp_x:" << config.kp_x
@@ -346,6 +354,8 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
     }
     else
     {
+       // lastPositionUpdate      = ros::Time::now().toSec();
+
         current_pose_slave << msg->pose.pose.position.x,
                 msg->pose.pose.position.y,
                 msg->pose.pose.position.z,
@@ -373,7 +383,7 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
 void SlaveController::feedback()
 {
     geometry_msgs::Twist twist_msg;
-    if(control_event)
+    if(control_event &&  (battery_per > 30)) //  && !lastPositionUpdate)
     {
         //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
