@@ -20,10 +20,4 @@ master_max_z: 0.20
 master_min_yaw: -2.57 # wrist3 joint
 master_max_yaw: 2.55
 
-
-
-#master_min_x: 0.14
-#master_max_x: 0.22
-
-
 mode: 0

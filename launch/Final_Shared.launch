@@ -3,20 +3,15 @@
   <arg name="force_or_potential" /> 
   <!--<arg name="gv_or_mav" />  -->
 
-<!--<group if="$(arg gv_or_mav)"> -->
-  <arg name="cmd_vel_topic" value="/cmd_vel" /> 
-  <arg name="pose_topic" value="/ground_truth/state" />
-  <arg name="laser_scan_topic" value="/scan" />
-<!--</group> -->
 
-<!--<group unless="$(arg gv_or_mav)">
-  <arg name="cmd_vel_topic" value="Pioneer3AT/cmd_vel" /> 
-  <arg name="pose_topic" value="Pioneer3AT/pose" />
-  <arg name="laser_scan_topic" value="/Pioneer3AT/laserscan" />
-</group>-->
+  <arg name="cmd_vel_topic" value="/cmd_vel" /> 
+   <!-- <arg name="pose_topic" value="/odometry"/>  -->
+  <arg name="pose_topic" value="/ground_truth/state" /> 
+  <arg name="laser_scan_topic" value="/scan" />
+
 
  <!-- Run the slave controller  -->
- <node name="slave_controller" pkg="navigation" type="controller_ros" output="screen">
+ <node name="slave_controller" pkg="navigation" type="controller_ros" >
     <rosparam command="load" file="$(find navigation)/config/slave_controller_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find navigation)/config/master_params.yaml" />
@@ -33,16 +28,16 @@
   </node>
 
  <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
-  <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" output="screen">
+  <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" >
 	<remap from="/laserscan" to="$(arg laser_scan_topic)"/>
-        <remap from="/base_link" to="base_link"/>
+        <remap from="/base_link" to="laser0_frame"/>
   	
   </node>
  
 <group if="$(arg force_or_potential)">
 
  <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
-  <node name="potential_field" pkg="navigation" type="potential_field" output="screen">
+  <node name="potential_field" pkg="navigation" type="potential_field" >
     <rosparam command="load" file="$(find navigation)/config/potential_field.yaml" />
     <remap from="pose" to="$(arg pose_topic)"/> 
   </node>

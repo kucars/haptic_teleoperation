@@ -58,6 +58,7 @@ class Controller
 		Eigen::Matrix<double,6,1> Kp;
 		Eigen::Matrix<double,6,1> Kd;
 		Eigen::Matrix<double,6,1> Bd;
+                Eigen::Matrix<double,6,1> Fp;
 		Eigen::Matrix<double,6,6> lambda;
 
 
@@ -118,6 +119,7 @@ class Controller
                    Eigen::Matrix<double,6,1> Kp_,
                    Eigen::Matrix<double,6,1> Kd_,
                    Eigen::Matrix<double,6,1> Bd_,
+                   Eigen::Matrix<double,6,1> Fp_,
                    Eigen::Matrix<double,6,6> lambda_,
                    Eigen::Matrix<double,6,1> master_min_,
                    Eigen::Matrix<double,6,1> master_max_,

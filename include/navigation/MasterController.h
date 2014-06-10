@@ -30,12 +30,12 @@ class MasterController : public Controller
 	public:
 		dynamic_reconfigure::Server<navigation::MasterControllerConfig> master_server;
   		dynamic_reconfigure::Server<navigation::MasterControllerConfig>::CallbackType master_callback_type;
-
 		MasterController(ros::NodeHandle & n_,
                    double freq_,
                    Eigen::Matrix<double,6,1> Kp_,
                    Eigen::Matrix<double,6,1> Kd_,
                    Eigen::Matrix<double,6,1> Bd_,
+                   Eigen::Matrix<double,6,1> Fp_,
                    Eigen::Matrix<double,6,6> lambda_,
                    Eigen::Matrix<double,6,1> slave_to_master_scale_,
 		   Eigen::Matrix<double,6,1> slave_velocity_master_pose_scale_,

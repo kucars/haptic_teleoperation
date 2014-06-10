@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="model_name" value="uav"/> 
+  <arg name="model_name" value="quadrotor"/> 
   <node name="virtual_environment" pkg="navigation" type="ModelState" output="screen">
     <param name="model_name" type="string" value="$(arg model_name)" />
     <remap from="/pose" to="/odometry"/>

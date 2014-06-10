@@ -19,12 +19,12 @@ public:
     n_(n),
    // laser_sub_(n_, "base_scan", 10),
     laser_sub_(n_, "/laserscan", 1),
-    laser_notifier_(laser_sub_,listener_, "/base_link", 1)
+    laser_notifier_(laser_sub_,listener_, "/laser0_frame", 1)
   	{
    	 	laser_notifier_.registerCallback(
         boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
         laser_notifier_.setTolerance(ros::Duration(0.01));// 0.01
-        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("/cloud",1);
+        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("/cloud",10);
 
   	}
 
@@ -34,7 +34,7 @@ public:
     try
     {
         projector_.transformLaserScanToPointCloud(
-          "/base_link",*scan_in, cloud,listener_);
+          "/laser0_frame",*scan_in, cloud,listener_);
     }
     catch (tf::TransformException& e)
     {
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
   ros::NodeHandle n;
   ros::NodeHandle n_priv("~");
   double freq;
-  n_priv.param<double>("frequency", freq, 20.0);
+  n_priv.param<double>("frequency", freq, 50.0);
   ros::Rate loop_rate(freq);
 
   LaserScanToPointCloud lstopc(n);

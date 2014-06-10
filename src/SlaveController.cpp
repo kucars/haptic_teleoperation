@@ -31,6 +31,8 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
                                  Eigen::Matrix<double,6,1> Kp_,
                                  Eigen::Matrix<double,6,1> Kd_,
                                  Eigen::Matrix<double,6,1> Bd_,
+                                 Eigen::Matrix<double,6,1> Fp_,
+
                                  Eigen::Matrix<double,6,6> lambda_,
                                  Eigen::Matrix<double,6,1> master_to_slave_scale_,
                                  Eigen::Matrix<double,6,1> master_pose_slave_velocity_scale_,
@@ -42,7 +44,7 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
                                  Eigen::Matrix<double,6,1> slave_velocity_max_) :
     master_to_slave_scale(master_to_slave_scale_),
     master_pose_slave_velocity_scale(master_pose_slave_velocity_scale_),
-    Controller(n_,freq_, Kp_, Kd_, Bd_, lambda_, master_min_, master_max_, slave_min_, slave_max_, slave_velocity_min_, slave_velocity_max_)
+    Controller(n_,freq_, Kp_, Kd_, Bd_,Fp_, lambda_, master_min_, master_max_, slave_min_, slave_max_, slave_velocity_min_, slave_velocity_max_)
 {
     initParams();
     //slave_callback_type = boost::bind(&SlaveController::paramsCallback, this, _1, _2);
@@ -76,6 +78,13 @@ void SlaveController::initParams()
     double kd_roll;
     double kd_pitch;
     double kd_yaw;
+
+    double fp_x;
+    double fp_y;
+    double fp_z;
+    double fp_roll;
+    double fp_pitch;
+    double fp_yaw;
 
     //initialize operational parameters
     n_priv.param<double>("frequency", freq, 10.0);

@@ -24,7 +24,6 @@
 #include "ros/ros.h"
 
 Eigen::Matrix<double,6,1> force_auto ;
-Eigen::Matrix<double,6,1> Fp ;
 nav_msgs::Odometry haptic_position ;
 
 MasterController::MasterController(ros::NodeHandle & n_,
@@ -32,6 +31,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
                                    Eigen::Matrix<double,6,1> Kp_,
                                    Eigen::Matrix<double,6,1> Kd_,
                                    Eigen::Matrix<double,6,1> Bd_,
+                                   Eigen::Matrix<double,6,1> Fp_,
                                    Eigen::Matrix<double,6,6> lambda_,
                                    Eigen::Matrix<double,6,1> slave_to_master_scale_,
                                    Eigen::Matrix<double,6,1> slave_velocity_master_pose_scale_,
@@ -43,7 +43,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
                                    Eigen::Matrix<double,6,1> slave_velocity_max_) :
     slave_to_master_scale(slave_to_master_scale_),
     slave_velocity_master_pose_scale(slave_velocity_master_pose_scale_),
-    Controller(n_,freq_, Kp_, Kd_, Bd_, lambda_, master_min_, master_max_, slave_min_, slave_max_,slave_velocity_min_,slave_velocity_max_)
+    Controller(n_,freq_, Kp_, Kd_, Bd_,Fp_, lambda_, master_min_, master_max_, slave_min_, slave_max_,slave_velocity_min_,slave_velocity_max_)
 {
 
     initParams();
@@ -64,7 +64,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     //slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
     slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
-    // subscribe for the environmental force from the potential field
+    // subscribe for the environmental force from the potential fieldFp
     force_feedback_sub  = n_.subscribe("/pf_force_feedback" , 1, &MasterController::getforce_feedback   , this);
 }
 
@@ -86,7 +86,12 @@ void MasterController::initParams()
     double kd_pitch;
     double kd_yaw;
 
-    Fp << 1, 1, 1, 0 , 0 , 0;
+    double fp_x;
+    double fp_y;
+    double fp_z;
+    double fp_roll;
+    double fp_pitch;
+    double Fp_yaw;
 
     //initialize operational parameters
     n_priv.param<double>("frequency", freq, 10.0);
@@ -189,7 +194,7 @@ void MasterController::initParams()
 
 void MasterController::paramsCallback(navigation::MasterControllerConfig &config, uint32_t level) 
 {
-    ROS_DEBUG_STREAM("Master PID reconfigure Request ->" << " kp_x:" << config.kp_x
+    /*ROS_DEBUG_STREAM("Master PID reconfigure Request ->" << " kp_x:" << config.kp_x
                      << " kp_y:" << config.kp_y
                      << " kp_z:" << config.kp_z
                      << " kd_x:" << config.kd_x
@@ -222,7 +227,7 @@ void MasterController::paramsCallback(navigation::MasterControllerConfig &config
             0, 0, config.lambda_z, 0, 0, 0,
             0, 0, 0, config.lambda_roll, 0, 0,
             0, 0, 0, 0, config.lambda_pitch, 0,
-            0, 0, 0, 0, 0, config.lambda_yaw;
+            0, 0, 0, 0, 0, config.lambda_yaw;*/
     //slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_size.x/config.slave_size.x), fabs(config.master_size.y/config.slave_size.y), fabs(config.master_size.z/config.slave_size.z));
 }
 
@@ -336,8 +341,8 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
     current_velocity_master=(current_pose_master-previous_pose_master)/period;
 
 
-    haptic_position.pose.pose.position.x = (x_master);
-    haptic_position.pose.pose.position.y = (y_master);
+    haptic_position.pose.pose.position.x = -x_master + master_min(0,0)+master_max(0,0);
+    haptic_position.pose.pose.position.y = -y_master + master_min(1,0)+master_max(1,0);
     haptic_position.pose.pose.position.z = z_master  ;
 
     // haptic_position.twist.twist.linear.x = current_velocity_master(0,0) ;
@@ -417,8 +422,8 @@ void MasterController::feedback()
     Eigen::Matrix<double,6,1> Km_2;
     Eigen::Matrix<double,6,6> Fe ;
 
-    Km_1 << 1, 1, 1, 1, 1, 1  ;
-    Km_2 << 1, 1, 1, 1, 1, 1  ;
+    Km_1 << 1.5, 1.5, 1.5, 1.5, 1.5, 1.5  ;
+    Km_2 << 1.5, 1.5, 1.5, 1.5, 1.5, 1.5  ;
 
     phantom_omni::OmniFeedback force_msg;
 
@@ -430,17 +435,18 @@ void MasterController::feedback()
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
         Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_slave *Km_2.transpose()  ;
-
+        std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
+        std::cout << " KD: "<< Kd.transpose()<<std::endl;
         Eigen::Matrix<double,6,6> feeback_matrix = (current_pose_slave_scaled     -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
-                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() -Fe; // Human_force - Fe
+                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe; // Human_force - Fe
         //std::cout << "current velocity slave:" <<  current_velocity_slave(0,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0);
         //std::cout << "angle velocity error velocity slave:" <<  current_velocity_slave(5,0)-current_velocity_master(5,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0);
 
         // weird mapping
-        force_msg.force.x=feeback_matrix(1,1);
+        force_msg.force.x=-feeback_matrix(1,1);
         force_msg.force.y=feeback_matrix(2,2);
-        force_msg.force.z=feeback_matrix(0,0);
+        force_msg.force.z=-feeback_matrix(0,0);
 
         master_new_readings=false;
         slave_new_readings=false;

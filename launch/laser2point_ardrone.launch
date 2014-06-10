@@ -4,7 +4,7 @@
  <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
   <node name="laser2pointcloud" pkg="navigation" type="laser2pointcloud" output="screen">
 	<remap from="/laserscan" to="$(arg laser_scan_topic)"/>
-        <remap from="/base_link" to="base_link"/>
+        <remap from="/base_link" to="laser0_frame"/>
   	
   </node>
 </launch>

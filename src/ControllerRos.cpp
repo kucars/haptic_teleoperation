@@ -98,6 +98,29 @@ int main(int argc, char **argv)
             bd_pitch,
             bd_yaw;
 
+
+    double fp_x;
+    double fp_y;
+    double fp_z;
+    double fp_roll;
+    double fp_pitch;
+    double fp_yaw;
+    n_priv.param<double>("fp_x",     fp_x, 1.0);
+    n_priv.param<double>("fp_y",     fp_y, 1.0);
+    n_priv.param<double>("fp_z",     fp_z, 1.0);
+    n_priv.param<double>("fp_roll",  fp_roll, 1.0);
+    n_priv.param<double>("fp_pitch", fp_pitch, 1.0);
+    n_priv.param<double>("fp_yaw",   fp_yaw, 1.0);
+
+    Eigen::Matrix<double,6,1> Fp;
+    Fp << 	fp_x,
+            fp_y,
+            fp_z,
+            fp_roll,
+            fp_pitch,
+            fp_yaw;
+
+
     double lambda_x;
     double lambda_y;
     double lambda_z;
@@ -267,7 +290,7 @@ int main(int argc, char **argv)
                 fabs(master_size(4,0)/slave_velocity_size(4,0)),
                 fabs(master_size(5,0)/slave_velocity_size(5,0));
 
-        MasterController controller(n, freq, Kp, Kd, Bd, lambda, slave_to_master_scale, slave_velocity_master_pose_scale, master_min, master_max, slave_min, slave_max, slave_velocity_min, slave_velocity_max);
+        MasterController controller(n, freq, Kp, Kd, Bd, Fp, lambda, slave_to_master_scale, slave_velocity_master_pose_scale, master_min, master_max, slave_min, slave_max, slave_velocity_min, slave_velocity_max);
         ros::Rate loop_rate(freq);
         while (ros::ok())
         {
@@ -293,7 +316,7 @@ int main(int argc, char **argv)
                 fabs(slave_velocity_size(5,0)/master_size(5,0));
         std::cout << master_size(0,0) << " " <<  slave_velocity_size(0,0) << std::endl;
         std::cout << "before:" <<master_pose_slave_velocity_scale << std::endl;
-        SlaveController controller(n, freq, Kp, Kd, Bd, lambda, master_to_slave_scale, master_pose_slave_velocity_scale, master_min, master_max, slave_min, slave_max, slave_velocity_min, slave_velocity_max);
+        SlaveController controller(n, freq, Kp, Kd, Bd,Fp, lambda, master_to_slave_scale, master_pose_slave_velocity_scale, master_min, master_max, slave_min, slave_max, slave_velocity_min, slave_velocity_max);
         ros::Rate loop_rate(freq);
 
         while (ros::ok())

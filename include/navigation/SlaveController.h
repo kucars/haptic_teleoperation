@@ -35,6 +35,7 @@ class SlaveController : public Controller
                   Eigen::Matrix<double,6,1> Kp_,
                   Eigen::Matrix<double,6,1> Kd_,
                   Eigen::Matrix<double,6,1> Bd_,
+                   Eigen::Matrix<double,6,1> Fp_,
                   Eigen::Matrix<double,6,6> lambda_,
                   Eigen::Matrix<double,6,1> master_to_slave_scale_,
 		  Eigen::Matrix<double,6,1> master_pose_slave_velocity_scale_,

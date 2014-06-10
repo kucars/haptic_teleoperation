@@ -66,11 +66,17 @@ int main(int argc, char** argv)
 
   ros::init(argc, argv, "ModelState");
   ros::NodeHandle n;
+  double freq = 30.0;
+
+  ros::Rate loop_rate(freq);
+
   ModelState lstopc(n);
 while(ros::ok())
 {
 
   ros::spinOnce();
+  loop_rate.sleep();
+
 }  
 
   
