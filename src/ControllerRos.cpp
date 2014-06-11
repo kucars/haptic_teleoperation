@@ -223,6 +223,8 @@ int main(int argc, char **argv)
             slave_velocity_max_pitch,
             slave_velocity_max_yaw;
 
+
+
     Eigen::Matrix<double,6,1> slave_velocity_size=slave_velocity_max-slave_velocity_min;
 
     double master_min_x;
@@ -316,6 +318,9 @@ int main(int argc, char **argv)
                 fabs(slave_velocity_size(5,0)/master_size(5,0));
         std::cout << master_size(0,0) << " " <<  slave_velocity_size(0,0) << std::endl;
         std::cout << "before:" <<master_pose_slave_velocity_scale << std::endl;
+        std::cout << "velocities min " << slave_min.transpose() << std::endl ;
+        std::cout << "velocities max " << slave_max.transpose() << std::endl ;
+
         SlaveController controller(n, freq, Kp, Kd, Bd,Fp, lambda, master_to_slave_scale, master_pose_slave_velocity_scale, master_min, master_max, slave_min, slave_max, slave_velocity_min, slave_velocity_max);
         ros::Rate loop_rate(freq);
 

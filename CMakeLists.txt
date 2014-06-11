@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   laser_geometry
   gazebo_msgs
+ardrone_autonomy
  )
 
 ## System dependencies are found with CMake's conventions
@@ -87,7 +88,7 @@ generate_dynamic_reconfigure_options(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
-   geometry_msgs  sensor_msgs nav_msgs visualization_msgs
+   geometry_msgs  sensor_msgs nav_msgs visualization_msgs ardrone_autonomy
 )
 
 ###################################
@@ -102,7 +103,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rosaria_nav
-  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs gazebo_msgs
+  CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs gazebo_msgs ardrone_autonomy
 #  DEPENDS system_lib
 )
 
@@ -153,6 +154,20 @@ target_link_libraries(potential_field
 add_executable(laser2pointcloud src/laser2pointcloud.cpp)
 add_dependencies(laser2pointcloud ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(laser2pointcloud
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
+
+## take off and landing 
+add_executable(takeoff src/take_off.cpp)
+add_dependencies(takeoff ${PROJECT_NAME}_gencfg)
+target_link_libraries(takeoff
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
+add_executable(land src/land.cpp)
+add_dependencies(land ${PROJECT_NAME}_gencfg)
+target_link_libraries(land
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
 )
