@@ -193,6 +193,9 @@ target_link_libraries(ModelState
    ${Boost_LIBRARIES}
 )
 
+add_executable(ardrone_keyboard src/ardrone_keyboard.cpp)
+target_link_libraries(ardrone_keyboard ${catkin_LIBRARIES})
+
 
 #add_executable(uav_commander src/uav_commander.cpp)
 #target_link_libraries(uav_commander

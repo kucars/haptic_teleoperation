@@ -1,0 +1,5 @@
+<launch>
+  <!-- turtlebot_teleop_key already has its own built in velocity smoother -->
+  <node pkg="haptic_teleoperation" type="ardrone_keyboard" name="ardrone_keyboard"  output="screen">
+  </node>
+</launch>
