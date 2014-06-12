@@ -29,7 +29,7 @@
 #include <Eigen/Eigen>
 #include <std_msgs/String.h>
 #include <dynamic_reconfigure/server.h>
-#include <navigation/PIDControllerConfig.h>
+#include <haptic_teleoperation/PIDControllerConfig.h>
 #include <sstream>
 #include <string>
 #include <sys/time.h>

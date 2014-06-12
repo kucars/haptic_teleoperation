@@ -9,7 +9,7 @@
 #include <cmath>
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-#include <navigation/ForceFieldConfig.h>
+#include <haptic_teleoperation/ForceFieldConfig.h>
 
 const double PI=3.14159265359;
 double lastTimeCalled ;//= ros::Time::now().toSec();
@@ -17,8 +17,8 @@ double lastTimeCalled ;//= ros::Time::now().toSec();
 class ForceField
 {
 public:
-   dynamic_reconfigure::Server<navigation::ForceFieldConfig> param_server;
-    dynamic_reconfigure::Server<navigation::ForceFieldConfig>::CallbackType param_callback_type;
+   dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig> param_server;
+    dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig>::CallbackType param_callback_type;
 
     ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) :
     n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_)
@@ -140,7 +140,7 @@ private:
 
     Eigen::Vector3d resulting_force;
 
-    void paramsCallback(navigation::ForceFieldConfig &config, uint32_t level)
+    void paramsCallback(haptic_teleoperation::ForceFieldConfig &config, uint32_t level)
     {
         ROS_DEBUG_STREAM("Force field reconfigure Request ->" << " kp_x:" << config.kp_x
                          << " kp_y:" << config.kp_y

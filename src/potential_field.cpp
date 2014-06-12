@@ -9,16 +9,16 @@
 #include <cmath>
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-#include <navigation/TwistArray.h>
-#include <navigation/ContourData.h>
+#include <haptic_teleoperation/TwistArray.h>
+#include <haptic_teleoperation/ContourData.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
-#include <navigation/potential_fieldConfig.h>
+#include <haptic_teleoperation/potential_fieldConfig.h>
 #include <phantom_omni/PhantomButtonEvent.h>
 
 
 using namespace std ; 
-navigation::ContourData contour_data_msg;
+haptic_teleoperation::ContourData contour_data_msg;
 const double PI=3.14159265359;
 #define BILLION 1000000000
 double lastTimeCalled ;//= ros::Time::now().toSec();
@@ -27,8 +27,8 @@ double lastTimeCalled ;//= ros::Time::now().toSec();
 class ForceField
 {
 public:
-    dynamic_reconfigure::Server<navigation::potential_fieldConfig> param_server;
-    dynamic_reconfigure::Server<navigation::potential_fieldConfig>::CallbackType param_callback_type;
+    dynamic_reconfigure::Server<haptic_teleoperation::potential_fieldConfig> param_server;
+    dynamic_reconfigure::Server<haptic_teleoperation::potential_fieldConfig>::CallbackType param_callback_type;
     std::vector<double> previous_potential_field;
     ros::Time previous_time;
     bool obstacles_new_readings;
@@ -194,7 +194,7 @@ private:
     ros::Subscriber scan_sub_;
 
 
-    void paramsCallback(navigation::potential_fieldConfig &config, uint32_t level)
+    void paramsCallback(haptic_teleoperation::potential_fieldConfig &config, uint32_t level)
     { gain = config.gain ;}
 
 
@@ -255,6 +255,8 @@ private:
             marker.scale.z = 0.1;
         }
         marker.color.a = 1.0;
+        ros::Duration d(0.5);
+        marker.lifetime = d ;
 
 
         return marker;

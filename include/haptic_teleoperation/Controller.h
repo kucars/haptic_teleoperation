@@ -31,8 +31,8 @@
 #include <phantom_omni/PhantomButtonEvent.h>
 #include <sensor_msgs/JointState.h>
 #include <dynamic_reconfigure/server.h>
-#include <navigation/MasterControllerConfig.h>
-#include <navigation/SlaveControllerConfig.h>
+#include <haptic_teleoperation/MasterControllerConfig.h>
+#include <haptic_teleoperation/SlaveControllerConfig.h>
 #include <geometry_msgs/Twist.h>
 
 const double PI=3.14159265359;

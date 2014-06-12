@@ -20,7 +20,7 @@
 * 51 Franklin Steet, Fifth Floor, Boston, MA 02111-1307, USA. 		   *
 ***************************************************************************/
 
-#include "navigation/MasterController.h"
+#include "haptic_teleoperation/MasterController.h"
 #include "ros/ros.h"
 
 Eigen::Matrix<double,6,1> force_auto ;
@@ -192,7 +192,7 @@ void MasterController::initParams()
 
 }
 
-void MasterController::paramsCallback(navigation::MasterControllerConfig &config, uint32_t level) 
+void MasterController::paramsCallback(haptic_teleoperation::MasterControllerConfig &config, uint32_t level)
 {
     /*ROS_DEBUG_STREAM("Master PID reconfigure Request ->" << " kp_x:" << config.kp_x
                      << " kp_y:" << config.kp_y

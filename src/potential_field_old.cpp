@@ -9,11 +9,11 @@
 #include <cmath>
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-#include <navigation/TwistArray.h>
-#include <navigation/ContourData.h>
+#include <haptic_teleoperation/TwistArray.h>
+#include <haptic_teleoperation/ContourData.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
-#include <navigation/potential_fieldConfig.h>
+#include <haptic_teleoperation/potential_fieldConfig.h>
 
 
 using namespace std ; 

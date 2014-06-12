@@ -21,14 +21,14 @@
 ***************************************************************************/
 #ifndef SLAVE_CONTROLLER_
 #define SLAVE_CONTROLLER_
-#include "navigation/Controller.h"
+#include "haptic_teleoperation/Controller.h"
 #include "ardrone_autonomy/Navdata.h"
 
 class SlaveController : public Controller
 {
 	public:
-  		dynamic_reconfigure::Server<navigation::SlaveControllerConfig> slave_server;
-  		dynamic_reconfigure::Server<navigation::SlaveControllerConfig>::CallbackType slave_callback_type;
+  		dynamic_reconfigure::Server<haptic_teleoperation::SlaveControllerConfig> slave_server;
+  		dynamic_reconfigure::Server<haptic_teleoperation::SlaveControllerConfig>::CallbackType slave_callback_type;
 
 		SlaveController(ros::NodeHandle & n_,
                   double freq_,
@@ -46,7 +46,7 @@ class SlaveController : public Controller
 		  Eigen::Matrix<double,6,1> slave_velocity_min_,
 		  Eigen::Matrix<double,6,1> slave_velocity_max_);
 
-		void paramsCallback(navigation::SlaveControllerConfig &config, uint32_t level);
+		void paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level);
 
 	private:
 		// MASTER MEASUREMENTS

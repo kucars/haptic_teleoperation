@@ -21,8 +21,8 @@
 ***************************************************************************/
 
 
-#include "navigation/MasterController.h"
-#include "navigation/SlaveController.h"
+#include "haptic_teleoperation/MasterController.h"
+#include "haptic_teleoperation/SlaveController.h"
 
 int main(int argc, char **argv)
 {

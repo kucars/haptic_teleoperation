@@ -1,4 +1,4 @@
-#include "navigation/PositionController.h"
+#include "haptic_teleoperation/PositionController.h"
 
 PositionController::PositionController()
 {

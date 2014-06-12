@@ -20,7 +20,7 @@
 * 51 Franklin Steet, Fifth Floor, Boston, MA 02111-1307, USA. 		   *
 ***************************************************************************/
 
-#include "navigation/SlaveController.h"
+#include "haptic_teleoperation/SlaveController.h"
 #include <time.h>
 #include "ardrone_autonomy/Navdata.h"
 #define RAD_TO_DEG 180/3.14
@@ -192,7 +192,7 @@ void SlaveController::get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg
      std::cout << "Baterry: " << battery_per << std::endl;
 
 }
-void SlaveController::paramsCallback(navigation::SlaveControllerConfig &config, uint32_t level)
+void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level)
 {
     ROS_INFO_STREAM("Slave PID reconfigure Request ->"  << " kp_x:" << config.kp_x
                     << " kp_y:" << config.kp_y

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>navigation</name>
+  <name>haptic_teleoperation</name>
   <version>0.0.0</version>
-  <description>KURI's navigation package</description>
+  <description>KURI's haptic_teleoperation package</description>
   <maintainer email="rui.defigueiredo@kustar.ac.ae">Rui Pimentel de Figueiredo and Reem Ashour</maintainer>
   <license>GPLv2</license>
   <author email="rui.defigueiredo@kustar.ac.ae">Rui Pimentel de Figueiredo and Reem Ashour</author>

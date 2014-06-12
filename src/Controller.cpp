@@ -20,7 +20,7 @@
 * 51 Franklin Steet, Fifth Floor, Boston, MA 02111-1307, USA. 		   *
 ***************************************************************************/
 
-#include "navigation/Controller.h"
+#include "haptic_teleoperation/Controller.h"
 
 
 Controller::Controller(ros::NodeHandle & n_,

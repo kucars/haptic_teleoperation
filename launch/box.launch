@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
   <include file="$(find hector_gazebo_worlds)/launch/start.launch">
-    <arg name="world" value="$(find navigation)/config/world2.sdf"/>
+    <arg name="world" value="$(find haptic_teleoperation)/config/world2.sdf"/>
   </include>
 </launch>

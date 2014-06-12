@@ -21,15 +21,15 @@
 ***************************************************************************/
 #ifndef MASTER_CONTROLLER_
 #define MASTER_CONTROLLER_
-#include "navigation/Controller.h"
-#include <navigation/MasterControllerConfig.h>
+#include "haptic_teleoperation/Controller.h"
+#include <haptic_teleoperation/MasterControllerConfig.h>
 
 
 class MasterController : public Controller
 {
 	public:
-		dynamic_reconfigure::Server<navigation::MasterControllerConfig> master_server;
-  		dynamic_reconfigure::Server<navigation::MasterControllerConfig>::CallbackType master_callback_type;
+		dynamic_reconfigure::Server<haptic_teleoperation::MasterControllerConfig> master_server;
+  		dynamic_reconfigure::Server<haptic_teleoperation::MasterControllerConfig>::CallbackType master_callback_type;
 		MasterController(ros::NodeHandle & n_,
                    double freq_,
                    Eigen::Matrix<double,6,1> Kp_,
@@ -46,7 +46,7 @@ class MasterController : public Controller
 		   Eigen::Matrix<double,6,1> slave_velocity_min_,
 		   Eigen::Matrix<double,6,1> slave_velocity_max_);
 
-		void paramsCallback(navigation::MasterControllerConfig &config, uint32_t level);
+		void paramsCallback(haptic_teleoperation::MasterControllerConfig &config, uint32_t level);
 
 	private:
 		// Environmental force 
