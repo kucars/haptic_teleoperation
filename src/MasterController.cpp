@@ -55,7 +55,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     cmd_pub = n.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
 
     // haptic position publisher in linear coordinates
-    haptic_pub = n.advertise<nav_msgs::Odometry>("/haptic_position_pub",1) ;
+    haptic_pub = n.advertise<nav_msgs::Odometry>("haptic_position_pub",1) ;
 
     // Master joint states subscriber
     master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
@@ -65,7 +65,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
     // subscribe for the environmental force from the potential fieldFp
-    force_feedback_sub  = n_.subscribe("/pf_force_feedback" , 1, &MasterController::getforce_feedback   , this);
+    force_feedback_sub  = n_.subscribe("pf_force_feedback" , 1, &MasterController::getforce_feedback   , this);
 }
 
 void MasterController::initParams()

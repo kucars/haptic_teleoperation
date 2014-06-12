@@ -8,7 +8,9 @@
 
 class LaserScanToPointCloud{
 public:
+
   ros::NodeHandle n_;
+
   laser_geometry::LaserProjection projector_;
   tf::TransformListener listener_;
   message_filters::Subscriber<sensor_msgs::LaserScan> laser_sub_;
@@ -24,7 +26,7 @@ public:
    	 	laser_notifier_.registerCallback(
         boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
         laser_notifier_.setTolerance(ros::Duration(0.01));// 0.01
-        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("/cloud",10);
+        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",10);
 
   	}
 

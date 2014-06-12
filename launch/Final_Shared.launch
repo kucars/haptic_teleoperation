@@ -11,7 +11,7 @@
 
 
  <!-- Run the slave controller  -->
- <node name="slave_controller" pkg="haptic_teleoperation" type="controller_ros"  >
+ <node name="slave_controller" pkg="haptic_teleoperation" type="controller_ros" ns="/haptic_teleoperation">
     <rosparam command="load" file="$(find haptic_teleoperation)/config/slave_controller_params.yaml" />
     <rosparam command="load" file="$(find haptic_teleoperation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find haptic_teleoperation)/config/master_params.yaml" />
@@ -20,7 +20,7 @@
   </node>
 
  <!-- Run the master controller controller  -->
-  <node name="master_controller" pkg="haptic_teleoperation" type="controller_ros" >
+  <node name="master_controller" pkg="haptic_teleoperation" type="controller_ros" ns="/haptic_teleoperation" >
     <rosparam command="load" file="$(find haptic_teleoperation)/config/slave_params.yaml" />
     <rosparam command="load" file="$(find haptic_teleoperation)/config/master_controller_params.yaml" />
     <rosparam command="load" file="$(find haptic_teleoperation)/config/master_params.yaml" />
@@ -28,7 +28,7 @@
   </node>
 
  <!-- Convert the laser data into point clout data (subscribe for lasersacn and publish point cloud)-->
-  <node name="laser2pointcloud" pkg="haptic_teleoperation" type="laser2pointcloud" >
+  <node name="laser2pointcloud" pkg="haptic_teleoperation" type="laser2pointcloud" ns="/haptic_teleoperation" >
 	<remap from="/laserscan" to="$(arg laser_scan_topic)"/>
         <remap from="/base_link" to="laser0_frame"/>
   	
@@ -37,7 +37,7 @@
 <group if="$(arg force_or_potential)">
 
  <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
-  <node name="potential_field" pkg="haptic_teleoperation" type="potential_field" output="screen">
+  <node name="potential_field" pkg="haptic_teleoperation" type="potential_field" output="screen" ns="/haptic_teleoperation">
     <rosparam command="load" file="$(find haptic_teleoperation)/config/potential_field.yaml" />
     <remap from="pose" to="$(arg pose_topic)"/> 
   </node>

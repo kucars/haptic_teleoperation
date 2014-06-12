@@ -55,11 +55,11 @@ public:
        // std::cout << std::endl ;
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("/risk_vector_marker", 1);
-        //force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
-        feedback_pub = n.advertise<geometry_msgs::PoseStamped>("/pf_force_feedback", 1);
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
+        //force_out = n.advertise<phantom_omni::OmniFeedback>( "omni1_force_feedback", 1);
+        feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
-        obstacle_readings_sub = n.subscribe("/cloud",1, &ForceField::sonarCallback, this);
+        obstacle_readings_sub = n.subscribe("cloud",1, &ForceField::sonarCallback, this);
         // button_sub = n_.subscribe ("/omni1_button", 1, &ForceField::buttonCallback, this);
 
        // std::cout << "end of the constructor" << std::endl;
