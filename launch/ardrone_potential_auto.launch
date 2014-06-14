@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <arg name="pose_topic" value="/ground_truth/state" />
- <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
-  <node name="potential_field" pkg="haptic_teleoperation" type="potential_field" output="screen">
-    <rosparam command="load" file="$(find haptic_teleoperation)/config/potential_field.yaml" />
-    <remap from="pose" to="$(arg pose_topic)"/> 
-  </node>
-</launch>

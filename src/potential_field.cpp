@@ -334,7 +334,7 @@ private:
      //   std::cout << "resulting_risk_vector" << resulting_risk_vector << endl ;
         geometry_msgs::PoseStamped msg ;
         msg.header.stamp =  ros::Time::now();
-        msg.pose.position.x=resulting_risk_vector.x() ;
+        msg.pose.position.x=-resulting_risk_vector.x() ;
         msg.pose.position.y =resulting_risk_vector.y() ;
         msg.pose.position.z=resulting_risk_vector.z() ;
         std::cout << "resulting_risk_vector " << std::endl ;
