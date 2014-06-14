@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     while (ros::ok())
     {
         int c = getch();   // call your non-blocking input function
-        if (c == 't' || c="T") // take off
+        if (c == 't' || c=='T') // take off
         {
             std::cout << "takeoff" << std::endl ;
             double time_start=(double)ros::Time::now().toSec();
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 
         }
 
-        else if (c == 'l' || c=="L") // landing
+        else if (c == 'l' || c=='L') // landing
         {
             std::cout << "land" << std::endl ;
 
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
             ROS_INFO("ARdrone landed");
             exit(0);
         }
-        else if (c == 'r' || c =="R") // reset
+        else if (c == 'r' || c =='R') // reset
         {
             std::cout << "emergency" << std::endl ;
 
