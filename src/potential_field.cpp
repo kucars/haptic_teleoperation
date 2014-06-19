@@ -255,7 +255,7 @@ private:
             marker.scale.z = 0.1;
         }
         marker.color.a = 1.0;
-        ros::Duration d(0.5);
+        ros::Duration d(0.03);
         marker.lifetime = d ;
 
 
@@ -296,7 +296,6 @@ private:
 
         if(!init_flag)
         {
-            ROS_INFO("HELLO");
             init_flag=true;
             obstacles_positions_previous=obstacles_positions_current;
             return;

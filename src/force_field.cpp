@@ -24,8 +24,19 @@ public:
     dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig> param_server;
     dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig>::CallbackType param_callback_type;
 
-    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) :
-        n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_)
+    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_,  double & laser_min_distance_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) :
+        n(n_),
+        freq(freq_),
+        ro(ro_),
+        kp(kp_),
+        kd(kd_),
+        laser_max_distance(laser_max_distance_),
+        robot_mass(robot_mass_),
+        robot_radius(robot_radius_),
+        pose_topic_name(pose_topic_name_),
+        sonar_topic_name(sonar_topic_name_),
+        laser_min_distance(laser_min_distance_)
+
     {
         std::cout << "In the class" << std::endl ;
         kp_mat << kp.x(), 0, 0,
@@ -39,8 +50,8 @@ public:
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
-        // repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/feedback_force/repulsive_force", 1);
-        // force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+        // repulsive_force_out = n.advertise<geometry_msgs::Twist>( "feedback_force/repulsive_force", 1);
+        // force_out = n.advertise<phantom_omni::OmniFeedback>( "omni1_force_feedback", 1);
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
         obstacle_readings_sub = n.subscribe("cloud", 100, &ForceField::sonarCallback, this);
@@ -60,6 +71,13 @@ public:
             aux_it=obstacles_positions_current.size();
         else
             aux_it=obstacles_positions_previous.size();
+
+        if(aux_it==0)
+        resulting_force.x()=0 ;
+        resulting_force.y()=0 ;
+        resulting_force.z()=0 ;
+
+
         for(int i=0; i<aux_it; ++i)
         {
             //double getPf_Start = ros::Time::now().toSec();
@@ -75,9 +93,9 @@ public:
 
         //resulting_force.x()=resulting_force.x()/(aux_it) ;
         //resulting_force.y()=resulting_force.y()/(10) ;
-        resulting_force.x()=resulting_force.x()/(aux_it) ;
-        resulting_force.y()=resulting_force.y()/(aux_it) ;
-        resulting_force.z()=resulting_force.z()/(aux_it) ;
+        resulting_force.x()=resulting_force.x() ;
+        resulting_force.y()=resulting_force.y() ;
+        resulting_force.z()=resulting_force.z() ;
 
 
         //std::cout << "resulting force: " << resulting_force.transpose() << std::endl;
@@ -123,6 +141,8 @@ private:
     std::string sonar_topic_name;
 
     std::string velocity_cmd_topic_name;
+
+    double laser_min_distance;
 
     // Parameters
     double a_max;
@@ -237,7 +257,8 @@ private:
             marker.scale.z = 0.1;
         }
         marker.color.a = 1.0;
-
+        ros::Duration d(0.1);
+        marker.lifetime = d ;
 
         return marker;
     }
@@ -263,7 +284,7 @@ private:
         for(int i=0; i< msg->points.size(); ++i)
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,0.0);
-            if(obstacle.norm()<laser_max_distance-0.01)
+            if(obstacle.norm()<7.8  && obstacle.norm()>laser_min_distance+0.01)
                 //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
             {
                 //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
@@ -277,13 +298,8 @@ private:
             obstacles_positions_previous=obstacles_positions_current;
             return;
         }
-        //ROS_INFO_STREAM("obstacles:" << obstacles_positions.size());
-        //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
-        //if (obstacles_positions_current.size() > 0 )
-        //{
-        computeForceField();
 
-        //}
+        computeForceField();
         feedbackMaster();
         //feedbackSlave();
         obstacles_positions_previous=obstacles_positions_current;
@@ -392,10 +408,15 @@ int main(int argc, char **argv)
     Eigen::Vector3d kp(kp_x,kp_y,kp_z);
     Eigen::Vector3d kd(kd_x,kd_y,kd_z);
 
+
     double laser_max_distance;
+    double laser_min_distance;
+
 
     //initialize operational parameters
-    n_priv.param<double>("laser_max_distance", laser_max_distance, 0.2);
+    n_priv.param<double>("laser_max_distance", laser_max_distance,2.0);
+    n_priv.param<double>("laser_min_distance", laser_min_distance,0.2);
+    //initialize operational parameters
     n_priv.param<double>("ro", ro, 3.0);
     n_priv.param<double>("frequency", freq, 10.0);
     n_priv.param<double>("acc_max", a_max, 1.0);
@@ -407,7 +428,7 @@ int main(int argc, char **argv)
 
     std::string pose_topic_name = "/RosAria/pose" ;
     std::string sonar_topic_name = "/RosAria/sonar";
-    ForceField potential_field(n, freq, ro, kp, kd, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
+    ForceField potential_field(n, freq, ro, kp, kd, laser_min_distance, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
 
     while(ros::ok())
     {
