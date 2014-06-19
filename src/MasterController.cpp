@@ -439,17 +439,14 @@ std::cout<<  "Fe" << Fe << std::endl;
         //std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
         //std::cout << " KD: "<< Kd.transpose()<<std::endl;
         std::cout << "fp: " << Fp.transpose() ;
-//        feeback_matrix -= (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
-//                (current_velocity_slave -  r)                   * Kd.transpose() +
-//                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose()+ Human_force; // Human_force - Fe
-        feeback_matrix -= r* Kd.transpose() +Human_force; // Human_force - Fe
-        //std::cout << "current velocity slave:" <<  current_velocity_slave(0,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0);
-        //std::cout << "angle velocity error velocity slave:" <<  current_velocity_slave(5,0)-current_velocity_master(5,0) << " current pose master: "<<current_pose_master(0,0)<<" master velocity error:" <<  current_velocity_slave(0,0) -  r(0,0);
+        feeback_matrix -= (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
+                (current_velocity_slave -  r)                   * Kd.transpose() +
+                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose(); // Human_force - Fe
 
 
     }
 
-    // weird mapping ( it is according to the joints because the force is applied to the joints)
+    // mapping the force to the joints
     force_msg.force.x=feeback_matrix(1,1);
     force_msg.force.y=-feeback_matrix(2,2);
     force_msg.force.z=feeback_matrix(0,0);

@@ -193,6 +193,12 @@ target_link_libraries(ModelState
    ${Boost_LIBRARIES}
 )
 
+add_executable(test_pf src/testing_pf.cpp)
+add_dependencies(test_pf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_pf
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
 add_executable(ardrone_keyboard src/ardrone_keyboard.cpp)
 target_link_libraries(ardrone_keyboard ${catkin_LIBRARIES})
 

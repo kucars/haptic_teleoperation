@@ -11,17 +11,21 @@
 #include <dynamic_reconfigure/server.h>
 #include <haptic_teleoperation/ForceFieldConfig.h>
 
+#include <haptic_teleoperation/TwistArray.h>
+#include <laser_geometry/laser_geometry.h>
+#include <tf/transform_listener.h>
+
 const double PI=3.14159265359;
 double lastTimeCalled ;//= ros::Time::now().toSec();
 
 class ForceField
 {
 public:
-   dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig> param_server;
+    dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig> param_server;
     dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig>::CallbackType param_callback_type;
 
     ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) :
-    n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_)
+        n(n_), freq(freq_), ro(ro_), kp(kp_), kd(kd_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_)
     {
         std::cout << "In the class" << std::endl ;
         kp_mat << kp.x(), 0, 0,
@@ -34,13 +38,14 @@ public:
 
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "/force_field_markers", 1);
-       // repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/feedback_force/repulsive_force", 1);
-        force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
+        // repulsive_force_out = n.advertise<geometry_msgs::Twist>( "/feedback_force/repulsive_force", 1);
+        // force_out = n.advertise<phantom_omni::OmniFeedback>( "/omni1_force_feedback", 1);
+        feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
-        obstacle_readings_sub = n.subscribe("/cloud", 100, &ForceField::sonarCallback, this);
+        obstacle_readings_sub = n.subscribe("cloud", 100, &ForceField::sonarCallback, this);
         lastTimeCalled = ros::Time::now().toSec();
-};
+    };
 
     void computeForceField()
     {
@@ -60,18 +65,18 @@ public:
             //double getPf_Start = ros::Time::now().toSec();
 
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
-           // double getPf_End = ros::Time::now().toSec();
+            // double getPf_End = ros::Time::now().toSec();
             //std::cout << "get one pf time" << getPf_End - getPf_Start << std::endl ;
             //    force_field[i] = force_field[i] / aux_it ;
             resulting_force+=force_field[i];
         }
-        double Ve_End = ros::Time::now().toSec();       
+        double Ve_End = ros::Time::now().toSec();
         //std::cout << "get velocity time (ms)" << (Ve_End - Ve_Start)*1000 << std::endl ;
 
         //resulting_force.x()=resulting_force.x()/(aux_it) ;
         //resulting_force.y()=resulting_force.y()/(10) ;
-        resulting_force.x()=resulting_force.x()/(100) ;
-        resulting_force.y()=resulting_force.y()/(10) ;
+        resulting_force.x()=resulting_force.x()/(aux_it) ;
+        resulting_force.y()=resulting_force.y()/(aux_it) ;
         resulting_force.z()=resulting_force.z()/(aux_it) ;
 
 
@@ -110,7 +115,8 @@ private:
     ros::Subscriber obstacle_readings_sub;
     //ros::Publisher velocity_cmd_pub;
     ros::Publisher visualization_markers_pub;
-    ros::Publisher force_out;
+    //  ros::Publisher force_out;
+
     //ros::Publisher repulsive_force_out;
     ros::Publisher feedback_pub ;
     std::string pose_topic_name;
@@ -186,7 +192,7 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "/base_link";
+        marker.header.frame_id = "laser0_frame";
         marker.header.stamp = ros::Time();
         marker.id = id;
         if(id==0)
@@ -273,9 +279,12 @@ private:
         }
         //ROS_INFO_STREAM("obstacles:" << obstacles_positions.size());
         //ROS_INFO("I heard sensor data : [%f, %f , %f]", msg->points[0].x , msg->points[0].y , msg->points[0].z  );
-
+        //if (obstacles_positions_current.size() > 0 )
+        //{
         computeForceField();
-       // feedbackMaster();
+
+        //}
+        feedbackMaster();
         //feedbackSlave();
         obstacles_positions_previous=obstacles_positions_current;
         double pf_End = ros::Time::now().toSec();
@@ -304,19 +313,31 @@ private:
 
     void feedbackMaster()
     {
-        // WEIRD MAPPING!!!
-        phantom_omni::OmniFeedback force_feedback;
-        force_feedback.force.x=resulting_force.y();
-        force_feedback.force.y=resulting_force.z();
-        force_feedback.force.z=resulting_force.x();
-        force_out.publish(force_feedback);
+        geometry_msgs::PoseStamped msg ;
+        msg.header.stamp =  ros::Time::now();
+        msg.pose.position.x=-resulting_force.x() ;
+        msg.pose.position.y =resulting_force.y() ;
+        msg.pose.position.z=resulting_force.z() ;
+        std::cout << "resulting_risk_vector " << std::endl ;
+        std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
+        std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
+        std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
 
-//        geometry_msgs::Twist twist_msg_resulting_force;
-//        twist_msg_resulting_force.linear.x= resulting_force.y();
-//        twist_msg_resulting_force.linear.y=resulting_force.x();
-//        twist_msg_resulting_force.linear.z=resulting_force.z();
+        feedback_pub.publish(msg);
 
-//       repulsive_force_out.publish(twist_msg_resulting_force);
+        //        // WEIRD MAPPING!!!
+        //        phantom_omni::OmniFeedback force_feedback;
+        //        force_feedback.force.x=resulting_force.y();
+        //        force_feedback.force.y=resulting_force.z();
+        //        force_feedback.force.z=resulting_force.x();
+        //        force_out.publish(force_feedback);
+
+        //        geometry_msgs::Twist twist_msg_resulting_force;
+        //        twist_msg_resulting_force.linear.x= resulting_force.y();
+        //        twist_msg_resulting_force.linear.y=resulting_force.x();
+        //        twist_msg_resulting_force.linear.z=resulting_force.z();
+
+        //       repulsive_force_out.publish(twist_msg_resulting_force);
 
     }
 };
@@ -364,9 +385,9 @@ int main(int argc, char **argv)
     n_priv.param<double>("Kp_x", kp_x, 1.0);
     n_priv.param<double>("Kp_y", kp_y, 1.0);
     n_priv.param<double>("Kp_z", kp_z, 1.0);
-    n_priv.param<double>("Kp_x", kd_x, 1.0);
-    n_priv.param<double>("Kp_y", kd_y, 1.0);
-    n_priv.param<double>("Kp_z", kd_z, 1.0);
+    n_priv.param<double>("Kp_x", kd_x, 10.0);
+    n_priv.param<double>("Kp_y", kd_y, 10.0);
+    n_priv.param<double>("Kp_z", kd_z, 10.0);
 
     Eigen::Vector3d kp(kp_x,kp_y,kp_z);
     Eigen::Vector3d kd(kd_x,kd_y,kd_z);

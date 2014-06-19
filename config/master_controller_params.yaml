@@ -28,9 +28,9 @@ bd_roll: 0.0
 bd_pitch: 0.0
 bd_yaw: 0.0
 
-fp_x: 100.0
-fp_y: 100.0
-fp_z: 100.0
+fp_x: 5.0
+fp_y: 5.0
+fp_z: 5.0
 fp_roll: 0.0
 fp_pitch: 0.0
 fp_yaw: 0.1
