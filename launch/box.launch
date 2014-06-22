@@ -2,6 +2,6 @@
 
 <launch>
   <include file="$(find hector_gazebo_worlds)/launch/start.launch">
-    <arg name="world" value="$(find haptic_teleoperation)/config/box.world"/>
+    <arg name="world" value="$(find haptic_teleoperation)/config/test_pf_back.world"/>
     </include>
  </launch>
