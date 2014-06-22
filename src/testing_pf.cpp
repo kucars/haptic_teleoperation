@@ -25,14 +25,16 @@ const double deg_to_rad = M_PI / 180.0 ;
 class test_pf
 {
 public:
+    bool flag_out;
+    bool flag_first_Read;
 
-    test_pf(ros::NodeHandle & n_) : n(n_)
+    Eigen::Matrix<double,3,1> pose_slave;
+    test_pf(ros::NodeHandle & n_) : n(n_),flag_out(true),flag_first_Read(true)
     {
 
-//        vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
-
+        vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+        robot_pose_sub = n.subscribe("/ground_truth/state", 1, &test_pf::slaveOdometryCallback, this);
         model_state_pub = n.advertise<gazebo_msgs::ModelState>("/gazebo/set_model_state", 100);
-
     };
     void init_model_state(std::string model_name, geometry_msgs::Pose & pose)
     {
@@ -43,54 +45,84 @@ public:
         model_state_pub.publish(robot_msg) ;
     }
 
+    void vel_init(double val)
+    {
+        geometry_msgs::Twist msg;
+
+        //    std::cout << "A" << std::endl ;
+        msg.linear.x =  0.0 ;
+        msg.linear.y =  0.0 ;
+        msg.linear.z =  val;
+        msg.angular.x = 0 ;
+        msg.angular.y = 0 ;
+        msg.angular.z = 0 ;
+
+        vel_pub.publish(msg);
+
+    }
+    void move(geometry_msgs::Pose & pose)
+    {
+        geometry_msgs::Twist msg;
+        std::cout << "abs(pose_slave(1)-pose.position.y)" << fabs(pose_slave(0)-pose.position.x) << std::endl ;
+        std::cout << "(pose_slave(1))" << pose_slave(0) << std::endl ;
+        std::cout << "(pose.position.x)" << pose.position.x<< std::endl ;
+
+        // flag_out = true;
+        std::cout << "flag" << flag_out << std::endl ;
+        if (!flag_first_Read )
+        {
+            if (fabs(pose_slave(0)-pose.position.x) > 1.0 && flag_out )
+            {
+                std::cout << "A" << std::endl ;
+
+                msg.linear.x =  0.3 ;
+                msg.linear.y =  0.0 ;
+                msg.linear.z =  0.0;
+                msg.angular.x = 0 ;
+                msg.angular.y = 0 ;
+                msg.angular.z = 0 ;
+            }
+
+            else
+            {
+                flag_out = false;
+                if(fabs(pose_slave(0)-pose.position.x) > 0.5)
+                    std::cout<<"something"<<std::endl;
+                std::cout << "B" << std::endl ;
+                msg.linear.x =  -0.3;
+                msg.linear.y =  0.0 ;
+                msg.linear.z =  0.0;
+                msg.angular.x = 0 ;
+                msg.angular.y = 0 ;
+                msg.angular.z = 0 ;
+            }
+
+            vel_pub.publish(msg);
+        }
+    }
+
 private:
     // ROS
     ros::NodeHandle n;
-
-
     ros::Publisher vel_pub ;
     ros::Publisher model_state_pub ;
-
+    ros::Subscriber robot_pose_sub;
     // Helper variables
-    bool flag;
 
+    void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
 
-
-
-
-    //    void publish_velocity()
-    //    {
-    //        std::cout << "publish velocities: " << std::endl ;
-    //        geometry_msgs::Twist msg;
-    //        std::cout << "flag " << flag << std::endl ;
-
-
-    //        if(flag){
-    //            std::cout << "forward velocities: " << std::endl ;
-
-    //            msg.linear.x =  0 ;
-    //            msg.linear.y =  0.5 ;
-    //            msg.linear.z =  0.0;
-    //            msg.angular.z = 0 ;
-    //            msg.angular.y = 0 ;
-    //            msg.angular.z = 0 ;
-    //        }
-    //        else {
-    //            std::cout << "backward velocities: " << std::endl ;
-    //            msg.linear.x =  0.0 ;
-    //            msg.linear.y =  -0.5 ;
-    //            msg.linear.z =  0 ;
-    //            msg.angular.z = 0 ;
-    //            msg.angular.y = 0 ;
-    //            msg.angular.z = 0 ;
-    //        }
-
-    //        vel_pub.publish(msg);
-
-
-
-    //    }
 } ;
+void test_pf::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    if (flag_first_Read)
+    {
+        flag_first_Read =false;
+    }
+    pose_slave << msg->pose.pose.position.x,
+            msg->pose.pose.position.y,
+            msg->pose.pose.position.z;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -108,38 +140,46 @@ int main(int argc, char **argv)
     geometry_msgs::Pose wall_pose;
 
     Eigen::Matrix3d m;
-    m = Eigen::AngleAxisd(deg_to_rad*-90.0, Eigen::Vector3d::UnitZ());
+    m = Eigen::AngleAxisd(deg_to_rad*180.0, Eigen::Vector3d::UnitZ());
     Eigen::Quaterniond q(m) ;
+
+    Eigen::Matrix3d m2;
+    m2 = Eigen::AngleAxisd(deg_to_rad*90.0, Eigen::Vector3d::UnitZ());
+    Eigen::Quaterniond q2(m2) ;
 
     wall_pose.position.x=0.0 ;
     wall_pose.position.y=0.0 ;
     wall_pose.position.z=0.0 ;
-    wall_pose.orientation.x=q.x() ;
-    wall_pose.orientation.y=q.y() ;
-    wall_pose.orientation.z=q.z() ;
-    wall_pose.orientation.w=q.w() ;
+    wall_pose.orientation.x=q2.x() ;
+    wall_pose.orientation.y=q2.y() ;
+    wall_pose.orientation.z=q2.z() ;
+    wall_pose.orientation.w=q2.w() ;
 
 
-    robot_pose.position.x=-5.0 ;
+    robot_pose.position.x=10.0 ;
     robot_pose.position.y=0.0 ;
     robot_pose.position.z=2.0 ;
-    robot_pose.orientation.x=0.0 ;
-    robot_pose.orientation.y=0.0 ;
-    robot_pose.orientation.z=0.0 ;
-    robot_pose.orientation.w=1.0 ;
+    robot_pose.orientation.x=q.x() ;
+    robot_pose.orientation.y=q.y() ;
+    robot_pose.orientation.z=q.z();
+    robot_pose.orientation.w=q.w();
 
 
 
-    bool first_time = true ;
+    sleep(2);
+
+    potential_field.init_model_state(robot_name, robot_pose );
+    potential_field.init_model_state(obj,wall_pose );
+    potential_field.vel_init(0.5);
     sleep(1);
+    potential_field.vel_init(0.0);
+    sleep(2);
+
+
+    std::cout << "before ros::ok" << std::endl ;
     while(ros::ok())
     {
-        if(first_time)
-        {
-            potential_field.init_model_state(robot_name, robot_pose );
-            potential_field.init_model_state(obj,wall_pose );
-            first_time=false;
-        }
+        potential_field.move(wall_pose);
         ros::spinOnce();
         loop_rate.sleep();
     }
