@@ -50,8 +50,6 @@ public:
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
-        // repulsive_force_out = n.advertise<geometry_msgs::Twist>( "feedback_force/repulsive_force", 1);
-        // force_out = n.advertise<phantom_omni::OmniFeedback>( "omni1_force_feedback", 1);
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
         obstacle_readings_sub = n.subscribe("cloud", 100, &ForceField::sonarCallback, this);
@@ -62,9 +60,13 @@ public:
     {
         double pf_Start = ros::Time::now().toSec();
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+
         // Compute current robot Velocity based on odometry readings
         std::vector<Eigen::Vector3d> force_field;
         // for each obstacle compute velocity with respect to that object
+
+
+
         unsigned int aux_it;
         double Ve_Start = ros::Time::now().toSec();
         if(obstacles_positions_current.size()<=obstacles_positions_current.size())
@@ -73,10 +75,11 @@ public:
             aux_it=obstacles_positions_previous.size();
 
         if(aux_it==0)
-        resulting_force.x()=0 ;
-        resulting_force.y()=0 ;
-        resulting_force.z()=0 ;
-
+        {
+            resulting_force.x()=0 ;
+            resulting_force.y()=0 ;
+            resulting_force.z()=0 ;
+        }
 
         for(int i=0; i<aux_it; ++i)
         {
@@ -88,14 +91,14 @@ public:
             //    force_field[i] = force_field[i] / aux_it ;
             resulting_force+=force_field[i];
         }
+
+
         double Ve_End = ros::Time::now().toSec();
+
         //std::cout << "get velocity time (ms)" << (Ve_End - Ve_Start)*1000 << std::endl ;
 
         //resulting_force.x()=resulting_force.x()/(aux_it) ;
         //resulting_force.y()=resulting_force.y()/(10) ;
-        resulting_force.x()=resulting_force.x() ;
-        resulting_force.y()=resulting_force.y() ;
-        resulting_force.z()=resulting_force.z() ;
 
 
         //std::cout << "resulting force: " << resulting_force.transpose() << std::endl;

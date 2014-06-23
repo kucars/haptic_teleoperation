@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /MarkerArray1
         - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.5
     Tree Height: 775
@@ -25,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Laser data
 Visualization Manager:
   Class: ""
   Displays:
@@ -64,7 +65,7 @@ Visualization Manager:
       Max Color: 255; 255; 255
       Max Intensity: 1.56945e-43
       Min Color: 0; 0; 0
-      Min Intensity: 1.56945e-43
+      Min Intensity: 0
       Name: Laser data
       Position Transformer: XYZ
       Queue Size: 10
@@ -92,10 +93,11 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /haptic_teleoperation/risk_vector_marker
+      Marker Topic: /haptic_teleoperation/force_field_markers
       Name: MarkerArray
       Namespaces:
-        {}
+        force_field: true
+        resulting_force: true
       Queue Size: 100
       Value: true
     - Class: rviz/TF
@@ -162,7 +164,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.77284
+      Distance: 30.353
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -174,10 +176,10 @@ Visualization Manager:
         Z: 0.235687
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.169797
+      Pitch: 0.869797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.73356
+      Yaw: 4.85856
     Saved: ~
 Window Geometry:
   Displays:
@@ -195,5 +197,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 58
-  Y: 24
+  X: 327
+  Y: 138

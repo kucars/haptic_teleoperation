@@ -427,9 +427,9 @@ void MasterController::feedback()
 
     phantom_omni::OmniFeedback force_msg;
     Fe = Fp * force_auto.transpose()  ;
-    Eigen::Matrix<double,6,6> feeback_matrix;
+    Eigen::Matrix<double,6,6> feedback_matrix;
 
-    feeback_matrix=-Fe;
+    feedback_matrix=-Fe;
 std::cout<<  "Fe" << Fe << std::endl;
     if(control_event)
     {
@@ -439,20 +439,21 @@ std::cout<<  "Fe" << Fe << std::endl;
         //std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
         //std::cout << " KD: "<< Kd.transpose()<<std::endl;
         std::cout << "fp: " << Fp.transpose() ;
-        feeback_matrix -= (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
+        feedback_matrix -= (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
                 (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose(); // Human_force - Fe
+
 
 
     }
 
     // mapping the force to the joints
-    force_msg.force.x=feeback_matrix(1,1);
-    force_msg.force.y=-feeback_matrix(2,2);
-    force_msg.force.z=feeback_matrix(0,0);
-//    force_msg.force.x=-feeback_matrix(1,1);
-//    force_msg.force.y=feeback_matrix(2,2);
-//    force_msg.force.z=-feeback_matrix(0,0);
+    force_msg.force.x=feedback_matrix(1,1);
+    force_msg.force.y=-feedback_matrix(2,2);
+    force_msg.force.z=feedback_matrix(0,0);
+//    force_msg.force.x=-feedback_matrix(1,1);
+//    force_msg.force.y=feedback_matrix(2,2);
+//    force_msg.force.z=-feedback_matrix(0,0);
     master_new_readings=false;
     slave_new_readings=false;
     cmd_pub.publish(force_msg);

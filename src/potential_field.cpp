@@ -17,12 +17,11 @@
 #include <phantom_omni/PhantomButtonEvent.h>
 
 
-using namespace std ; 
+//using namespace std ;
 haptic_teleoperation::ContourData contour_data_msg;
 const double PI=3.14159265359;
 #define BILLION 1000000000
 double lastTimeCalled ;//= ros::Time::now().toSec();
-//bool linear_button_pressed = false ;
 
 class ForceField
 {
@@ -30,13 +29,35 @@ public:
     dynamic_reconfigure::Server<haptic_teleoperation::potential_fieldConfig> param_server;
     dynamic_reconfigure::Server<haptic_teleoperation::potential_fieldConfig>::CallbackType param_callback_type;
     std::vector<double> previous_potential_field;
-    ros::Time previous_time;
-    bool obstacles_new_readings;
-    bool odometry_new_readings;
-    double gain;
-    std::vector<double> robot_position;
 
-    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_, double & gain_ ,  Eigen::Vector3d kp_, Eigen::Vector3d kd_, double & laser_min_distance_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) : n(n_), freq(freq_), ro(ro_), gain(gain_),  kp(kp_), kd(kd_), laser_min_distance(laser_min_distance_), laser_max_distance(laser_max_distance_), robot_mass(robot_mass_), robot_radius(robot_radius_), pose_topic_name(pose_topic_name_), sonar_topic_name(sonar_topic_name_), odometry_new_readings(false), obstacles_new_readings(false)
+    ros::Time previous_time;
+    // bool odometry_new_readings;
+    double gain;
+    //   std::vector<double> robot_position;
+
+    ForceField(ros::NodeHandle & n_,
+               double & freq_,
+               double & ro_,
+               double & gain_,
+               Eigen::Vector3d kp_,
+               Eigen::Vector3d kd_,
+               double & laser_min_distance_,
+               double & laser_max_distance_,
+               double & robot_mass_,
+               double & robot_radius_,
+               std::string & pose_topic_name_,
+               std::string & sonar_topic_name_)
+        : n(n_),
+          freq(freq_),
+          ro(ro_),
+          gain(gain_),
+          kp(kp_),
+          kd(kd_),
+          laser_min_distance(laser_min_distance_),
+          laser_max_distance(laser_max_distance_),
+          robot_mass(robot_mass_), robot_radius(robot_radius_),
+          pose_topic_name(pose_topic_name_),
+          sonar_topic_name(sonar_topic_name_)
     {
         // std::cout << "new force field object" << std::endl;
         gain=1.0;
@@ -49,21 +70,13 @@ public:
                 0, kd.y(), 0,
                 0, 0, kd.z();
 
-        // std::cout << kp_mat << std::endl ;
-        //std::cout << std::endl ;
-        // std::cout << kd_mat << std::endl ;
-        // std::cout << std::endl ;
+
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-        //force_out = n.advertise<phantom_omni::OmniFeedback>( "omni1_force_feedback", 1);
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
         obstacle_readings_sub = n.subscribe("cloud",100, &ForceField::sonarCallback, this);
-        // button_sub = n_.subscribe ("/omni1_button", 1, &ForceField::buttonCallback, this);
-
-        // std::cout << "end of the constructor" << std::endl;
-
         lastTimeCalled = ros::Time::now().toSec();
 
     };
@@ -74,31 +87,39 @@ It is only going to be called when the robot sence the exiatance of the obstacle
 
     void computePotentialField()
     {
-        // std::cout << "potential callback start 1" << std::endl;
+
+        // Compute current robot Velocity based on odometry readings
         std::vector<double> potential_field;
+
         ros::Time current_time=ros::Time::now();
         double period=current_time.toSec()-previous_time.toSec();
         previous_time=current_time;
         double threshold=0.2;
         if(period>threshold)
             return;
+
+
         unsigned int aux_it;
         if(obstacles_positions_current.size()<=obstacles_positions_previous.size())
             aux_it=obstacles_positions_current.size();
         else
             aux_it=obstacles_positions_previous.size();
+
+
+
         std::vector<Eigen::Vector3d> current_v;
         current_v.resize(aux_it);
-        contour_data_msg.obstacles_velocities.twist_array.clear();
+
+
         for(int i=0; i<aux_it; ++i)
         {
+
             current_v[i]=(obstacles_positions_current[i]-obstacles_positions_previous[i])/period;
             double velocity_sign=1.0;
             if(current_v[i].dot(Eigen::Vector3d::UnitX())<0)
                 velocity_sign=-1.0; // Moving away from the obstacle
             potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
         }
-        // std::cout << "potential callback ..." << std::endl;
         std::vector<Eigen::Vector3d> force_field;
         std::vector<Eigen::Vector3d> risk_vectors;
         if(potential_field.size()<=previous_potential_field.size())
@@ -106,27 +127,71 @@ It is only going to be called when the robot sence the exiatance of the obstacle
         else
             aux_it=previous_potential_field.size();
 
+
+
         for(int i=0; i<aux_it; ++i)
         {
+
             double force_magnitude=(potential_field[i]-previous_potential_field[i])/period; // Gradient of the potential field
             risk_vectors.push_back(potential_field[i]*(obstacles_positions_current[i].normalized())) ;
             force_field.push_back(force_magnitude*(obstacles_positions_current[i].normalized()));
         }
-        // std::cout << "potential callback start###" << std::endl;
+
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
         resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
 
+
+        double min = 10.0 ;
+        double max = 0.0 ;
+        int index1 =0;
+        int index2 =0;
+
+
+        bool flg_In = true;
         for(int i=0; i<risk_vectors.size(); ++i)
         {
-            resulting_force+=force_field[i];
-            resulting_risk_vector+=risk_vectors[i];
+            flg_In = false ;
+           // std::cout << "In the for loop " << std::endl ;
+
+            double d = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
+            if (d > max)
+            {
+                max= d ;
+                index1 = i ;
+            }
+            double f = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
+            if (f < min)
+            {
+                min= f ;
+                index2 = i ;
+            }
+
+          //  std::cout << "max" << max <<  std::endl ;
+            std::cout << "min" << min <<  std::endl ;
+
+            //                resulting_force+=force_field[i];
+            //                resulting_risk_vector+=risk_vectors[i];
         }
-        resulting_risk_vector = resulting_risk_vector / risk_vectors.size() ;
+
+
+        if (!flg_In)
+        {
+            //assuming that this is mathmatically correct
+            resulting_force=force_field[index1] + force_field[index2];
+            resulting_risk_vector=risk_vectors[index1] + risk_vectors[index2];
+          //  resulting_risk_vector = resulting_risk_vector / 2 ;
+
+        }
+        else
+        {
+            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+
+            resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
+        }
 
 
 
-        visualization_msgs::MarkerArray marker_array;
-        marker_array=rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
+        visualization_msgs::MarkerArray marker_array= rviz_arrows(risk_vectors, obstacles_positions_current, std::string("potential_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_risk_vector, Eigen::Vector3d(0,0,0), 0, std::string("resulting_risk_vector"));
         marker_array.markers.push_back(marker);
         visualization_markers_pub.publish(marker_array);
@@ -255,7 +320,7 @@ private:
             marker.scale.z = 0.1;
         }
         marker.color.a = 1.0;
-        ros::Duration d(0.03);
+        ros::Duration d(0.1);
         marker.lifetime = d ;
 
 
@@ -275,21 +340,19 @@ private:
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
     {
         double pf_Start = ros::Time::now().toSec();
-        //std::cout << "I was called : (ms)" << (pf_Start - lastTimeCalled)*1000 << std::endl ;
+        std::cout << "I was called : (ms)" << (pf_Start - lastTimeCalled)*1000 << std::endl ;
+
         lastTimeCalled = pf_Start;
-        //std::cout << "sonar callback start **** " << std::endl;
         int counter = 0 ;
 
         obstacles_positions_current.clear();
         for(int i=0; i< msg->points.size(); ++i)
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,msg->points[i].z);
-            //std::cout << "laser_max_distanse" << laser_max_distance << std::endl ;
-            //std::cout << "obstacle.norm" << obstacle.norm() << std::endl ;
-            if(obstacle.norm()<laser_max_distance-0.01 && obstacle.norm()>laser_min_distance+0.01)
+
+            if(obstacle.norm()<7.8-0.01 && obstacle.norm()>laser_min_distance+0.01)
             {
                 counter = counter +1 ;
-                // std::cout << " filling the obstacles " << counter <<  std::endl ;
                 obstacles_positions_current.push_back(obstacle);
             }
         }
@@ -301,17 +364,14 @@ private:
             return;
         }
 
-        if(obstacles_positions_current.size()>0 )
-        {
-            computePotentialField();
-        }
-        //else
-        // std::cout << " NO CALL FOR POTENTIAL FIELD " << std::endl ;
-        //if(linear_button_pressed)
+        // if(obstacles_positions_current.size()>0 )
+        //{
+        computePotentialField();
+        //}
         feedbackMaster();
 
         obstacles_positions_previous=obstacles_positions_current;
-        //std::cout << "sonar callback end ***" << std::endl;
+        return;
 
     }
 
@@ -336,7 +396,14 @@ private:
         msg.pose.position.x=-resulting_risk_vector.x() ;
         msg.pose.position.y =resulting_risk_vector.y() ;
         msg.pose.position.z=resulting_risk_vector.z() ;
-        std::cout << "resulting_risk_vector " << std::endl ;
+
+       // msg.pose.position.x=-resulting_force.x() ;
+       // msg.pose.position.y =resulting_force.y() ;
+       // msg.pose.position.z=resulting_force.z() ;
+
+
+
+
         std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
         std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
         std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
