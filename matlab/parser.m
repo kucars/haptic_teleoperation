@@ -110,6 +110,40 @@ hydata = [ hydata msg.pose.pose.position(2)] ;
 hzdata = [ hzdata msg.pose.pose.position(3)] ;
 end
 
+
+nsxdata = [] ;
+nsydata = [] ;
+nszdata = [] ;
+noxdata = [] ;
+noydata = [] ;
+nozdata = [] ;
+ns2time = [] ;
+
+
+
+for i=2:length(sxdata)
+	if (sqrt(sxdata(i)-sxdata(i-1))^2 + (sydata(i) -sydata(i-1)^2) <= epsilon
+		continue 
+	else
+		nsxdata = [ nsxdata sxdata] ;
+		nsydata = [ nsydata sydata] ;
+		nszdata = [ nszdata szdata] ;
+		noxdata = [ noxdata oxdata] ;
+		noydata = [ noydata oydata] ;
+		nozdata = [ nozdata ozdata] ;
+		ns2time = [ ns2time s2time] ;
+	end
+end 
+
+sxdata = nsxdata;
+sydata = nsydata;
+szdata = nszdata;
+oxdata = noxdata;
+oydata = nozdata;
+ozdata = nozdata;
+s2time = ns2time;
+
+
 %% See definitions of messages contained within the bag
 % twist_definition = bag.definition('geometry_msgs/Twist')
 % 
