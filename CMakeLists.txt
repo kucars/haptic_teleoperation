@@ -175,12 +175,7 @@ target_link_libraries(land
    ${Boost_LIBRARIES}
 )
 
-#add_executable(laser2PC2 src/laser2PC2.cpp)
-#add_dependencies(laser2PC2 ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(laser2PC2
-#   ${catkin_LIBRARIES}
-#   ${Boost_LIBRARIES}
-#)
+
 add_executable(controller_ros src/ControllerRos.cpp)
 add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
 target_link_libraries(controller_ros
@@ -196,17 +191,17 @@ target_link_libraries(ModelState
    ${Boost_LIBRARIES}
 )
 
-#add_executable(test_pf src/testing_pf.cpp)
-#add_dependencies(test_pf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(test_pf
-#   ${catkin_LIBRARIES}
-#   ${Boost_LIBRARIES}
-#)
+add_executable(test_pf src/testing_pf.cpp)
+add_dependencies(test_pf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_pf
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
 add_executable(ardrone_keyboard src/ardrone_keyboard.cpp)
 target_link_libraries(ardrone_keyboard ${catkin_LIBRARIES})
 
-add_executable(ransac_example src/ransac_example.cpp)
-target_link_libraries(ransac_example ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+#add_executable(ransac_example src/ransac_example.cpp)
+#target_link_libraries(ransac_example ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   
 #add_executable(uav_commander src/uav_commander.cpp)
 #target_link_libraries(uav_commander

@@ -439,7 +439,7 @@ std::cout<<  "Fe" << Fe << std::endl;
         //std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
         //std::cout << " KD: "<< Kd.transpose()<<std::endl;
         std::cout << "fp: " << Fp.transpose() ;
-        feedback_matrix -= (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
+        feedback_matrix += (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
                 (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose(); // Human_force - Fe
 
