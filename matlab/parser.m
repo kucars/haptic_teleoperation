@@ -167,6 +167,9 @@ oxdata = nxodata ;
 oydata = nyodata ; 
 ozdata = nzodata ; 
 s2time = ns2time ; 
+
+
+
 %% See definitions of messages contained within the bag
 % twist_definition = bag.definition('geometry_msgs/Twist')
 %
