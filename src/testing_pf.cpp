@@ -71,11 +71,11 @@ public:
         std::cout << "flag" << flag_out << std::endl ;
         if (!flag_first_Read )
         {
-            if (fabs(pose_slave(0)-pose.position.x) > 1.0 && flag_out )
+            if (fabs(pose_slave(0)-pose.position.x) > 2.0 && flag_out )
             {
                 std::cout << "A" << std::endl ;
 
-                msg.linear.x =  0.3 ;
+                msg.linear.x =  0.5;
                 msg.linear.y =  0.0 ;
                 msg.linear.z =  0.0;
                 msg.angular.x = 0 ;
@@ -89,7 +89,7 @@ public:
                 if(fabs(pose_slave(0)-pose.position.x) > 0.5)
                     std::cout<<"something"<<std::endl;
                 std::cout << "B" << std::endl ;
-                msg.linear.x =  -0.3;
+                msg.linear.x =  -0.5;
                 msg.linear.y =  0.0 ;
                 msg.linear.z =  0.0;
                 msg.angular.x = 0 ;
