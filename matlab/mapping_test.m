@@ -1,9 +1,7 @@
 eps = 0.001;
 aux = [] ;
 
-
 for i =1:length(stime)
-   
     a = stime(i) - s2time ;
     [c,j]=min(abs(a));
     

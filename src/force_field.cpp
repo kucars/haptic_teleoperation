@@ -108,8 +108,10 @@ public:
     {
         if(c_current.norm()<ro)
         {
-            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
-                    -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
+//            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
+//                    -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
+
+            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
 
             return f;
         }
