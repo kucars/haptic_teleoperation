@@ -60,7 +60,7 @@ public:
           sonar_topic_name(sonar_topic_name_)
     {
         // std::cout << "new force field object" << std::endl;
-        gain=1.0;
+        gain=0.05;
         a_max=1.0;
 
         kp_mat << kp.x(), 0, 0,
@@ -146,48 +146,54 @@ It is only going to be called when the robot sence the exiatance of the obstacle
         int index1 =0;
         int index2 =0;
 
-
-        bool flg_In = true;
         for(int i=0; i<risk_vectors.size(); ++i)
         {
-            flg_In = false ;
-           // std::cout << "In the for loop " << std::endl ;
-
-            double d = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
-            if (d > max)
-            {
-                max= d ;
-                index1 = i ;
-            }
-            double f = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
-            if (f < min)
-            {
-                min= f ;
-                index2 = i ;
-            }
-
-          //  std::cout << "max" << max <<  std::endl ;
-            std::cout << "min" << min <<  std::endl ;
-
-            //                resulting_force+=force_field[i];
-            //                resulting_risk_vector+=risk_vectors[i];
+            resulting_risk_vector += risk_vectors[i] ;
+            resulting_force+=force_field[i];
         }
+        //resulting_risk_vector = resulting_risk_vector / 300 ;
+
+        //        bool flg_In = false;
+        //        for(int i=0; i<risk_vectors.size(); ++i)
+        //        {
+        //            flg_In = false ;
+        //           // std::cout << "In the for loop " << std::endl ;
+
+        //            double d = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
+        //            if (d > max)
+        //            {
+        //                max= d ;
+        //                index1 = i ;
+        //            }
+        //            double f = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
+        //            if (f < min)
+        //            {
+        //                min= f ;
+        //                index2 = i ;
+        //            }
+
+        //          //  std::cout << "max" << max <<  std::endl ;
+        //            std::cout << "min" << min <<  std::endl ;
+
+        //            //                resulting_force+=force_field[i];
+        //            //                resulting_risk_vector+=risk_vectors[i];
+        //        }
 
 
-        if (!flg_In)
-        {
-            //assuming that this is mathmatically correct
-            resulting_force=force_field[index1] + force_field[index2];
-            resulting_risk_vector=risk_vectors[index1] + risk_vectors[index2];
-          //  resulting_risk_vector = resulting_risk_vector / 2 ;
+        //        if (!flg_In)
+        //        {
+        //            //assuming that this is mathmatically correct
+        //            resulting_force=force_field[index1] + force_field[index2];
+        //            resulting_risk_vector=risk_vectors[index1] + risk_vectors[index2];
+        //          //  resulting_risk_vector = resulting_risk_vector / 2 ;
 
-        }
-        else
-        {
-            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+        //        }
+        //        else
+        //        {
+        //            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
 
-            resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
-        }
+        //            resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
+        //        }
 
 
 
@@ -350,7 +356,7 @@ private:
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,msg->points[i].z);
 
-            if(obstacle.norm()<7.8-0.01 && obstacle.norm()>laser_min_distance+0.01)
+            if(obstacle.norm()<2.0-0.01 && obstacle.norm()>laser_min_distance+0.01)
             {
                 counter = counter +1 ;
                 obstacles_positions_current.push_back(obstacle);
@@ -397,9 +403,9 @@ private:
         msg.pose.position.y =resulting_risk_vector.y() ;
         msg.pose.position.z=resulting_risk_vector.z() ;
 
-       // msg.pose.position.x=-resulting_force.x() ;
-       // msg.pose.position.y =resulting_force.y() ;
-       // msg.pose.position.z=resulting_force.z() ;
+        // msg.pose.position.x=-resulting_force.x() ;
+        // msg.pose.position.y =resulting_force.y() ;
+        // msg.pose.position.z=resulting_force.z() ;
 
 
 
@@ -448,7 +454,7 @@ int main(int argc, char **argv)
     double kd_z;
 
     // Control gains
-    n.param<double>("/potential_field/gain", kp_x, 1.0);
+    n.param<double>("/potential_field/gain", kp_x, 0.05);
     n_priv.param<double>("Kp_y", kp_y, 1.0);
     n_priv.param<double>("Kp_z", kp_z, 1.0);
     n_priv.param<double>("Kp_x", kd_x, 1.0);
@@ -471,7 +477,7 @@ int main(int argc, char **argv)
     n_priv.param<double>("acc_max", a_max, 1.0);
     n_priv.param<double>("robot_mass", robot_mass, 1.0);
     n_priv.param<double>("robot_radius", robot_radius, 0.2);
-    n_priv.param<double>("gain", gain, 1.0);
+    n_priv.param<double>("gain", gain, 0.05);
     ros::Rate loop_rate(freq);
     std::string pose_topic_name = "/pose";
     std::string sonar_topic_name = "/RosAria/sonar";

@@ -86,22 +86,13 @@ public:
             //double getPf_Start = ros::Time::now().toSec();
 
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
-            // double getPf_End = ros::Time::now().toSec();
-            //std::cout << "get one pf time" << getPf_End - getPf_Start << std::endl ;
-            //    force_field[i] = force_field[i] / aux_it ;
+
             resulting_force+=force_field[i];
         }
 
-
+       // resulting_force = resulting_force / 100 ;
         double Ve_End = ros::Time::now().toSec();
 
-        //std::cout << "get velocity time (ms)" << (Ve_End - Ve_Start)*1000 << std::endl ;
-
-        //resulting_force.x()=resulting_force.x()/(aux_it) ;
-        //resulting_force.y()=resulting_force.y()/(10) ;
-
-
-        //std::cout << "resulting force: " << resulting_force.transpose() << std::endl;
         // Publish visual markers to see in rviz
         visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("force_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_force, Eigen::Vector3d(0,0,0), 0,   std::string("resulting_force"));
@@ -109,7 +100,6 @@ public:
         visualization_markers_pub.publish(marker_array);
 
         double pf_End = ros::Time::now().toSec();
-        //std::cout << "calculate PF whole time (ms)" << (pf_End - pf_Start)*1000 << std::endl ;
 
 
     }
@@ -287,7 +277,7 @@ private:
         for(int i=0; i< msg->points.size(); ++i)
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,0.0);
-            if(obstacle.norm()<7.8  && obstacle.norm()>laser_min_distance+0.01)
+            if(obstacle.norm()<2.0  && obstacle.norm()>laser_min_distance+0.01)
                 //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
             {
                 //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());

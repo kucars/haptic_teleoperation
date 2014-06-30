@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="force_or_potential" default="True" /> 
+  <arg name="force_or_potential" default="false" /> 
   <!--<arg name="gv_or_mav" />  -->
 
 

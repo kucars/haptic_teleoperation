@@ -205,9 +205,13 @@ target_link_libraries(ModelState
 add_executable(ardrone_keyboard src/ardrone_keyboard.cpp)
 target_link_libraries(ardrone_keyboard ${catkin_LIBRARIES})
 
+add_executable(goal src/goal.cpp)
+target_link_libraries(goal ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  
+
 add_executable(ransac_example src/ransac_example.cpp)
 target_link_libraries(ransac_example ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-  
+
 #add_executable(uav_commander src/uav_commander.cpp)
 #target_link_libraries(uav_commander
 #   ${catkin_LIBRARIES}

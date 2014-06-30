@@ -73,13 +73,22 @@
       <shadows>1</shadows>
     </scene>
     <state world_name='default'>
-      <sim_time>1675 170000000</sim_time>
-      <real_time>41 713126696</real_time>
-      <wall_time>1403445274 53479560</wall_time>
+      <sim_time>1985 369000000</sim_time>
+      <real_time>321 158064237</real_time>
+      <wall_time>1403680330 524975739</wall_time>
       <model name='grey_wall'>
-        <pose>0 0 0 0 -0 1.5708</pose>
+        <pose>1.93553 0.311286 0 0 -0 1.5708</pose>
         <link name='link'>
-          <pose>0 0 1.4 0 -0 1.5708</pose>
+          <pose>1.93553 0.311286 1.4 0 -0 1.5708</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='grey_wall_0'>
+        <pose>-9.11057 -2.61799 0 0 0 -1.56319</pose>
+        <link name='link'>
+          <pose>-9.11057 -2.61799 1.4 0 0 -1.56319</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -95,18 +104,18 @@
         </link>
       </model>
       <model name='quadrotor'>
-        <pose>10 0 2 0 -0 3.14159</pose>
+        <pose>-11.1547 -0.565859 0.222912 -0 -0 -3.13543</pose>
         <link name='base_link'>
-          <pose>10 0 2 0 -0 3.14159</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0.011353 0.001418 261369 -0.036497 1.48388 0.00193</acceleration>
-          <wrench>0.019856 0.002481 457134 0 -0 0</wrench>
+          <pose>-11.1547 -0.565859 0.222912 -0 -0 -3.13543</pose>
+          <velocity>0 -0 -0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>2.78325 -6.40979 22.1035 -2.55334e-16 1.35164 1.58419</pose>
+        <pose>14.8139 -14.4519 46.7488 -2.55334e-16 1.35164 1.58419</pose>
         <view_controller>orbit</view_controller>
       </camera>
     </gui>
@@ -447,6 +456,52 @@
         <gravity>1</gravity>
       </link>
       <pose>-2 3 0 0 -0 0</pose>
+    </model>
+    <model name='grey_wall_0'>
+      <static>1</static>
+      <link name='link'>
+        <pose>0 0 1.4 0 -0 0</pose>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>7.5 0.2 2.8</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <cast_shadows>0</cast_shadows>
+          <geometry>
+            <box>
+              <size>7.5 0.2 2.8</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://grey_wall/materials/scripts</uri>
+              <uri>model://grey_wall/materials/textures</uri>
+              <name>vrc/grey_wall</name>
+            </script>
+          </material>
+        </visual>
+        <velocity_decay>
+          <linear>0</linear>
+          <angular>0</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <pose>-9 1 0 0 -0 0</pose>
     </model>
   </world>
 </sdf>
