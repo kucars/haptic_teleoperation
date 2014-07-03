@@ -442,9 +442,6 @@ std::cout<<  "Fe" << Fe << std::endl;
         feedback_matrix += (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
                 (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose(); // Human_force - Fe
-
-
-
     }
 
     // mapping the force to the joints

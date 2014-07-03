@@ -136,8 +136,12 @@ int main(int argc, char **argv)
     test_pf potential_field(n);
     std::string robot_name = "quadrotor" ;
     std::string obj = "grey_wall" ;
+    std::string obj_0 = "grey_wall_0" ;
+
     geometry_msgs::Pose robot_pose;
     geometry_msgs::Pose wall_pose;
+    geometry_msgs::Pose wall_pose_0;
+
 
     Eigen::Matrix3d m;
     m = Eigen::AngleAxisd(deg_to_rad*180.0, Eigen::Vector3d::UnitZ());
@@ -164,12 +168,21 @@ int main(int argc, char **argv)
     robot_pose.orientation.z=q.z();
     robot_pose.orientation.w=q.w();
 
+    wall_pose_0.position.x=-10.0 ;
+    wall_pose_0.position.y=-2.5 ;
+    wall_pose_0.position.z=0.0 ;
+    wall_pose_0.orientation.x=q2.x() ;
+    wall_pose_0.orientation.y=q2.y() ;
+    wall_pose_0.orientation.z=q2.z() ;
+    wall_pose_0.orientation.w=q2.w() ;
 
 
     sleep(2);
 
     potential_field.init_model_state(robot_name, robot_pose );
     potential_field.init_model_state(obj,wall_pose );
+    potential_field.init_model_state(obj_0,wall_pose_0 );
+
     potential_field.vel_init(0.5);
     sleep(1);
     potential_field.vel_init(0.0);

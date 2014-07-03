@@ -12,12 +12,14 @@ starting_sample=2;
 % Using load() lets you auto-complete filepaths.
 %bag = ros.Bag.load('example.bag');
 addpath ~/Downloads/matlab_rosbag-0.4-linux64/
+%bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/Ground/sim_2w_Sp.bag');
 
-bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/pf_sim_two_wall.bag');
+bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/mav_test.bag');
 bag.info()
 
 %% Read all messages on a few topics
 topic1 = '/haptic_teleoperation/pf_force_feedback';
+%topic2= '/Pioneer3AT/pose' ;
 topic2 = '/ground_truth/state';
 topic3 = '/haptic_teleoperation/cloud';
 topic4 = '/haptic_teleoperation/haptic_position_pub';
@@ -26,7 +28,7 @@ msgs = bag.readAll({topic1, topic2});
 %fprintf('Read %i messages\n', length(msgs));
 
 %% Re-read msgs on topic1 and get their metadata
-%[msgs, meta] = bag.readAll(topic1);
+%[msgs, meta] = bag.readAll(topic2);
 %fprintf('Got %i messages, first one at time %f\n', length(msgs), meta{1}.time.time);
 
 %% Read messages incrementally
@@ -55,7 +57,6 @@ end
 
 
 bag.resetView(topic2);
-count = 0;
 s2time = [] ;
 sxdata = [] ;
 sydata = [] ;
@@ -74,10 +75,6 @@ while bag.hasNext();
     if i<starting_sample
         continue
     end
-    
-    
-    
-    count = count + 1;
     s2time = [ s2time msg.header.stamp.time] ;
     sxdata = [ sxdata msg.pose.pose.position(1)] ;
     sydata = [ sydata msg.pose.pose.position(2)] ;
@@ -95,25 +92,25 @@ end
 
 
 
-bag.resetView(topic3);
-count = 0;
-s3time = [] ;
-cxdata = [] ;
-cydata = [] ;
-czdata = [] ;
-
-i=0;
-while bag.hasNext();
-    i=i+1;
-    [msg, meta] = bag.read();
-    if i<starting_sample
-        continue
-    end
-    s3time = [ s3time msg.header.stamp.time] ;
-    cxdata = [ cxdata msg.points(1)] ;
-    cydata = [ cydata msg.points(2)] ;
-    czdata = [ czdata msg.points(3)] ;
-end
+% bag.resetView(topic3);
+% count = 0;
+% s3time = [] ;
+% cxdata = [] ;
+% cydata = [] ;
+% czdata = [] ;
+% 
+% i=0;
+% while bag.hasNext();
+%     i=i+1;
+%     [msg, meta] = bag.read();
+%     if i<starting_sample
+%         continue
+%     end
+%     s3time = [ s3time msg.header.stamp.time] ;
+%     cxdata = [ cxdata msg.points(1)] ;
+%     cydata = [ cydata msg.points(2)] ;
+%     czdata = [ czdata msg.points(3)] ;
+% end
 
 %%
 
@@ -135,7 +132,7 @@ while bag.hasNext();
     hydata = [ hydata msg.pose.pose.position(2)] ;
     hzdata = [ hzdata msg.pose.pose.position(3)] ;
 end
-
+% 
 nsxdata = [] ;
 nsydata = [] ;
 nszdata = [] ;

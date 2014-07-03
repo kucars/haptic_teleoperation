@@ -356,7 +356,7 @@ private:
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,msg->points[i].z);
 
-            if(obstacle.norm()<2.0-0.01 && obstacle.norm()>laser_min_distance+0.01)
+            if(obstacle.norm()<5.0-0.01 && obstacle.norm()>laser_min_distance+0.01)
             {
                 counter = counter +1 ;
                 obstacles_positions_current.push_back(obstacle);

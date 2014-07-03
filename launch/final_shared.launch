@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <launch>
+
+<!-- Running the files related to the MAV ( master controller, slave controller, laser2pointcloud, and the force feedback--> 
   <arg name="force_or_potential" default="false" /> 
   <!--<arg name="gv_or_mav" />  -->
 

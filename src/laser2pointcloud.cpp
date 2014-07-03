@@ -21,28 +21,42 @@ public:
     n_(n),
    // laser_sub_(n_, "base_scan", 10),
     laser_sub_(n_, "/laserscan", 1),
-    laser_notifier_(laser_sub_,listener_, "/laser0_frame", 1)
+    laser_notifier_(laser_sub_,listener_, "laser0_frame", 1)
   	{
+      std::cout << "Object created" << std::endl ;
+
    	 	laser_notifier_.registerCallback(
         boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
         laser_notifier_.setTolerance(ros::Duration(0.01));// 0.01
-        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",10);
+        std::cout << "before pub " << std::endl ;
+
+        scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",1);
+        std::cout << "after pub " << std::endl ;
 
   	}
 
   void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in)
   {
+      std::cout << "scanCallback " << std::endl ;
+
     sensor_msgs::PointCloud cloud;
     try
     {
+        std::cout << "try " << std::endl ;
+
         projector_.transformLaserScanToPointCloud(
-          "/laser0_frame",*scan_in, cloud,listener_);
+          "laser0_frame",*scan_in, cloud,listener_);
     }
     catch (tf::TransformException& e)
     {
+        std::cout << "catch 1 " << std::endl ;
+
         std::cout << e.what();
+        std::cout << "catch " << std::endl ;
+
         return;
     }
+    std::cout << "cloud" << cloud << std::endl ;
     scan_pub_.publish(cloud);
 
   }
@@ -50,6 +64,8 @@ public:
 
 int main(int argc, char** argv)
 {
+    std::cout << "Int Main laser 2 point cloud" << std::endl ;
+
   
   ros::init(argc, argv, "my_scan_to_cloud");
   ros::NodeHandle n;
@@ -59,7 +75,8 @@ int main(int argc, char** argv)
   ros::Rate loop_rate(freq);
 
   LaserScanToPointCloud lstopc(n);
-  
+  std::cout << "Object created" << std::endl ;
+
   while(ros::ok())
   {
       ros::spinOnce();

@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     double kp_roll;
     double kp_pitch;
     double kp_yaw;
+
     n_priv.param<double>("kp_x",     kp_x, 1.0);
     n_priv.param<double>("kp_y",     kp_y, 1.0);
     n_priv.param<double>("kp_z",     kp_z, 1.0);
@@ -209,6 +210,7 @@ int main(int argc, char **argv)
     double slave_velocity_max_roll;
     double slave_velocity_max_pitch;
     double slave_velocity_max_yaw;
+
     n_priv.param<double>("slave_velocity_max_x",     slave_velocity_max_x, 1.0);
     n_priv.param<double>("slave_velocity_max_y",     slave_velocity_max_y, 1.0);
     n_priv.param<double>("slave_velocity_max_z",     slave_velocity_max_z, 1.0);

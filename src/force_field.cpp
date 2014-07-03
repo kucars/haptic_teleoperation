@@ -74,12 +74,12 @@ public:
         else
             aux_it=obstacles_positions_previous.size();
 
-        if(aux_it==0)
-        {
-            resulting_force.x()=0 ;
-            resulting_force.y()=0 ;
-            resulting_force.z()=0 ;
-        }
+//        if(aux_it==0)
+//        {
+//            resulting_force.x()=0 ;
+//            resulting_force.y()=0 ;
+//            resulting_force.z()=0 ;
+//        }
 
         for(int i=0; i<aux_it; ++i)
         {
@@ -207,7 +207,8 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "laser0_frame";
+        marker.header.frame_id = "/laser0_frame";
+//        marker.header.frame_id = "/Pioneer3AT/base_link";
         marker.header.stamp = ros::Time();
         marker.id = id;
         if(id==0)
@@ -279,7 +280,7 @@ private:
         for(int i=0; i< msg->points.size(); ++i)
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,0.0);
-            if(obstacle.norm()<2.0  && obstacle.norm()>laser_min_distance+0.01)
+            if(obstacle.norm()<5  && obstacle.norm()>laser_min_distance+0.01)
                 //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
             {
                 //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
