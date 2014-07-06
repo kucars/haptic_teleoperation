@@ -46,7 +46,7 @@
 </group>
 <group unless="$(arg force_or_potential)">
  <!-- Run the force field node that find the envirnmental force that acts on the the robot -->
-<node name="force_field" pkg="haptic_teleoperation" type="force_field"  ns="/haptic_teleoperation">
+<node name="force_field" pkg="haptic_teleoperation" type="force_field"  output="screen" ns="/haptic_teleoperation">
     <rosparam command="load" file="$(find haptic_teleoperation)/config/force_field_params.yaml" />
     <remap from="/base_link" to="laser0_frame"/> 
   </node>

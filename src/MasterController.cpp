@@ -430,7 +430,8 @@ void MasterController::feedback()
     Eigen::Matrix<double,6,6> feedback_matrix;
 
     feedback_matrix=-Fe;
-std::cout<<  "Fe" << Fe << std::endl;
+  //  feedback_matrix= feedback_matrix;
+    std::cout<<  "Fe" << Fe << std::endl;
     if(control_event)
     {
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;

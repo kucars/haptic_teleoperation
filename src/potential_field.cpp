@@ -17,78 +17,52 @@
 #include <phantom_omni/PhantomButtonEvent.h>
 
 
-//using namespace std ;
 haptic_teleoperation::ContourData contour_data_msg;
 const double PI=3.14159265359;
 #define BILLION 1000000000
 double lastTimeCalled ;//= ros::Time::now().toSec();
-
+double lastDataUpdate;
+bool haltControl= false;
 class ForceField
 {
 public:
     dynamic_reconfigure::Server<haptic_teleoperation::potential_fieldConfig> param_server;
     dynamic_reconfigure::Server<haptic_teleoperation::potential_fieldConfig>::CallbackType param_callback_type;
     std::vector<double> previous_potential_field;
-
     ros::Time previous_time;
-    // bool odometry_new_readings;
-    double gain;
-    //   std::vector<double> robot_position;
 
     ForceField(ros::NodeHandle & n_,
                double & freq_,
-               double & ro_,
                double & gain_,
-               Eigen::Vector3d kp_,
-               Eigen::Vector3d kd_,
                double & laser_min_distance_,
                double & laser_max_distance_,
-               double & robot_mass_,
-               double & robot_radius_,
-               std::string & pose_topic_name_,
                std::string & sonar_topic_name_)
         : n(n_),
           freq(freq_),
-          ro(ro_),
           gain(gain_),
-          kp(kp_),
-          kd(kd_),
           laser_min_distance(laser_min_distance_),
           laser_max_distance(laser_max_distance_),
-          robot_mass(robot_mass_), robot_radius(robot_radius_),
-          pose_topic_name(pose_topic_name_),
           sonar_topic_name(sonar_topic_name_)
     {
-        // std::cout << "new force field object" << std::endl;
-        gain=0.05;
         a_max=1.0;
-
-        kp_mat << kp.x(), 0, 0,
-                0, kp.y(), 0,
-                0, 0, kp.z();
-        kd_mat << kd.x(), 0, 0,
-                0, kd.y(), 0,
-                0, 0, kd.z();
-
-
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
-        obstacle_readings_sub = n.subscribe("cloud",100, &ForceField::sonarCallback, this);
+        obstacle_readings_sub = n.subscribe(sonar_topic_name_,100, &ForceField::sonarCallback, this);
         lastTimeCalled = ros::Time::now().toSec();
 
     };
 
 
     /* This function compute the potential field for each point and it sums all the points, then it takes the gradiant.
-It is only going to be called when the robot sence the exiatance of the obstacle */
+    It is only going to be called when the robot sence the exiatance of the obstacle */
 
     void computePotentialField()
     {
 
-        // Compute current robot Velocity based on odometry readings
+        // Compute current robot velocity based on odometry readings
         std::vector<double> potential_field;
 
         ros::Time current_time=ros::Time::now();
@@ -118,6 +92,7 @@ It is only going to be called when the robot sence the exiatance of the obstacle
             double velocity_sign=1.0;
             if(current_v[i].dot(Eigen::Vector3d::UnitX())<0)
                 velocity_sign=-1.0; // Moving away from the obstacle
+
             potential_field.push_back(getPotentialPoint(obstacles_positions_current[i].norm(),velocity_sign*current_v[i].norm(), a_max, gain));
         }
         std::vector<Eigen::Vector3d> force_field;
@@ -141,16 +116,19 @@ It is only going to be called when the robot sence the exiatance of the obstacle
         resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
 
 
-        double min = 10.0 ;
-        double max = 0.0 ;
-        int index1 =0;
-        int index2 =0;
+        //        double min = 10.0 ;
+        //        double max = 0.0 ;
+        //        int index1 =0;
+        //        int index2 =0;
 
         for(int i=0; i<risk_vectors.size(); ++i)
         {
             resulting_risk_vector += risk_vectors[i] ;
             resulting_force+=force_field[i];
         }
+        resulting_risk_vector = resulting_risk_vector / risk_vectors.size()  ;
+
+
         //resulting_risk_vector = resulting_risk_vector / 300 ;
 
         //        bool flg_In = false;
@@ -218,32 +196,32 @@ It is only going to be called when the robot sence the exiatance of the obstacle
         else if ( (1+v_i)/dres <= 0)
             return 0 ;
         else
+        {
+            std::cout << "risk vector" << gain *(1+v_i)/ dres  << std::endl ;
             return gain *(1+v_i)/ dres;
+        }
+
     }
 
 private:
     // ROS
     ros::NodeHandle n;
+
+    // subscriber
     ros::Subscriber obstacle_readings_sub;
+
+    // publisher
     ros::Publisher visualization_markers_pub;
-    //ros::Subscriber button_sub ;
     ros::Publisher feedback_pub ;
-    std::string pose_topic_name;
+
     std::string sonar_topic_name;
-    std::string velocity_cmd_topic_name;
-    // ros::Publisher force_out;
 
     // Parameters
     double a_max;
-    double ro;
     double freq;
-    double robot_mass;
-    double robot_radius;
+    double gain ;
     double laser_max_distance;
     double laser_min_distance;
-
-    Eigen::Vector3d kp, kd;
-    Eigen::Matrix3d kp_mat, kd_mat;
 
     // Helper variables
     bool init_flag;
@@ -260,9 +238,6 @@ private:
     // listener
     tf::TransformListener listener_;
 
-
-    // subscriber
-    ros::Subscriber scan_sub_;
 
 
     void paramsCallback(haptic_teleoperation::potential_fieldConfig &config, uint32_t level)
@@ -345,6 +320,9 @@ private:
     }
     void sonarCallback(const sensor_msgs::PointCloud::ConstPtr& msg)
     {
+        // data update
+        lastDataUpdate = ros::Time::now().toSec();
+
         double pf_Start = ros::Time::now().toSec();
         std::cout << "I was called : (ms)" << (pf_Start - lastTimeCalled)*1000 << std::endl ;
 
@@ -356,7 +334,7 @@ private:
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,msg->points[i].z);
 
-            if(obstacle.norm()<5.0-0.01 && obstacle.norm()>laser_min_distance+0.01)
+            if(obstacle.norm()<laser_max_distance && obstacle.norm()>laser_min_distance)
             {
                 counter = counter +1 ;
                 obstacles_positions_current.push_back(obstacle);
@@ -370,10 +348,11 @@ private:
             return;
         }
 
-        // if(obstacles_positions_current.size()>0 )
-        //{
-        computePotentialField();
-        //}
+
+        if(obstacles_positions_current.size()>0  )//&& !haltControl
+        {
+            computePotentialField();
+        }
         feedbackMaster();
 
         obstacles_positions_previous=obstacles_positions_current;
@@ -384,7 +363,6 @@ private:
 
     void feedbackMaster()
     {
-        // WEIRD MAPPING!!!
 
         //  phantom_omni::OmniFeedback force_feedback;
         //   force_feedback.force.x=resulting_risk_vector.y();
@@ -398,36 +376,25 @@ private:
 
         //   std::cout << "resulting_risk_vector" << resulting_risk_vector << endl ;
         geometry_msgs::PoseStamped msg ;
+
         msg.header.stamp =  ros::Time::now();
+        // reflecting the potential field itself
         msg.pose.position.x=-resulting_risk_vector.x() ;
         msg.pose.position.y =resulting_risk_vector.y() ;
         msg.pose.position.z=resulting_risk_vector.z() ;
 
+        // reflecting the gradiant of the potential field
         // msg.pose.position.x=-resulting_force.x() ;
         // msg.pose.position.y =resulting_force.y() ;
         // msg.pose.position.z=resulting_force.z() ;
 
-
-
-
         std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
-        std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
-        std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
+        // std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
+        //  std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
 
         feedback_pub.publish(msg);
-
     }
 
-    // HAPTIC BUTTON
-    //    void buttonCallback(const phantom_omni::PhantomButtonEvent::ConstPtr& button)
-    //    {
-    //        if(button->grey_button==1)
-    //            linear_button_pressed=true;
-    //        else
-    //            linear_button_pressed=false;
-
-
-    //    }
 };
 
 int main(int argc, char **argv)
@@ -440,51 +407,35 @@ int main(int argc, char **argv)
 
     // parameters
     double a_max;
-    double ro;
     double freq;
-    double robot_mass;
-    double robot_radius;
     double gain;
-
-    double kp_x;
-    double kp_y;
-    double kp_z;
-    double kd_x;
-    double kd_y;
-    double kd_z;
-
-    // Control gains
-    n.param<double>("/potential_field/gain", kp_x, 0.05);
-    n_priv.param<double>("Kp_y", kp_y, 1.0);
-    n_priv.param<double>("Kp_z", kp_z, 1.0);
-    n_priv.param<double>("Kp_x", kd_x, 1.0);
-    n_priv.param<double>("Kp_y", kd_y, 1.0);
-    n_priv.param<double>("Kp_z", kd_z, 1.0);
-
-    Eigen::Vector3d kp(kp_x,kp_y,kp_z);
-    Eigen::Vector3d kd(kd_x,kd_y,kd_z);
 
     double laser_max_distance;
     double laser_min_distance;
 
 
     //initialize operational parameters
-    n_priv.param<double>("laser_max_distance", laser_max_distance,2.0);
+    n_priv.param<double>("laser_max_distance", laser_max_distance,4.0);
     n_priv.param<double>("laser_min_distance", laser_min_distance,0.2);
 
-    n_priv.param<double>("ro", ro, 3.0);
     n_priv.param<double>("frequency", freq, 50.0);
     n_priv.param<double>("acc_max", a_max, 1.0);
-    n_priv.param<double>("robot_mass", robot_mass, 1.0);
-    n_priv.param<double>("robot_radius", robot_radius, 0.2);
-    n_priv.param<double>("gain", gain, 0.05);
+    n_priv.param<double>("gain", gain, 0.5);
     ros::Rate loop_rate(freq);
-    std::string pose_topic_name = "/pose";
-    std::string sonar_topic_name = "/RosAria/sonar";
-    ForceField potential_field(n, freq, ro,gain, kp, kd, laser_min_distance, laser_max_distance, robot_mass, robot_radius, pose_topic_name, sonar_topic_name);
+    std::string sonar_topic_name = "cloud";
+    double periodThreshold = 50/1000.0f;
+    ForceField potential_field(n, freq, gain,laser_min_distance, laser_max_distance,sonar_topic_name);
 
     while(ros::ok())
     {
+        if( (ros::Time::now().toSec() - lastDataUpdate) > periodThreshold)
+        {
+            haltControl = true;
+        }
+        else
+        {
+            haltControl = false;
+        }
         ros::spinOnce();
         loop_rate.sleep();
     }

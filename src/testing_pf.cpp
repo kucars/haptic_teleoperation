@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
     robot_pose.position.x=10.0 ;
     robot_pose.position.y=0.0 ;
-    robot_pose.position.z=2.0 ;
+    robot_pose.position.z=0.5 ;
     robot_pose.orientation.x=q.x() ;
     robot_pose.orientation.y=q.y() ;
     robot_pose.orientation.z=q.z();

@@ -405,31 +405,26 @@ void SlaveController::feedback()
     {
       //  std::cout << "velocities min " << slave_velocity_min.transpose() << std::endl ;
       //  std::cout << "velocities max " << slave_velocity_max.transpose() << std::endl ;
-        //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
+      //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
 //        Eigen::Matrix<double,6,6> feeback_matrix =
 //                (current_pose_master_scaled - current_pose_slave)* Kp.transpose() +
 //                (r - current_velocity_slave)                     * Kd.transpose() +
 //                (current_velocity_master_scaled  - current_velocity_slave) * Bd.transpose();
 
-        Eigen::Matrix<double,6,6> feeback_matrix = r* Kd.transpose() ;
+       Eigen::Matrix<double,6,6> feeback_matrix = r* Kd.transpose() ;
 
+        // Limiting the z axes
 
-
-        std::cout << "current_pose_master_scaled" << r << std::endl;
-
-        std::cout << "current_velocity_slave" << current_velocity_slave << std::endl;
-        //std::cout << "current_velocity_slave" << current_velocity_slave(0,0) << std::endl;
-
-        //std::cout << "x error:" <<current_pose_master_scaled(0,0)-current_velocity_slave(0,0) <<std::endl;
+        // sending command velocities
         twist_msg.linear.x=feeback_matrix(0,0);
         twist_msg.linear.y=feeback_matrix(1,1);
-        twist_msg.linear.z=feeback_matrix(2,2);
+        if ( current_pose_slave (2,0) < 0.9 )
+            twist_msg.linear.z=feeback_matrix(2,2);
         twist_msg.angular.z=feeback_matrix(5,5);
 
         master_new_readings=false;
         slave_new_readings=false;
-      //  std::cout << "cmd" << feeback_matrix << std::endl ;
 
     }
     cmd_pub.publish(twist_msg);
