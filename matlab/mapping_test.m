@@ -1,3 +1,4 @@
+%% mapping 
 close all
 
 eps = 0.001;
@@ -15,6 +16,8 @@ for i =1:length(stime)
 end
 
 %%
+aux = aux(1:10:end , 1:10:end)
+%%
 
 force_in_R=zeros(2, length(aux));
 force_norm=zeros(2, length(aux));
@@ -29,10 +32,26 @@ for k =1: length(aux)
     dcm = quat2dcm (q/norm(q)); % call the function by sending the Quatr data over the norm it will generate 4 by 4 
     dcm2D = dcm(1:2,1:2); % we want only the data related to x and y  ????
     force_in_R(:,k) = dcm2D * [pxdata(aux(k,1)) ; pydata(aux(k,1))]; % for frame transformation  (1 == i) indies for the data related to the force 
+
     force_norm(:,k) = force_in_R(:,k)/norm(force_in_R(:,k)); % ??? 
     orgin_arrow(:,k) = [sxdata(aux(k,2)), sydata(aux(k,2))] ; % the start of the arraw is the position in robot frame  
     end_arrow(:,k) = orgin_arrow(:,k) + force_norm(:,k); % the end of the arraw is the force in robot frame 
 end
+
+%% subsampling 
+% s2time = s2time(1:2:end, 1:2:end);
+% sxdata = sxdata(1:2:end,1:2:end);
+% sydata = sydata(1:2:end,1:2:end);
+% szdata = szdata(1:2:end,1:2:end);
+% oxdata = oxdata(1:2:end,1:2:end);
+% oydata = oydata(1:2:end,1:2:end);
+% ozdata = ozdata(1:2:end,1:2:end);
+% owdata = owdata(1:2:end,1:2:end);
+% 
+% stime =  stime(1:2:end, 1:2:end) ;
+% pxdata =  pxdata(1:2:end, 1:2:end) ;
+% pydata =  pydata(1:2:end, 1:2:end) ;
+% pzdata =  pzdata(1:2:end, 1:2:end) ;
 
 %% Plotting the data 
 figure(1)
@@ -44,6 +63,7 @@ for l = 1 : length(aux)
  %plot3(sxdata(aux(l)),sydata(aux(l)),s2time(aux(l)),'*')
  plot([orgin_arrow(1,l),end_arrow(1,l)] , [orgin_arrow(2,l),end_arrow(2,l)],'r')
 end
+ %plot([orgin_arrow(1,1:end),end_arrow(1,1:end)] , [orgin_arrow(2,1:end),end_arrow(2,1:end)],'r')
 
 %% OVERLAYING THE MAP
 

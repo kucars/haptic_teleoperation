@@ -430,10 +430,10 @@ void MasterController::feedback()
     Eigen::Matrix<double,6,6> feedback_matrix;
 
     feedback_matrix=-Fe;
-  //  feedback_matrix= feedback_matrix;
-    std::cout<<  "Fe" << Fe << std::endl;
+  //  std::cout<<  "Fe" << Fe << std::endl;
     if(control_event)
     {
+
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
         Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_slave *Km_2.transpose()  ;
@@ -449,9 +449,7 @@ void MasterController::feedback()
     force_msg.force.x=feedback_matrix(1,1);
     force_msg.force.y=-feedback_matrix(2,2);
     force_msg.force.z=feedback_matrix(0,0);
-//    force_msg.force.x=-feedback_matrix(1,1);
-//    force_msg.force.y=feedback_matrix(2,2);
-//    force_msg.force.z=-feedback_matrix(0,0);
+
     master_new_readings=false;
     slave_new_readings=false;
     cmd_pub.publish(force_msg);

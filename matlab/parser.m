@@ -14,7 +14,7 @@ starting_sample=2;
 addpath ~/Downloads/matlab_rosbag-0.4-linux64/
 %bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/Ground/sim_2w_Sp.bag');
 
-bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/mav_test.bag');
+bag = ros.Bag.load('/home/kuri/Desktop/results/obj1/bag_files/sensor_haptic_GPF_1.bag');
 bag.info()
 
 %% Read all messages on a few topics

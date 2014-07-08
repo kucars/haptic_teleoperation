@@ -419,7 +419,7 @@ void SlaveController::feedback()
         // sending command velocities
         twist_msg.linear.x=feeback_matrix(0,0);
         twist_msg.linear.y=feeback_matrix(1,1);
-        if ( current_pose_slave (2,0) < 0.9 )
+        if ( current_pose_slave (2,0) < 1.8 )
             twist_msg.linear.z=feeback_matrix(2,2);
         twist_msg.angular.z=feeback_matrix(5,5);
 

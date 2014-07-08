@@ -74,23 +74,43 @@ public:
         else
             aux_it=obstacles_positions_previous.size();
 
-//        if(aux_it==0)
-//        {
-//            resulting_force.x()=0 ;
-//            resulting_force.y()=0 ;
-//            resulting_force.z()=0 ;
-//        }
+        //        if(aux_it==0)
+        //        {
+        //            resulting_force.x()=0 ;
+        //            resulting_force.y()=0 ;
+        //            resulting_force.z()=0 ;
+        //        }
 
+        double min = 1000.0 ;
+        double max = 0.0 ;
+        int index1 = 0;
+        int index2 = 0;
         for(int i=0; i<aux_it; ++i)
         {
             //double getPf_Start = ros::Time::now().toSec();
 
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
-
             resulting_force+=force_field[i];
-        }
 
-       // resulting_force = resulting_force / 100 ;
+//            double d = force_field[i].norm() ;
+//            if (d > max)
+//            {
+//                max= d ;
+//                index1 = i ;
+//                std::cout << "max" << max <<std::endl;
+
+//            }
+//            else if (d < min)
+//            {
+//                min= d ;
+//                index2 = i ;
+//                std::cout << "min" << min <<std::endl;
+
+//            }
+        }
+       // resulting_force=force_field[index1] + force_field[index2];
+       // resulting_force=resulting_force /2.0;
+
         double Ve_End = ros::Time::now().toSec();
 
         // Publish visual markers to see in rviz
@@ -108,10 +128,10 @@ public:
     {
         if(c_current.norm()<ro)
         {
-//            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
-//                    -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
+            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
+                    -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
 
-            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
+            // Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
 
             return f;
         }
@@ -208,7 +228,7 @@ private:
 
         visualization_msgs::Marker marker;
         marker.header.frame_id = "/laser0_frame";
-//        marker.header.frame_id = "/Pioneer3AT/base_link";
+        //        marker.header.frame_id = "/Pioneer3AT/base_link";
         marker.header.stamp = ros::Time();
         marker.id = id;
         if(id==0)

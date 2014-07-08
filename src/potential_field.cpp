@@ -15,6 +15,7 @@
 #include <tf/transform_listener.h>
 #include <haptic_teleoperation/potential_fieldConfig.h>
 #include <phantom_omni/PhantomButtonEvent.h>
+#include <algorithm>
 
 
 haptic_teleoperation::ContourData contour_data_msg;
@@ -116,62 +117,60 @@ public:
         resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
 
 
-        //        double min = 10.0 ;
-        //        double max = 0.0 ;
-        //        int index1 =0;
-        //        int index2 =0;
+//        double min = 1.0 ;
+//        double max = 0.0 ;
+//        int index1 =0;
+//        int index2 =0;
 
-        for(int i=0; i<risk_vectors.size(); ++i)
+        if ( aux_it > 0 )
         {
-            resulting_risk_vector += risk_vectors[i] ;
-            resulting_force+=force_field[i];
+           // std::cout<< "if" << std::endl;
+
+            for(int i=0; i<risk_vectors.size(); ++i)
+            {
+                resulting_risk_vector += risk_vectors[i] ;
+                resulting_force+=force_field[i];
+
+//                double d = risk_vectors[i].norm() ;
+//                if (d > max)
+//                {
+//                    max= d ;
+//                    index1 = i ;
+
+//                }
+//                else if (d < min)
+//                {
+//                    min= d ;
+//                    index2 = i ;
+//                    std::cout << "min" << min <<std::endl;
+
+//                }
+
+
+            }
+
+            // summation  // limited to 1
+            //resulting_risk_vector = resulting_risk_vector  ;
+            //resulting_force = resulting_force ;
+            // mean
+           // resulting_risk_vector = resulting_risk_vector / risk_vectors.size()  ;
+           // resulting_force = resulting_force/ risk_vectors.size() ;
+            // min , max // limites to 1
+            //resulting_risk_vector = risk_vectors[index1] + risk_vectors[index2];
+           // resulting_risk_vector = resulting_risk_vector / 2.0 ;
+            //resulting_force=force_field[index1] + force_field[index2];
+            //resulting_force=resulting_force /2.0;
         }
-        resulting_risk_vector = resulting_risk_vector / risk_vectors.size()  ;
+        else
+        {
+           // std::cout<< "else" << std::endl;
+
+            resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
+            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+
+        }
 
 
-        //resulting_risk_vector = resulting_risk_vector / 300 ;
-
-        //        bool flg_In = false;
-        //        for(int i=0; i<risk_vectors.size(); ++i)
-        //        {
-        //            flg_In = false ;
-        //           // std::cout << "In the for loop " << std::endl ;
-
-        //            double d = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
-        //            if (d > max)
-        //            {
-        //                max= d ;
-        //                index1 = i ;
-        //            }
-        //            double f = sqrt(risk_vectors[i].x()*risk_vectors[i].x() + risk_vectors[i].y()*risk_vectors[i].y()+ risk_vectors[i].z()*risk_vectors[i].z()) ;
-        //            if (f < min)
-        //            {
-        //                min= f ;
-        //                index2 = i ;
-        //            }
-
-        //          //  std::cout << "max" << max <<  std::endl ;
-        //            std::cout << "min" << min <<  std::endl ;
-
-        //            //                resulting_force+=force_field[i];
-        //            //                resulting_risk_vector+=risk_vectors[i];
-        //        }
-
-
-        //        if (!flg_In)
-        //        {
-        //            //assuming that this is mathmatically correct
-        //            resulting_force=force_field[index1] + force_field[index2];
-        //            resulting_risk_vector=risk_vectors[index1] + risk_vectors[index2];
-        //          //  resulting_risk_vector = resulting_risk_vector / 2 ;
-
-        //        }
-        //        else
-        //        {
-        //            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
-
-        //            resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
-        //        }
 
 
 
@@ -197,9 +196,13 @@ public:
             return 0 ;
         else
         {
-            std::cout << "risk vector" << gain *(1+v_i)/ dres  << std::endl ;
+            //std::cout << "risk vector" << gain *(1+v_i)/ dres  << std::endl ;
             return gain *(1+v_i)/ dres;
         }
+
+
+
+
 
     }
 
@@ -349,10 +352,10 @@ private:
         }
 
 
-        if(obstacles_positions_current.size()>0  )//&& !haltControl
-        {
-            computePotentialField();
-        }
+        //if(obstacles_positions_current.size()>0 )//&& !haltControl
+        // {
+        computePotentialField();
+        // }
         feedbackMaster();
 
         obstacles_positions_previous=obstacles_positions_current;
@@ -384,11 +387,11 @@ private:
         msg.pose.position.z=resulting_risk_vector.z() ;
 
         // reflecting the gradiant of the potential field
-        // msg.pose.position.x=-resulting_force.x() ;
-        // msg.pose.position.y =resulting_force.y() ;
+         //msg.pose.position.x=-resulting_force.x() ;
+         //msg.pose.position.y =resulting_force.y() ;
         // msg.pose.position.z=resulting_force.z() ;
 
-        std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
+       // std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
         // std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
         //  std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
 
