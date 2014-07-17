@@ -14,7 +14,7 @@ starting_sample=2;
 addpath ~/Downloads/matlab_rosbag-0.4-linux64/
 %bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/Ground/sim_2w_Sp.bag');
 
-bag = ros.Bag.load('/home/kuri/Desktop/results/obj1/bag_files/sensor_haptic_GPF_1.bag');
+bag = ros.Bag.load('/home/kuri/Desktop/results/obj1/bag_files/test_plot_field.bag');
 bag.info()
 
 %% Read all messages on a few topics
@@ -23,7 +23,9 @@ topic1 = '/haptic_teleoperation/pf_force_feedback';
 topic2 = '/ground_truth/state';
 topic3 = '/haptic_teleoperation/cloud';
 topic4 = '/haptic_teleoperation/haptic_position_pub';
-msgs = bag.readAll({topic1, topic2});
+topic5 = '/haptic_teleoperation/force_field_markers';
+
+msgs = bag.readAll({topic5});
 
 %fprintf('Read %i messages\n', length(msgs));
 
@@ -31,13 +33,38 @@ msgs = bag.readAll({topic1, topic2});
 %[msgs, meta] = bag.readAll(topic2);
 %fprintf('Got %i messages, first one at time %f\n', length(msgs), meta{1}.time.time);
 
-%% Read messages incrementally
-% bag.resetView(topic1);
+% % Read messages incrementally
+% bag.resetView(topic5);
 % count = 0;
+% s5time = [] ;
+% mxdata = [] ;
+% mydata = [] ;
+% mzdata = [] ;
+% moxdata = [] ;
+% moydata = [] ;
+% mozdata = [] ;
+% mowdata = [] ;
 % while bag.hasNext();
-%     [msg, meta] = bag.read();
+%     [msg5, meta] = bag.read();
 %     count = count + 1;
+%     for i=1: length(msg5.markers)
+%         s5time = [ s5time msg5.markers(i).header.stamp] ;
+%         mxdata = [ mxdata msg5.markers(i).pose.position(1)] ;
+%         mydata = [ mydata msg5.markers(i).pose.position(2)] ;
+%         mzdata = [ mzdata msg5.markers(i).pose.position(3)] ;
+%         moxdata = [ moxdata msg5.markers(i).pose.orientation(1)] ;
+%         moydata = [ moydata msg5.markers(i).pose.orientation(2)] ;
+%         mozdata = [ mozdata msg5.markers(i).pose.orientation(3)] ;
+%         mowdata = [ mowdata msg5.markers(i).pose.orientation(4)] ;
+%     end
+%
+%
 % end
+
+
+
+
+
 
 bag.resetView(topic1);
 stime = [] ;
@@ -89,31 +116,31 @@ while bag.hasNext();
     
 end
 %%
+bag_topic_3 = bag.readAll({topic3});
+nofcells = length(bag_topic_3);
+c=0;
+for i = 1:nofcells
+    
+    c_ = length(bag_topic_3{1,i}.points(1,:));
+    
+    if (c_>c)
+        c=c_;
+    end
+end
+cx_mat = zeros(nofcells,c);
+cy_mat = zeros(nofcells,c);
+cz_mat = zeros(nofcells,c);
+s3time = zeros; 
 
-
-
-% bag.resetView(topic3);
-% count = 0;
-% s3time = [] ;
-% cxdata = [] ;
-% cydata = [] ;
-% czdata = [] ;
-% 
-% i=0;
-% while bag.hasNext();
-%     i=i+1;
-%     [msg, meta] = bag.read();
-%     if i<starting_sample
-%         continue
-%     end
-%     s3time = [ s3time msg.header.stamp.time] ;
-%     cxdata = [ cxdata msg.points(1)] ;
-%     cydata = [ cydata msg.points(2)] ;
-%     czdata = [ czdata msg.points(3)] ;
-% end
-
+for i = 1:nofcells
+    s3time(i) = bag_topic_3{1,i}.header.stamp.time;
+    LengOfCol = length (bag_topic_3{1,i}.points(1,:));
+    cx_mat(i,1:LengOfCol) = bag_topic_3{1,i}.points(1,:);
+    cy_mat(i,1:LengOfCol) = bag_topic_3{1,i}.points(2,:);
+    cz_mat(i,1:LengOfCol) = bag_topic_3{1,i}.points(3,:);
+    
+end
 %%
-
 bag.resetView(topic4);
 s4time = [] ;
 hxdata = [] ;
@@ -132,14 +159,43 @@ while bag.hasNext();
     hydata = [ hydata msg.pose.pose.position(2)] ;
     hzdata = [ hzdata msg.pose.pose.position(3)] ;
 end
-% 
+%% markeres
+
+% bag.resetView(topic5);
+% s5time = [] ;
+% mxdata = [] ;
+% mydata = [] ;
+% mzdata = [] ;
+% moxdata = [] ;
+% moydata = [] ;
+% mozdata = [] ;
+% mowdata = [] ;
+%
+% i=0;
+% while bag.hasNext();
+%     i=i+1;
+%     %    s5time = [ s5time msg.header.stamp.time] ;
+%     for i=1:100
+%         mxdata = [ mxdata msg.markers.pose.position(1)] ;
+%         mydata = [ mydata msg.markers.pose.position(2)] ;
+%         mzdata = [ mzdata msg.markers.pose.position(3)] ;
+%         moxdata = [ moxdata msg.markers.pose.orientation(1)] ;
+%         moydata = [ moydata msg.markers.pose.orientation(2)] ;
+%         mozdata = [ mozdata msg.markers.pose.orientation(3)] ;
+%         mowdata = [ mowdata msg.markers.pose.orientation(4)] ;
+%     end
+% end
+
+%
+
+%%
 nsxdata = [] ;
 nsydata = [] ;
 nszdata = [] ;
-nxodata = [] ; 
-nyodata = [] ; 
-nzodata = [] ; 
-ns2time = [] ; 
+nxodata = [] ;
+nyodata = [] ;
+nzodata = [] ;
+ns2time = [] ;
 for i=2:length(sxdata)
     if sqrt((sxdata(i) - sxdata(i-1))^2 + (sydata(i) - sydata(i-1))^2 ) <= epsilon
         continue ;
@@ -150,20 +206,19 @@ for i=2:length(sxdata)
         nxodata = [nxodata oxdata(i)];
         nyodata = [nyodata oydata(i)];
         nzodata = [nzodata ozdata(i)];
-        ns2time = [ns2time s2time(i)]; 
-
+        ns2time = [ns2time s2time(i)];
         
     end
-
+    
 end
 
 sxdata = nsxdata ;
 sydata = nsydata ;
-szdata = nszdata ; 
-oxdata = nxodata ; 
-oydata = nyodata ; 
-ozdata = nzodata ; 
-s2time = ns2time ; 
+szdata = nszdata ;
+oxdata = nxodata ;
+oydata = nyodata ;
+ozdata = nzodata ;
+s2time = ns2time ;
 
 
 

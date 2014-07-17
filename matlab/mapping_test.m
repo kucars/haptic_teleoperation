@@ -16,7 +16,7 @@ for i =1:length(stime)
 end
 
 %%
-aux = aux(1:10:end , 1:10:end)
+aux = aux(1:5:end ,:)
 %%
 
 force_in_R=zeros(2, length(aux));
@@ -74,6 +74,7 @@ end
 
 starting_x=10.0;
 starting_y=0.0;
+text(starting_x,starting_y+0.8,'Start','FontWeight','bold','FontSize',10) 
 
 plot(starting_x,starting_y,'ko','LineWidth',2,'markers',20);
 
@@ -82,11 +83,11 @@ plot(starting_x,starting_y,'ko','LineWidth',2,'markers',20);
 % Goal Area %
 %%%%%%%%%%%%%
 
-starting_x=-12.0;
-starting_y=0.0;
-
-plot(starting_x,starting_y,'rx','LineWidth',2,'markers',20);
-plot(starting_x,starting_y,'ro','LineWidth',2,'markers',20);
+ending_x=-12.0;
+ending_y=0.0;
+text(ending_x-0.6,ending_y-1.2,'Goal' ,'FontWeight','bold','FontSize',10) 
+plot(ending_x,ending_y,'rx','LineWidth',2,'markers',20);
+plot(ending_x,ending_y,'ro','LineWidth',2,'markers',20);
 
 %%%%%%%%%%%%%%
 % FIRST WALL %

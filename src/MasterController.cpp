@@ -334,8 +334,9 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
             0.0,
             0.0,
             yaw_master;
-            haptic_position.header.stamp =  ros::Time::now();
-            haptic_pub.publish(haptic_position);
+
+    haptic_position.header.stamp =  ros::Time::now();
+    haptic_pub.publish(haptic_position);
 
 
     current_velocity_master=(current_pose_master-previous_pose_master)/period;
@@ -412,7 +413,7 @@ void MasterController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr&
 
 
     slave_new_readings=true;
-    feedback();
+   // feedback();
     previous_pose_slave=current_pose_slave;
 }
 
@@ -430,19 +431,22 @@ void MasterController::feedback()
     Eigen::Matrix<double,6,6> feedback_matrix;
 
     feedback_matrix=-Fe;
-  //  std::cout<<  "Fe" << Fe << std::endl;
+    //  std::cout<<  "Fe" << Fe << std::endl;
     if(control_event)
     {
 
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
-        Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_slave *Km_2.transpose()  ;
+        Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_master *Km_2.transpose()  ;
         //std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
         //std::cout << " KD: "<< Kd.transpose()<<std::endl;
         std::cout << "fp: " << Fp.transpose() ;
-        feedback_matrix += (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
+//        feedback_matrix += (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
+//                (current_velocity_slave -  r)                   * Kd.transpose() +
+//                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() ; // Human_force - Fe
+        feedback_matrix += (current_pose_slave_scaled -  (current_velocity_slave + 0.00005 * current_pose_master) )* Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
-                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose(); // Human_force - Fe
+                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() ; // Human_force - Fe
     }
 
     // mapping the force to the joints

@@ -70,6 +70,8 @@ generate_dynamic_reconfigure_options(
    FILES
    TwistArray.msg
    ContourData.msg
+   matlab_data_force.msg
+
 #   Message2.msg
  )
 
@@ -137,6 +139,10 @@ add_library(controller
 #add_executable(PID_position_controller src/PID_PositionControl.cpp)
 #add_dependencies(PID_position_controller uav_commander_generate_messages_cpp ${PROJECT_NAME}_gencfg)
 #target_link_libraries(PID_position_controller  ${catkin_LIBRARIES} -lpq )
+
+
+add_executable(matlab_data src/collecting_all_data.cpp)
+target_link_libraries(matlab_data ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 
 add_executable(force_field src/force_field.cpp)

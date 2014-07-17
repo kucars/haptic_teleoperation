@@ -117,34 +117,34 @@ public:
         resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
 
 
-//        double min = 1.0 ;
-//        double max = 0.0 ;
-//        int index1 =0;
-//        int index2 =0;
+        //        double min = 1.0 ;
+        //        double max = 0.0 ;
+        //        int index1 =0;
+        //        int index2 =0;
 
         if ( aux_it > 0 )
         {
-           // std::cout<< "if" << std::endl;
+            // std::cout<< "if" << std::endl;
 
             for(int i=0; i<risk_vectors.size(); ++i)
             {
                 resulting_risk_vector += risk_vectors[i] ;
                 resulting_force+=force_field[i];
 
-//                double d = risk_vectors[i].norm() ;
-//                if (d > max)
-//                {
-//                    max= d ;
-//                    index1 = i ;
+                //                double d = risk_vectors[i].norm() ;
+                //                if (d > max)
+                //                {
+                //                    max= d ;
+                //                    index1 = i ;
 
-//                }
-//                else if (d < min)
-//                {
-//                    min= d ;
-//                    index2 = i ;
-//                    std::cout << "min" << min <<std::endl;
+                //                }
+                //                else if (d < min)
+                //                {
+                //                    min= d ;
+                //                    index2 = i ;
+                //                    std::cout << "min" << min <<std::endl;
 
-//                }
+                //                }
 
 
             }
@@ -153,17 +153,17 @@ public:
             //resulting_risk_vector = resulting_risk_vector  ;
             //resulting_force = resulting_force ;
             // mean
-           // resulting_risk_vector = resulting_risk_vector / risk_vectors.size()  ;
-           // resulting_force = resulting_force/ risk_vectors.size() ;
+            // resulting_risk_vector = resulting_risk_vector / risk_vectors.size()  ;
+            // resulting_force = resulting_force/ risk_vectors.size() ;
             // min , max // limites to 1
             //resulting_risk_vector = risk_vectors[index1] + risk_vectors[index2];
-           // resulting_risk_vector = resulting_risk_vector / 2.0 ;
+            // resulting_risk_vector = resulting_risk_vector / 2.0 ;
             //resulting_force=force_field[index1] + force_field[index2];
             //resulting_force=resulting_force /2.0;
         }
         else
         {
-           // std::cout<< "else" << std::endl;
+            // std::cout<< "else" << std::endl;
 
             resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
             resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
@@ -307,14 +307,14 @@ private:
         ros::Duration d(0.1);
         marker.lifetime = d ;
 
-
+        marker.header.stamp = ros::Time::now() ;
         return marker;
     }
 
     visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const std::vector<Eigen::Vector3d> arrows_origins, std::string name_space)
     {
         visualization_msgs::MarkerArray marker_array;
-        for(int i=0; i< arrows.size();++i)
+        for(int i=0; i< arrows.size();i=i+30)
         {
             marker_array.markers.push_back(rviz_arrow(arrows[i], arrows_origins[i], (i+1), name_space));
 
@@ -382,16 +382,16 @@ private:
 
         msg.header.stamp =  ros::Time::now();
         // reflecting the potential field itself
-        msg.pose.position.x=-resulting_risk_vector.x() ;
-        msg.pose.position.y =resulting_risk_vector.y() ;
-        msg.pose.position.z=resulting_risk_vector.z() ;
+        // msg.pose.position.x=-resulting_risk_vector.x() ;
+        // msg.pose.position.y =resulting_risk_vector.y() ;
+        //   msg.pose.position.z=resulting_risk_vector.z() ;
 
         // reflecting the gradiant of the potential field
-         //msg.pose.position.x=-resulting_force.x() ;
-         //msg.pose.position.y =resulting_force.y() ;
-        // msg.pose.position.z=resulting_force.z() ;
+        msg.pose.position.x=-resulting_force.x() ;
+        msg.pose.position.y =resulting_force.y() ;
+        msg.pose.position.z=resulting_force.z() ;
 
-       // std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
+        // std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
         // std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
         //  std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
 

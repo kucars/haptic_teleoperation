@@ -10,13 +10,14 @@
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
 #include <haptic_teleoperation/ForceFieldConfig.h>
-
 #include <haptic_teleoperation/TwistArray.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
-
+#include <std_msgs/Float32MultiArray.h>
+#include <haptic_teleoperation/FieldData.h>
 const double PI=3.14159265359;
 double lastTimeCalled ;//= ros::Time::now().toSec();
+
 
 class ForceField
 {
@@ -49,10 +50,17 @@ public:
 
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>( "force_field_markers", 1);
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("force_field_markers", 1);
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
+        pub_x = n.advertise<std_msgs::Float32MultiArray>("array_x", 100);
+        pub_y = n.advertise<std_msgs::Float32MultiArray>("array_y", 100);
+        pub_z = n.advertise<std_msgs::Float32MultiArray>("array_z", 100);
+
+        // field_data_msg = n.advertise<haptic_teleoperation::FieldData>("field_data_msg", 100);
+
         init_flag=false;
         obstacle_readings_sub = n.subscribe("cloud", 100, &ForceField::sonarCallback, this);
+
         lastTimeCalled = ros::Time::now().toSec();
     };
 
@@ -64,9 +72,6 @@ public:
         // Compute current robot Velocity based on odometry readings
         std::vector<Eigen::Vector3d> force_field;
         // for each obstacle compute velocity with respect to that object
-
-
-
         unsigned int aux_it;
         double Ve_Start = ros::Time::now().toSec();
         if(obstacles_positions_current.size()<=obstacles_positions_current.size())
@@ -81,10 +86,10 @@ public:
         //            resulting_force.z()=0 ;
         //        }
 
-        double min = 1000.0 ;
-        double max = 0.0 ;
-        int index1 = 0;
-        int index2 = 0;
+        //        double min = 1000.0 ;
+        //        double max = 0.0 ;
+        //        int index1 = 0;
+        //        int index2 = 0;
         for(int i=0; i<aux_it; ++i)
         {
             //double getPf_Start = ros::Time::now().toSec();
@@ -92,45 +97,43 @@ public:
             force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
             resulting_force+=force_field[i];
 
-//            double d = force_field[i].norm() ;
-//            if (d > max)
-//            {
-//                max= d ;
-//                index1 = i ;
-//                std::cout << "max" << max <<std::endl;
+            //            double d = force_field[i].norm() ;
+            //            if (d > max)
+            //            {
+            //                max= d ;
+            //                index1 = i ;
+            //                std::cout << "max" << max <<std::endl;
 
-//            }
-//            else if (d < min)
-//            {
-//                min= d ;
-//                index2 = i ;
-//                std::cout << "min" << min <<std::endl;
+            //            }
+            //            else if (d < min)
+            //            {
+            //                min= d ;
+            //                index2 = i ;
+            //                std::cout << "min" << min <<std::endl;
 
-//            }
+            //            }
         }
-       // resulting_force=force_field[index1] + force_field[index2];
-       // resulting_force=resulting_force /2.0;
+        // resulting_force=force_field[index1] + force_field[index2];
+        // resulting_force=resulting_force /2.0;
 
         double Ve_End = ros::Time::now().toSec();
-
         // Publish visual markers to see in rviz
         visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("force_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_force, Eigen::Vector3d(0,0,0), 0,   std::string("resulting_force"));
         marker_array.markers.push_back(marker);
         visualization_markers_pub.publish(marker_array);
-
         double pf_End = ros::Time::now().toSec();
-
-
     }
 
     Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d & c_previous, const double & ro)
     {
         if(c_current.norm()<ro)
         {
+            // Spring Damper
             Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
                     -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
 
+            // Spering
             // Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
 
             return f;
@@ -146,12 +149,14 @@ private:
     ros::NodeHandle n;
 
     ros::Subscriber obstacle_readings_sub;
-    //ros::Publisher velocity_cmd_pub;
     ros::Publisher visualization_markers_pub;
-    //  ros::Publisher force_out;
+// force array publisher
+    ros::Publisher pub_x ;
+    ros::Publisher pub_y ;
+    ros::Publisher pub_z ;
 
-    //ros::Publisher repulsive_force_out;
-    ros::Publisher feedback_pub ;
+
+    ros::Publisher feedback_pub ; // resulting force
     std::string pose_topic_name;
     std::string sonar_topic_name;
 
@@ -275,17 +280,39 @@ private:
         marker.color.a = 1.0;
         ros::Duration d(0.1);
         marker.lifetime = d ;
+        marker.header.stamp = ros::Time::now();
 
         return marker;
     }
 
     visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const std::vector<Eigen::Vector3d> arrows_origins, std::string name_space)
     {
+        //        haptic_teleoperation::FieldData msg;
+        // sensor_msgs::PointCloud point ;
+        //point.header.stamp = ros::Time::now(); ;
+
+        std_msgs::Float32MultiArray array_x;
+        std_msgs::Float32MultiArray array_y;
+        std_msgs::Float32MultiArray array_z;
+
+
         visualization_msgs::MarkerArray marker_array;
         for(int i=0; i< arrows.size();++i)
         {
+
+            array_x.data.push_back(arrows[i].x()) ;
+            array_y.data.push_back(arrows[i].y()) ;
+            array_z.data.push_back(arrows[i].z()) ;
+
             marker_array.markers.push_back(rviz_arrow(arrows[i], arrows_origins[i], (i+1), name_space));
+
         }
+
+
+        pub_x.publish(array_x);
+        pub_y.publish(array_y);
+        pub_z.publish(array_z);
+
         return marker_array;
     }
 
@@ -300,10 +327,10 @@ private:
         for(int i=0; i< msg->points.size(); ++i)
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,0.0);
-            if(obstacle.norm()<5  && obstacle.norm()>laser_min_distance+0.01)
+            if(obstacle.norm()<laser_max_distance  && obstacle.norm()>laser_min_distance+0.01)
                 //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
             {
-                //ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
+                ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
                 obstacles_positions_current.push_back(obstacle);
             }
         }
@@ -430,7 +457,7 @@ int main(int argc, char **argv)
 
 
     //initialize operational parameters
-    n_priv.param<double>("laser_max_distance", laser_max_distance,2.0);
+    n_priv.param<double>("laser_max_distance", laser_max_distance,5.0);
     n_priv.param<double>("laser_min_distance", laser_min_distance,0.2);
     //initialize operational parameters
     n_priv.param<double>("ro", ro, 3.0);

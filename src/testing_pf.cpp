@@ -5,7 +5,6 @@
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose.h>
-
 #include <visualization_msgs/MarkerArray.h>
 #include <cmath>
 #include <phantom_omni/OmniFeedback.h>
@@ -160,7 +159,7 @@ int main(int argc, char **argv)
     wall_pose.orientation.w=q2.w() ;
 
 
-    robot_pose.position.x=10.0 ;
+    robot_pose.position.x=4.0 ;
     robot_pose.position.y=0.0 ;
     robot_pose.position.z=1.5 ;
     robot_pose.orientation.x=q.x() ;
