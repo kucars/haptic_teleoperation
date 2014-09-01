@@ -401,16 +401,16 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
 void SlaveController::feedback()
 {
     geometry_msgs::Twist twist_msg;
-    if(control_event ) //  && !lastPositionUpdate) &&  (battery_per > 30)
+    if(control_event) //  && !lastPositionUpdate) &&  (battery_per > 30)
     {
       //  std::cout << "velocities min " << slave_velocity_min.transpose() << std::endl ;
       //  std::cout << "velocities max " << slave_velocity_max.transpose() << std::endl ;
       //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
-        Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
-//        Eigen::Matrix<double,6,6> feeback_matrix =
-//                (current_pose_master_scaled - current_pose_slave)* Kp.transpose() +
-//                (r - current_velocity_slave)                     * Kd.transpose() +
-//                (current_velocity_master_scaled  - current_velocity_slave) * Bd.transpose();
+       Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
+       //Eigen::Matrix<double,6,6> feeback_matrix =
+         //       (current_pose_master_scaled - current_pose_slave)* Kp.transpose() +
+           //     (r - current_velocity_slave)                     * Kd.transpose() +
+            //    (current_velocity_master_scaled  - current_velocity_slave) * Bd.transpose();
 
        Eigen::Matrix<double,6,6> feeback_matrix = r* Kd.transpose() ;
 
@@ -421,6 +421,10 @@ void SlaveController::feedback()
         twist_msg.linear.y=feeback_matrix(1,1);
         if ( current_pose_slave (2,0) < 1.8 )
             twist_msg.linear.z=feeback_matrix(2,2);
+
+
+
+
         twist_msg.angular.z=feeback_matrix(5,5);
 
         master_new_readings=false;

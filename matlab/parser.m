@@ -14,7 +14,7 @@ starting_sample=2;
 addpath ~/Downloads/matlab_rosbag-0.4-linux64/
 %bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/Ground/sim_2w_Sp.bag');
 
-bag = ros.Bag.load('/home/kuri/Desktop/results/obj1/bag_files/test_plot_field.bag');
+bag = ros.Bag.load('/home/kuri/Desktop/results//obj1/bag_files/testing_the_marekers.bag');
 bag.info()
 
 %% Read all messages on a few topics
@@ -23,10 +23,10 @@ topic1 = '/haptic_teleoperation/pf_force_feedback';
 topic2 = '/ground_truth/state';
 topic3 = '/haptic_teleoperation/cloud';
 topic4 = '/haptic_teleoperation/haptic_position_pub';
-topic5 = '/haptic_teleoperation/force_field_markers';
-
-msgs = bag.readAll({topic5});
-
+ topic5 = '/haptic_teleoperation/force_field_markers';
+% 
+% msgs = bag.readAll({topic5});
+% 
 %fprintf('Read %i messages\n', length(msgs));
 
 %% Re-read msgs on topic1 and get their metadata
