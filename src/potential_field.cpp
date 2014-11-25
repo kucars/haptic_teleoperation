@@ -51,7 +51,7 @@ public:
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
         init_flag=false;
-        obstacle_readings_sub = n.subscribe(sonar_topic_name_,100, &ForceField::sonarCallback, this);
+        obstacle_readings_sub = n.subscribe("/cloud",100, &ForceField::sonarCallback, this);
         lastTimeCalled = ros::Time::now().toSec();
 
     };
@@ -62,6 +62,8 @@ public:
 
     void computePotentialField()
     {
+
+        std::cout<< "compute Potential field ##############3" << std::endl;
 
         // Compute current robot velocity based on odometry readings
         std::vector<double> potential_field;
@@ -79,6 +81,7 @@ public:
             aux_it=obstacles_positions_current.size();
         else
             aux_it=obstacles_positions_previous.size();
+        std::cout<< "size of aux &&&&&&&& " << aux_it << std::endl;
 
 
 
@@ -88,6 +91,8 @@ public:
 
         for(int i=0; i<aux_it; ++i)
         {
+
+            std::cout<< "compute velocity  ##############3" << std::endl;
 
             current_v[i]=(obstacles_positions_current[i]-obstacles_positions_previous[i])/period;
             double velocity_sign=1.0;
@@ -108,6 +113,8 @@ public:
         for(int i=0; i<aux_it; ++i)
         {
 
+            std::cout<< "finidng the force @@@@@@@@@@@@@" << std::endl;
+
             double force_magnitude=(potential_field[i]-previous_potential_field[i])/period; // Gradient of the potential field
             risk_vectors.push_back(potential_field[i]*(obstacles_positions_current[i].normalized())) ;
             force_field.push_back(force_magnitude*(obstacles_positions_current[i].normalized()));
@@ -122,9 +129,9 @@ public:
         //        int index1 =0;
         //        int index2 =0;
 
-        if ( aux_it > 0 )
+        if ( aux_it != 0.0 )
         {
-            // std::cout<< "if" << std::endl;
+           std::cout<< "if" << std::endl;
 
             for(int i=0; i<risk_vectors.size(); ++i)
             {
@@ -148,7 +155,8 @@ public:
 
 
             }
-
+            //resulting_force = resulting_force / aux_it ;
+         //  resulting_risk_vector = resulting_risk_vector / aux_it ;
             // summation  // limited to 1
             //resulting_risk_vector = resulting_risk_vector  ;
             //resulting_force = resulting_force ;
@@ -163,13 +171,12 @@ public:
         }
         else
         {
-            // std::cout<< "else" << std::endl;
+            std::cout<< "else" << std::endl;
 
             resulting_risk_vector=Eigen::Vector3d(0.0,0.0,0.0);
             resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
 
         }
-
 
 
 
@@ -263,8 +270,8 @@ private:
 
         visualization_msgs::Marker marker;
         // marker.header.frame_id = "/Pioneer3AT/base_link"; // for pioneer
+       // marker.header.frame_id = "laser0_frame";
         marker.header.frame_id = "laser0_frame";
-
         //marker.header.stamp = ros::Time::now();
         marker.id = id;
         if(id==0)
@@ -335,10 +342,14 @@ private:
         obstacles_positions_current.clear();
         for(int i=0; i< msg->points.size(); ++i)
         {
+            //std::cout << "Collecting obstacles" << std::endl ;
+
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,msg->points[i].z);
 
-            if(obstacle.norm()<laser_max_distance && obstacle.norm()>laser_min_distance)
+            if(obstacle.norm()<5.0 && obstacle.norm()>3.0)
             {
+                std::cout << "push obstacles **********************" << std::endl ;
+
                 counter = counter +1 ;
                 obstacles_positions_current.push_back(obstacle);
             }
@@ -383,17 +394,17 @@ private:
         msg.header.stamp =  ros::Time::now();
         // reflecting the potential field itself
         // msg.pose.position.x=-resulting_risk_vector.x() ;
-        // msg.pose.position.y =resulting_risk_vector.y() ;
-        //   msg.pose.position.z=resulting_risk_vector.z() ;
+       //  msg.pose.position.y =resulting_risk_vector.y() ;
+       //  msg.pose.position.z=resulting_risk_vector.z() ;
 
         // reflecting the gradiant of the potential field
-        msg.pose.position.x=-resulting_force.x() ;
-        msg.pose.position.y =resulting_force.y() ;
-        msg.pose.position.z=resulting_force.z() ;
+       msg.pose.position.x=-resulting_force.x() ;
+       msg.pose.position.y =resulting_force.y() ;
+       msg.pose.position.z=resulting_force.z() ;
 
-        // std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
-        // std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
-        //  std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
+         std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
+         std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
+          std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
 
         feedback_pub.publish(msg);
     }
@@ -423,9 +434,9 @@ int main(int argc, char **argv)
 
     n_priv.param<double>("frequency", freq, 50.0);
     n_priv.param<double>("acc_max", a_max, 1.0);
-    n_priv.param<double>("gain", gain, 0.5);
+    n_priv.param<double>("gain", gain, 0.1);
     ros::Rate loop_rate(freq);
-    std::string sonar_topic_name = "cloud";
+    std::string sonar_topic_name = "/cloud";
     double periodThreshold = 50/1000.0f;
     ForceField potential_field(n, freq, gain,laser_min_distance, laser_max_distance,sonar_topic_name);
 

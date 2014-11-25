@@ -13,8 +13,11 @@ starting_sample=2;
 %bag = ros.Bag.load('example.bag');
 addpath ~/Downloads/matlab_rosbag-0.4-linux64/
 %bag = ros.Bag.load('/home/kuri/Desktop/testing_PF/Ground/sim_2w_Sp.bag');
+bag = ros.Bag.load('/home/kuri/Desktop/results/24_sept/2014-09-24-14-13-15.bag');
 
-bag = ros.Bag.load('/home/kuri/Desktop/results//obj1/bag_files/testing_the_marekers.bag');
+
+%bag = ros.Bag.load('/home/kuri/Desktop/results//obj1/bag_files/testing_the_marekers.bag');
+%bag = ros.Bag.load('/home/kuri/Desktop/results/new_results/5_9_2014/2014-09-06-14-37-45.bag');
 bag.info()
 
 %% Read all messages on a few topics
@@ -23,7 +26,9 @@ topic1 = '/haptic_teleoperation/pf_force_feedback';
 topic2 = '/ground_truth/state';
 topic3 = '/haptic_teleoperation/cloud';
 topic4 = '/haptic_teleoperation/haptic_position_pub';
- topic5 = '/haptic_teleoperation/force_field_markers';
+topic5 = '/haptic_teleoperation/force_field_markers';
+topic6 = '/husky_ns/odom';
+
 % 
 % msgs = bag.readAll({topic5});
 % 
@@ -32,39 +37,6 @@ topic4 = '/haptic_teleoperation/haptic_position_pub';
 %% Re-read msgs on topic1 and get their metadata
 %[msgs, meta] = bag.readAll(topic2);
 %fprintf('Got %i messages, first one at time %f\n', length(msgs), meta{1}.time.time);
-
-% % Read messages incrementally
-% bag.resetView(topic5);
-% count = 0;
-% s5time = [] ;
-% mxdata = [] ;
-% mydata = [] ;
-% mzdata = [] ;
-% moxdata = [] ;
-% moydata = [] ;
-% mozdata = [] ;
-% mowdata = [] ;
-% while bag.hasNext();
-%     [msg5, meta] = bag.read();
-%     count = count + 1;
-%     for i=1: length(msg5.markers)
-%         s5time = [ s5time msg5.markers(i).header.stamp] ;
-%         mxdata = [ mxdata msg5.markers(i).pose.position(1)] ;
-%         mydata = [ mydata msg5.markers(i).pose.position(2)] ;
-%         mzdata = [ mzdata msg5.markers(i).pose.position(3)] ;
-%         moxdata = [ moxdata msg5.markers(i).pose.orientation(1)] ;
-%         moydata = [ moydata msg5.markers(i).pose.orientation(2)] ;
-%         mozdata = [ mozdata msg5.markers(i).pose.orientation(3)] ;
-%         mowdata = [ mowdata msg5.markers(i).pose.orientation(4)] ;
-%     end
-%
-%
-% end
-
-
-
-
-
 
 bag.resetView(topic1);
 stime = [] ;
@@ -116,6 +88,7 @@ while bag.hasNext();
     
 end
 %%
+
 bag_topic_3 = bag.readAll({topic3});
 nofcells = length(bag_topic_3);
 c=0;
@@ -159,6 +132,26 @@ while bag.hasNext();
     hydata = [ hydata msg.pose.pose.position(2)] ;
     hzdata = [ hzdata msg.pose.pose.position(3)] ;
 end
+
+%%
+bag.resetView(topic6);
+s6time = [] ;
+husky_pose_x = [] ;
+husky_pose_y = [] ;
+husky_pose_z = [] ;
+
+i=0;
+while bag.hasNext();
+    i=i+1;
+    [msg, meta] = bag.read();
+    if i<starting_sample
+        continue
+    end
+    s6time = [ s6time msg.header.stamp.time] ;
+    husky_pose_x = [ husky_pose_x msg.pose.pose.position(1)] ;
+    husky_pose_y = [ husky_pose_y msg.pose.pose.position(2)] ;
+    husky_pose_z = [ husky_pose_z msg.pose.pose.position(3)] ;
+end
 %% markeres
 
 % bag.resetView(topic5);
@@ -188,7 +181,7 @@ end
 
 %
 
-%%
+%% remove the data that far away from the real data 
 nsxdata = [] ;
 nsydata = [] ;
 nszdata = [] ;

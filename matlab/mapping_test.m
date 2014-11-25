@@ -75,7 +75,6 @@ end
 starting_x=10.0;
 starting_y=0.0;
 text(starting_x,starting_y+0.8,'Start','FontWeight','bold','FontSize',10) 
-
 plot(starting_x,starting_y,'ko','LineWidth',2,'markers',20);
 
 
@@ -121,4 +120,6 @@ theta=90.0; %degrees
 theta_rad=theta * (pi/180.0);
 % DRAW A WALL
 drawing_map(wall_origin_x+wall_gazebo_offset_x,wall_origin_y+wall_gazebo_offset_y,theta_rad, wall_length,thickness);
+
+
 

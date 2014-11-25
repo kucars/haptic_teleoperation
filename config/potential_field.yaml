@@ -1,4 +1,4 @@
-gain: 0.5
+gain: 0.1
 laser_min_distance: 5.2
-laser_max_distance: 3.0
+laser_max_distance: 2.0
 frequency: 50.0

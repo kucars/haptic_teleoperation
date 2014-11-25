@@ -1,4 +1,4 @@
-frequency: 10.0
+frequency: 50.0
 gain: 1.0
 mass: 1.0
 acc_max: 1.0
@@ -11,7 +11,7 @@ kp_z: 1.0
 kd_x: 10.0
 kd_y: 10.0
 kd_z: 10.0
-ro: 2.0
+ro: 3.0
 laser_max_distance: 5.2
 laser_min_distance: 3.0
 

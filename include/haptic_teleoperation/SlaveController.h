@@ -60,6 +60,8 @@ class SlaveController : public Controller
 
   		void initParams();
 
+		void getforce_feedback  (const  geometry_msgs::PoseStamped::ConstPtr     & force);    
+		//void getvel_feedback  (const  geometry_msgs::Twist::ConstPtr     & force);    
 
 		Eigen::Matrix<double,6,1> master_to_slave_scale;
 		Eigen::Matrix<double,6,1> master_pose_slave_velocity_scale;

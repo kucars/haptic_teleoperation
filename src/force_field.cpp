@@ -1,3 +1,4 @@
+
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "nav_msgs/Odometry.h"
@@ -25,18 +26,28 @@ public:
     dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig> param_server;
     dynamic_reconfigure::Server<haptic_teleoperation::ForceFieldConfig>::CallbackType param_callback_type;
 
-    ForceField(ros::NodeHandle & n_, double & freq_, double & ro_,   Eigen::Vector3d kp_, Eigen::Vector3d kd_,  double & laser_min_distance_, double & laser_max_distance_, double & robot_mass_, double & robot_radius_, std::string & pose_topic_name_, std::string & sonar_topic_name_) :
+    ForceField(ros::NodeHandle & n_,
+               double & freq_,
+               double & ro_,
+               Eigen::Vector3d kp_,
+               Eigen::Vector3d kd_,
+               double & laser_min_distance_,
+               double & laser_max_distance_,
+               double & robot_mass_,
+               double & robot_radius_,
+               std::string & pose_topic_name_,
+               std::string & sonar_topic_name_):
         n(n_),
         freq(freq_),
         ro(ro_),
         kp(kp_),
         kd(kd_),
+        laser_min_distance(laser_min_distance_),
         laser_max_distance(laser_max_distance_),
         robot_mass(robot_mass_),
         robot_radius(robot_radius_),
         pose_topic_name(pose_topic_name_),
-        sonar_topic_name(sonar_topic_name_),
-        laser_min_distance(laser_min_distance_)
+        sonar_topic_name(sonar_topic_name_)
 
     {
         std::cout << "In the class" << std::endl ;
@@ -50,89 +61,98 @@ public:
 
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
-        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("force_field_markers", 1);
-        feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
-//        pub_x = n.advertise<std_msgs::Float32MultiArray>("array_x", 100);
-//        pub_y = n.advertise<std_msgs::Float32MultiArray>("array_y", 100);
-//        pub_z = n.advertise<std_msgs::Float32MultiArray>("array_z", 100);
-
-        // field_data_msg = n.advertise<haptic_teleoperation::FieldData>("field_data_msg", 100);
-
         init_flag=false;
         obstacle_readings_sub = n.subscribe("cloud", 100, &ForceField::sonarCallback, this);
-
+        visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("force_field_markers", 1);
+        feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
+        // velocity_cmd_pub = n.advertise<geometry_msgs::Twist>( "R/cmd_vel", 1);
         lastTimeCalled = ros::Time::now().toSec();
     };
 
     void computeForceField()
     {
-        double pf_Start = ros::Time::now().toSec();
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
 
         // Compute current robot Velocity based on odometry readings
         std::vector<Eigen::Vector3d> force_field;
-        // for each obstacle compute velocity with respect to that object
         unsigned int aux_it;
-        double Ve_Start = ros::Time::now().toSec();
-        if(obstacles_positions_current.size()<=obstacles_positions_current.size())
+        // double Ve_Start = ros::Time::now().toSec();
+
+        // we take the smaller size to use it in the loop later
+        if(obstacles_positions_current.size()<=obstacles_positions_previous.size())
             aux_it=obstacles_positions_current.size();
         else
             aux_it=obstacles_positions_previous.size();
 
-        double max = 100000 ;
-        double min = -100000 ;
+        //        double max = 100000 ;
+        //        double min = -100000 ;
 
-        int index1 = 0 ;
-        int index2 = 0 ;
+        //        int index1 = 0 ;
+        //        int index2 = 0 ;
 
-        for(int i=0; i<aux_it; ++i)
+        if (aux_it != 0 )
         {
-            //double getPf_Start = ros::Time::now().toSec();
+            for(int i=0; i<aux_it; ++i)
+            {
+                //double getPf_Start = ros::Time::now().toSec();
 
-            force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
-            resulting_force+=force_field[i];
+                force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
 
-//            double d = force_field[i].norm() ;
-//            if (d > max)
-//            {
-//                max= d ;
-//                index1 = i ;
-//                std::cout << "max" << max <<std::endl;
+                resulting_force+=force_field[i];
 
-//            }
-//            else if (d < min)
-//            {
-//                min= d ;
-//                index2 = i ;
-//                std::cout << "min" << min <<std::endl;
+                //            double d = force_field[i].norm() ;
+                //            if (d > max)
+                //            {
+                //                max= d ;
+                //                index1 = i ;
+                //                std::cout << "max" << max <<std::endl;
 
-//            }
+                //            }
+                //            else if (d < min)
+                //            {
+                //                min= d ;
+                //                index2 = i ;
+                //                std::cout << "min" << min <<std::endl;
+
+                //            }
+            }
+            //         resulting_force=force_field[index1] + force_field[index2];
+            //         resulting_force=resulting_force /2.0;
+            resulting_force=resulting_force /aux_it;
+
         }
-//         resulting_force=force_field[index1] + force_field[index2];
-//         resulting_force=resulting_force /2.0;
-
-        double Ve_End = ros::Time::now().toSec();
+        else
+            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
         // Publish visual markers to see in rviz
         visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("force_field"));
         visualization_msgs::Marker marker=rviz_arrow(resulting_force, Eigen::Vector3d(0,0,0), 0,   std::string("resulting_force"));
         marker_array.markers.push_back(marker);
         visualization_markers_pub.publish(marker_array);
-        double pf_End = ros::Time::now().toSec();
+        // feedbackMaster();
+
     }
 
     Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d & c_previous, const double & ro)
     {
-        if(c_current.norm()<ro)
+        if(c_current.norm()<ro )
         {
             // Spring Damper
-           // Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
-             //       -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
+            //Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
+            //   -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
 
-            // Spering
-             Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
+            // Spring
+            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
 
             return f;
         }
+        //        else if(c_current.norm()< 0.5)
+        //        {
+
+        //            twist_msg.linear.x=0 ;
+        //            twist_msg.linear.y=0;
+        //            twist_msg.linear.z=0;
+        //            cmd_pub.publish(twist_msg);
+        //        }
         else
         {
             return Eigen::Vector3d(0,0,0);
@@ -148,7 +168,7 @@ private:
     ros::Publisher pub_x ;
     ros::Publisher pub_y ;
     ros::Publisher pub_z ;
-
+    //ros::Publisher velocity_cmd_pub ;
 
     ros::Publisher feedback_pub ; // resulting force
     std::string pose_topic_name;
@@ -223,8 +243,10 @@ private:
         }
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "/laser0_frame";
-        //        marker.header.frame_id = "/Pioneer3AT/base_link";
+        marker.header.frame_id = "/base_link";
+        //marker.header.frame_id = "/Pioneer3AT/base_link";
+        //marker.header.frame_id = "/RosAria/base_link";
+
         marker.header.stamp = ros::Time();
         marker.id = id;
         if(id==0)
@@ -282,27 +304,27 @@ private:
         // sensor_msgs::PointCloud point ;
         //point.header.stamp = ros::Time::now(); ;
 
-//        std_msgs::Float32MultiArray array_x;
-//        std_msgs::Float32MultiArray array_y;
-//        std_msgs::Float32MultiArray array_z;
+        //        std_msgs::Float32MultiArray array_x;
+        //        std_msgs::Float32MultiArray array_y;
+        //        std_msgs::Float32MultiArray array_z;
 
 
         visualization_msgs::MarkerArray marker_array;
         for(int i=0; i< arrows.size();++i)
         {
 
-//            array_x.data.push_back(arrows[i].x()) ;
-//            array_y.data.push_back(arrows[i].y()) ;
-//            array_z.data.push_back(arrows[i].z()) ;
+            //            array_x.data.push_back(arrows[i].x()) ;
+            //            array_y.data.push_back(arrows[i].y()) ;
+            //            array_z.data.push_back(arrows[i].z()) ;
 
             marker_array.markers.push_back(rviz_arrow(arrows[i], arrows_origins[i], (i+1), name_space));
 
         }
 
 
-//        pub_x.publish(array_x);
-//        pub_y.publish(array_y);
-//        pub_z.publish(array_z);
+        //        pub_x.publish(array_x);
+        //        pub_y.publish(array_y);
+        //        pub_z.publish(array_z);
 
         return marker_array;
     }
@@ -315,15 +337,19 @@ private:
         std::cout << "I was called : (ms)" << (pf_Start - lastTimeCalled)*1000 << std::endl ;
         lastTimeCalled = pf_Start;
         obstacles_positions_current.clear();
-        for(int i=0; i< msg->points.size(); ++i)
+        //for(int i=0; i< msg->points.size(); ++i)
+        for(int i=0; i<8; ++i)
         {
             Eigen::Vector3d obstacle(msg->points[i].x,msg->points[i].y,0.0);
-            if(obstacle.norm()<laser_max_distance  && obstacle.norm()>laser_min_distance)
+            // if(obstacle.norm()<laser_max_distance)
+            // if(obstacle.norm()<laser_max_distance  && obstacle.norm()>laser_min_distance)
+            if(obstacle.norm()<laser_max_distance  && obstacle.norm()>robot_radius)
                 //if((obstacle.norm()>robot_radius)&&(obstacle.norm()<laser_max_distance-0.01)) // check if measurement is between the laser range and the robot
             {
                 ROS_INFO_STREAM("INSIDE THE LIMITS:"<<obstacle.norm());
                 obstacles_positions_current.push_back(obstacle);
             }
+
         }
 
         if(!init_flag)
@@ -335,36 +361,35 @@ private:
 
         computeForceField();
         feedbackMaster();
-        //feedbackSlave();
+        // feedbackSlave();
         obstacles_positions_previous=obstacles_positions_current;
-     //   double pf_End = ros::Time::now().toSec();
+        //   double pf_End = ros::Time::now().toSec();
         //std::cout << "Call back took : (ms)" << (pf_End - pf_Start)*1000 << std::endl ;
     }
 
     // AUTONOMOUS CASE
-    /*void feedbackSlave()
-    {
-        // Compute linear velocity (x velocity)
-        ros::Time current_time=ros::Time::now();
-        double period=current_time.toSec()-previous_time.toSec();
-        previous_time=current_time;
-        double threshold=0.2;
-        if(period>threshold)
-            return;
+    //    void feedbackSlave()
+    //    {
+    //        // Compute linear velocity (x velocity)
+    //        ros::Time current_time=ros::Time::now();
+    //        double period=current_time.toSec()-previous_time.toSec();
+    //        previous_time=current_time;
+    //        double threshold=0.2;
+    //        if(period>threshold)
+    //            return;
 
-        double linear_speed=resulting_force.x()*period/(robot_mass); // LINEAR SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN X (normal component)
+    //        double linear_speed=resulting_force.x()*period/(robot_mass); // LINEAR SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN X (normal component)
 
-        double angular_speed=(resulting_force.y()/(robot_mass*robot_radius))*period; // ROTATIONAL SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN Y (perpendicular component)
-        geometry_msgs::Twist twist_msg;
-        twist_msg.linear.x=linear_speed;
-        twist_msg.angular.z=angular_speed;
-        velocity_cmd_pub.publish(twist_msg);
-    }*/
+    //        double angular_speed=(resulting_force.y()/(robot_mass*robot_radius))*period; // ROTATIONAL SPEED IS GIVEN BY THE PROJECTION OF THE FORCE IN Y (perpendicular component)
+    //        geometry_msgs::Twist twist_msg;
+    //        twist_msg.linear.x=linear_speed;
+    //        twist_msg.angular.z=angular_speed;
+    //        velocity_cmd_pub.publish(twist_msg);
+    //    }
 
     void feedbackMaster()
     {
         geometry_msgs::PoseStamped msg ;
-        msg.header.stamp =  ros::Time::now();
         msg.pose.position.x=-resulting_force.x() ;
         msg.pose.position.y =resulting_force.y() ;
         msg.pose.position.z=resulting_force.z() ;
@@ -372,7 +397,7 @@ private:
         std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
         std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
         std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
-
+        msg.header.stamp =  ros::Time::now();
         feedback_pub.publish(msg);
 
         //        // WEIRD MAPPING!!!
@@ -443,8 +468,8 @@ int main(int argc, char **argv)
     n_priv.param<double>("laser_max_distance", laser_max_distance,5.0);
     n_priv.param<double>("laser_min_distance", laser_min_distance,3.0);
     //initialize operational parameters
-    n_priv.param<double>("ro", ro, 3.0);
-    n_priv.param<double>("frequency", freq, 10.0);
+    n_priv.param<double>("ro", ro, 1.0);
+    n_priv.param<double>("frequency", freq, 50.0);
     n_priv.param<double>("acc_max", a_max, 1.0);
     n_priv.param<double>("robot_mass", robot_mass, 1.0);
     n_priv.param<double>("robot_radius", robot_radius, 0.2);

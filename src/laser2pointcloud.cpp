@@ -21,7 +21,8 @@ public:
     n_(n),
    // laser_sub_(n_, "base_scan", 10),
     laser_sub_(n_, "/laserscan", 1),
-    laser_notifier_(laser_sub_,listener_, "laser0_frame", 1)
+  //  laser_notifier_(laser_sub_,listener_, "laser0_frame", 1)
+    laser_notifier_(laser_sub_,listener_, "base_link", 1)
   	{
       std::cout << "Object created" << std::endl ;
 
@@ -29,7 +30,6 @@ public:
         boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
         laser_notifier_.setTolerance(ros::Duration(0.01));// 0.01
         std::cout << "before pub " << std::endl ;
-
         scan_pub_ = n_.advertise<sensor_msgs::PointCloud>("cloud",1);
         std::cout << "after pub " << std::endl ;
 
@@ -45,7 +45,7 @@ public:
         std::cout << "try " << std::endl ;
 
         projector_.transformLaserScanToPointCloud(
-          "laser0_frame",*scan_in, cloud,listener_);
+          "base_link",*scan_in, cloud,listener_);
     }
     catch (tf::TransformException& e)
     {

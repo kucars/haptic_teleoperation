@@ -48,11 +48,13 @@ class Controller
   		ros::Subscriber master_sub;
 		ros::Subscriber slave_sub;
 		ros::Publisher cmd_pub;
+		ros::Publisher lock_pub;
 		ros::Subscriber button_sub;
 		ros::Subscriber force_feedback_sub ; 
 		ros::Publisher haptic_pub ;
 		ros::Subscriber navedata;
-
+		//ros::Subscriber velocity_cmd_sub;	
+	       // ros::Publisher velocity_cmd_pub;	
 		// params
 		double freq;
 		Eigen::Matrix<double,6,1> Kp;

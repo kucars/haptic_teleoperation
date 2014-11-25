@@ -11,7 +11,7 @@ kp_z: 1.0
 kd_x: 1.0
 kd_y: 1.0
 kd_z: 1.0
-ro: 1.0
+ro: 2.0
 laser_max_distance: 5.2
 
 

@@ -23,6 +23,7 @@
 #define MASTER_CONTROLLER_
 #include "haptic_teleoperation/Controller.h"
 #include <haptic_teleoperation/MasterControllerConfig.h>
+#include "std_msgs/Bool.h"
 
 
 class MasterController : public Controller
@@ -47,7 +48,7 @@ class MasterController : public Controller
 		   Eigen::Matrix<double,6,1> slave_velocity_max_);
 
 		void paramsCallback(haptic_teleoperation::MasterControllerConfig &config, uint32_t level);
-
+		
 	private:
 		// Environmental force 
 		void getforce_feedback  (const  geometry_msgs::PoseStamped::ConstPtr     & force);    

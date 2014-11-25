@@ -5,7 +5,8 @@ kp_y: 0.0
 kp_z: 0.0
 kp_roll: 0.0
 kp_pitch: 0.0
-kp_yaw: 0.1
+#kp_yaw: 0.1
+kp_yaw: 1.0
 
 #kd_x: 0.0
 #kd_y: 0.0
@@ -33,15 +34,15 @@ bd_y: 0.0
 bd_z: 0.0
 bd_roll: 0.0
 bd_pitch: 0.0
-bd_yaw: 0.0
+#bd_yaw: 0.0
+bd_yaw: 0.1
 
 fp_x: 5.0
-fp_y: 5.0
-fp_z: 5.0
+fp_y: 10.0
+fp_z: 0.0
 fp_roll: 0.0
 fp_pitch: 0.0
 fp_yaw: 0.0
-
 
 is_master: true
 

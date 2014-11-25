@@ -21,6 +21,8 @@
 
 //const double M_PI=3.14159265359 ;
 const double deg_to_rad = M_PI / 180.0 ;
+
+
 class test_pf
 {
 public:
@@ -28,19 +30,20 @@ public:
     bool flag_first_Read;
 
     Eigen::Matrix<double,3,1> pose_slave;
+ //   Eigen::Matrix<double,3,1> pose_slave_2;
+
     test_pf(ros::NodeHandle & n_) : n(n_),flag_out(true),flag_first_Read(true)
     {
-
         vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
         robot_pose_sub = n.subscribe("/ground_truth/state", 1, &test_pf::slaveOdometryCallback, this);
         model_state_pub = n.advertise<gazebo_msgs::ModelState>("/gazebo/set_model_state", 100);
     };
+
     void init_model_state(std::string model_name, geometry_msgs::Pose & pose)
     {
         gazebo_msgs::ModelState robot_msg ;
         robot_msg.model_name = model_name;
         robot_msg.pose = pose;
-
         model_state_pub.publish(robot_msg) ;
     }
 
@@ -49,16 +52,16 @@ public:
         geometry_msgs::Twist msg;
 
         //    std::cout << "A" << std::endl ;
-        msg.linear.x =  0.0 ;
+        msg.linear.x =  0.0;
         msg.linear.y =  0.0 ;
         msg.linear.z =  val;
         msg.angular.x = 0 ;
         msg.angular.y = 0 ;
         msg.angular.z = 0 ;
-
         vel_pub.publish(msg);
 
     }
+
     void move(geometry_msgs::Pose & pose)
     {
         geometry_msgs::Twist msg;
@@ -134,29 +137,25 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(5);
     test_pf potential_field(n);
     std::string robot_name = "quadrotor" ;
+    std::string robot_name_2 = "mobile_base" ;
     std::string obj = "grey_wall" ;
     std::string obj_0 = "grey_wall_0" ;
 
     geometry_msgs::Pose robot_pose;
+    geometry_msgs::Pose robot_pose_2;
+
     geometry_msgs::Pose wall_pose;
     geometry_msgs::Pose wall_pose_0;
 
 
     Eigen::Matrix3d m;
-    m = Eigen::AngleAxisd(deg_to_rad*180.0, Eigen::Vector3d::UnitZ());
+    m = Eigen::AngleAxisd(deg_to_rad*0, Eigen::Vector3d::UnitZ());
     Eigen::Quaterniond q(m) ;
 
     Eigen::Matrix3d m2;
     m2 = Eigen::AngleAxisd(deg_to_rad*90.0, Eigen::Vector3d::UnitZ());
     Eigen::Quaterniond q2(m2) ;
 
-    wall_pose.position.x=0.0 ;
-    wall_pose.position.y=0.0 ;
-    wall_pose.position.z=0.0 ;
-    wall_pose.orientation.x=q2.x() ;
-    wall_pose.orientation.y=q2.y() ;
-    wall_pose.orientation.z=q2.z() ;
-    wall_pose.orientation.w=q2.w() ;
 
 
     robot_pose.position.x=4.0 ;
@@ -167,6 +166,23 @@ int main(int argc, char **argv)
     robot_pose.orientation.z=q.z();
     robot_pose.orientation.w=q.w();
 
+
+    robot_pose_2.position.x=-10.0 ;
+    robot_pose_2.position.y=-10.0 ;
+    robot_pose_2.position.z=0.0 ;
+    robot_pose_2.orientation.x=q.x() ;
+    robot_pose_2.orientation.y=q.y() ;
+    robot_pose_2.orientation.z=q.z();
+    robot_pose_2.orientation.w=q.w();
+
+    wall_pose.position.x=0.0 ;
+    wall_pose.position.y=0.0 ;
+    wall_pose.position.z=0.0 ;
+    wall_pose.orientation.x=q2.x() ;
+    wall_pose.orientation.y=q2.y() ;
+    wall_pose.orientation.z=q2.z() ;
+    wall_pose.orientation.w=q2.w() ;
+
     wall_pose_0.position.x=-10.0 ;
     wall_pose_0.position.y=-2.5 ;
     wall_pose_0.position.z=0.0 ;
@@ -176,11 +192,18 @@ int main(int argc, char **argv)
     wall_pose_0.orientation.w=q2.w() ;
 
 
+
     sleep(2);
 
     potential_field.init_model_state(robot_name, robot_pose );
+    potential_field.init_model_state(robot_name_2, robot_pose_2 );
+    sleep(2);
+
     potential_field.init_model_state(obj,wall_pose );
+    sleep(2);
+
     potential_field.init_model_state(obj_0,wall_pose_0 );
+
 
     potential_field.vel_init(0.5);
     sleep(1);
@@ -188,7 +211,11 @@ int main(int argc, char **argv)
     sleep(2);
 
 
-    std::cout << "before ros::ok" << std::endl ;
+    std::cout << "cancle now" << std::endl ;
+   // exit(1) ;
+    sleep(2);
+
+
     while(ros::ok())
     {
         potential_field.move(wall_pose);

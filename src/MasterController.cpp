@@ -22,6 +22,7 @@
 
 #include "haptic_teleoperation/MasterController.h"
 #include "ros/ros.h"
+#include "std_msgs/Bool.h"
 
 Eigen::Matrix<double,6,1> force_auto ;
 nav_msgs::Odometry haptic_position ;
@@ -50,9 +51,9 @@ MasterController::MasterController(ros::NodeHandle & n_,
     master_callback_type = boost::bind(&MasterController::paramsCallback, this, _1, _2);
     master_server.setCallback(master_callback_type);
 
-
     // Feedback publish to the haptic device
     cmd_pub = n.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
+    lock_pub = n.advertise<std_msgs::Bool>("/lock", 1);
 
     // haptic position publisher in linear coordinates
     haptic_pub = n.advertise<nav_msgs::Odometry>("haptic_position_pub",1) ;
@@ -62,10 +63,13 @@ MasterController::MasterController(ros::NodeHandle & n_,
 
     // Slave pose and velocity subscriber from ( gazebo or the real robot)
     //slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
-    slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+  //  slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+    slave_sub = n.subscribe("/ground_truth/state", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
     // subscribe for the environmental force from the potential fieldFp
     force_feedback_sub  = n_.subscribe("pf_force_feedback" , 1, &MasterController::getforce_feedback   , this);
+
+
 }
 
 void MasterController::initParams()
@@ -194,7 +198,7 @@ void MasterController::initParams()
 
 void MasterController::paramsCallback(haptic_teleoperation::MasterControllerConfig &config, uint32_t level)
 {
-    /*ROS_DEBUG_STREAM("Master PID reconfigure Request ->" << " kp_x:" << config.kp_x
+    ROS_DEBUG_STREAM("Master PID reconfigure Request ->" << " kp_x:" << config.kp_x
                      << " kp_y:" << config.kp_y
                      << " kp_z:" << config.kp_z
                      << " kd_x:" << config.kd_x
@@ -221,13 +225,17 @@ void MasterController::paramsCallback(haptic_teleoperation::MasterControllerConf
             config.bd_roll,
             config.bd_pitch,
             config.bd_yaw;
+//    Fp << fp_x, fp_y, fp_z, fp_roll,fp_pitch, Fp_yaw;
 
     lambda << config.lambda_x, 0, 0, 0 ,0, 0,
             0, config.lambda_y, 0, 0, 0, 0,
             0, 0, config.lambda_z, 0, 0, 0,
             0, 0, 0, config.lambda_roll, 0, 0,
             0, 0, 0, 0, config.lambda_pitch, 0,
-            0, 0, 0, 0, 0, config.lambda_yaw;*/
+            0, 0, 0, 0, 0, config.lambda_yaw;
+
+
+
     //slave_to_master_scale=Eigen::Matrix<double,3,1> (fabs(config.master_size.x/config.slave_size.x), fabs(config.master_size.y/config.slave_size.y), fabs(config.master_size.z/config.slave_size.z));
 }
 
@@ -430,38 +438,70 @@ void MasterController::feedback()
     Fe = Fp * force_auto.transpose()  ;
     Eigen::Matrix<double,6,6> feedback_matrix;
 
+    Eigen::Matrix<double,6,6> kx ;
+    kx << 0.1 ,0.0 ,0.0 ,0.0 ,0.0  ,0.0,
+          0.0 ,1.0 ,0.0 ,0.0 ,0.0  ,0.0,
+          0.0 ,0.0 ,1.0 ,0.0 ,0.0  ,0.0,
+          0.0 ,0.0 ,0.0 ,1.0 ,0.0  ,0.0,
+          0.0 ,0.0 ,0.0 ,0.0 ,1.0  ,0.0,
+          0.0 ,0.0 ,0.0 ,0.0 ,0.0  ,1.0;
+
+//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1;
+//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1,
+//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1,
+//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1;
     feedback_matrix=-Fe;
-    //  std::cout<<  "Fe" << Fe << std::endl;
-    if(control_event)
+    if(control_event )
     {
+
 
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
         Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_master *Km_2.transpose()  ;
         //std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
         //std::cout << " KD: "<< Kd.transpose()<<std::endl;
-        std::cout << "fp: " << Fp.transpose() ;
-        feedback_matrix += (current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
+   //     std::cout << "fp: " << Fp.transpose() ;
+        feedback_matrix += ((current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
-                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() ; // Human_force - Fe
+                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe ) ; // Human_force - Fe
        // if(current_pose_master(0,0) > 0.0)
        // feedback_matrix += (current_pose_slave_scaled -  (current_velocity_slave * 10 +   current_pose_master) )* Kp.transpose() +
          //       (current_velocity_slave -  r)                   * Kd.transpose() +
            //     (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() ; // Human_force - Fe
-
+        //std_msgs::Bool lock_state ;
+        //lock_state.data = false ;
+       // lock_pub.publish(lock_state) ;
     }
-    else
-    {
-        feedback_matrix (0,0) = -0.2 ;
-        feedback_matrix (1,1) = 0.0 ;
-        feedback_matrix (2,2) = -0.9 ;
 
-    }
+//    else
+//    {
+
+//          std_msgs::Bool lock_state ;
+//          lock_state.data = true;
+//          lock_pub.publish(lock_state) ;
+////        feedback_matrix (0,0) = 0.0;
+////        feedback_matrix (1,1) = 0.0 ;
+////        feedback_matrix (2,2) = 0.0 ;
+
+////        feedback_matrix (0,0) = -0.2 ;
+////        feedback_matrix (1,1) =  0.0 ;
+////        feedback_matrix (2,2) = -0.9 ;
+
+////        feedback_matrix (0,0) = -0.9 ;
+////        feedback_matrix (1,1) =  -0.9 ;
+////        feedback_matrix (2,2) = -0.8 ;
+//    }
 
     // mapping the force to the joints
-    force_msg.force.x=feedback_matrix(1,1);
+    force_msg.force.x=0.1*feedback_matrix(1,1);
     force_msg.force.y=-feedback_matrix(2,2);
     force_msg.force.z=feedback_matrix(0,0);
+
+
+//    force_msg.force.x=0.1*feedback_matrix(1,1);
+//    force_msg.force.y=0.2*-feedback_matrix(2,2);
+//    force_msg.force.z=feedback_matrix(0,0);
+
 
     master_new_readings=false;
     slave_new_readings=false;

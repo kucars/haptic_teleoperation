@@ -141,8 +141,8 @@ add_library(controller
 #target_link_libraries(PID_position_controller  ${catkin_LIBRARIES} -lpq )
 
 
-add_executable(matlab_data src/collecting_all_data.cpp)
-target_link_libraries(matlab_data ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+
 
 
 add_executable(force_field src/force_field.cpp)
