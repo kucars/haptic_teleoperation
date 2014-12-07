@@ -436,9 +436,9 @@ void SlaveController::feedback()
 {
     geometry_msgs::Twist twist_msg;
 
-    if (control_event && force_stop(0,0) > -0.5 ) //  && !lastPositionUpdate) &&  (battery_per > 30)
+    if (control_event && force_stop(0,0) > -1.0) //  && !lastPositionUpdate) &&  (battery_per > 30) //
     {
-        std::cout << "force_stop(1,0) in if " << force_stop(0,0) << std::endl ;
+       // std::cout << "force_stop(1,0) in if " << force_stop(0,0) << std::endl ;
         //  std::cout << "velocities min " << slave_velocity_min.transpose() << std::endl ;
         //  std::cout << "velocities max " << slave_velocity_max.transpose() << std::endl ;
         //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
@@ -451,9 +451,6 @@ void SlaveController::feedback()
         //  Eigen::Matrix<double,6,6> feeback_matrix =  (r - current_velocity_slave)* Kd.transpose() ;// r * Kd.transpose() ;
         Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
 
-        // Limiting the z axes
-
-        std::cout << "filling topi: " << std::endl;
 
         // sending command velocities
         twist_msg.linear.x=2*feeback_matrix(0,0);
@@ -465,10 +462,13 @@ void SlaveController::feedback()
         slave_new_readings=false;
 
     }
-    else if (control_event && force_stop(0,0) < -0.5 && current_pose_master(0,0) > 0.0 )
+    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) > 0.15 )//&& current_pose_master(0,0) > 0.0 //
     {
-        std::cout << "force_stop(1,0) in else" << force_stop(0,0) << std::endl ;
+        std::cout << "IF  else 1" <<  std::endl ;
 
+        std::cout << "force_stop(1,0) in else" << force_stop(0,0) << std::endl ;
+        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
+        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
         twist_msg.linear.x=0.0;
         twist_msg.linear.y=0.0;
         twist_msg.linear.z=0.0;
@@ -476,8 +476,13 @@ void SlaveController::feedback()
         slave_new_readings=false;
 
     }
-    else if (control_event && force_stop(0,0) < -0.5 && current_pose_master(0,0) < 0.0 )
+    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) < 0.15 )
 {
+        std::cout << "IF  else 2" <<  std::endl ;
+
+
+        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
+        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
 
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
         Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
@@ -491,6 +496,13 @@ void SlaveController::feedback()
 
         master_new_readings=false;
         slave_new_readings=false;
+    }
+    else
+    {
+        std::cout << "JUST ELSE" <<  std::endl ;
+
+
+
     }
 
 
