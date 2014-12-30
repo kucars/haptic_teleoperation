@@ -15,14 +15,15 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   laser_geometry
   gazebo_msgs
-ardrone_autonomy
-geometry_msgs
+  ardrone_autonomy
+  geometry_msgs
  )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/PIDController.cfg
@@ -105,10 +106,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES rosaria_nav
+  INCLUDE_DIRS include
+  LIBRARIES ${haptic_teleoperation}
   CATKIN_DEPENDS message_runtime nav_msgs roscpp sensor_msgs gazebo_msgs ardrone_autonomy
-#  DEPENDS system_lib
+  DEPENDS eigen
 )
 
 ###########
@@ -123,13 +124,16 @@ include_directories(include
   ${Eigen_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
+
 
 ## Declare a cpp library
 add_library(controller
    src/Controller.cpp
    src/MasterController.cpp
    src/SlaveController.cpp
+   src/ForceField.cpp
 )
 
 ## Declare a cpp executable
@@ -159,9 +163,33 @@ target_link_libraries(force_field
 #   ${Boost_LIBRARIES}
 # )
 
-add_executable(potential_field src/potential_field.cpp)
+#add_executable(potential_field src/potential_field.cpp)
+#add_dependencies(potential_field ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(potential_field
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
+add_executable(prf src/node.cpp src/VirtualForcePrf.cpp src/ForceField.cpp)
+add_dependencies(prf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(prf
+  #ForceField
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+#This is mine I should get it back 
+add_executable(potential_field src/feedback_force_potential.cpp)
 add_dependencies(potential_field ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(potential_field
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
+
+# this is mohammad algorithm 
+add_executable(prf_feedback_force  src/prf_feedback_force.cpp)
+add_dependencies(prf_feedback_force ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(prf_feedback_force
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
 )

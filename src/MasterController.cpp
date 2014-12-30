@@ -1,7 +1,7 @@
 /***************************************************************************
 * Copyright (C) 2013 - 2014 by                                             *
-* Rui Figueiredo, Khalifa University Robotics Institute KURI               *
-* <rui.defigueiredo@kustar.ac.ae>                                          *
+* Reem Ashour, Khalifa University Robotics Institute KURI               *
+* <reem.ashour@kustar.ac.ae>                                          *
 *                                                                          *
 * 									   *
 * This program is free software; you can redistribute it and/or modify     *
@@ -52,19 +52,19 @@ MasterController::MasterController(ros::NodeHandle & n_,
     master_server.setCallback(master_callback_type);
 
     // Feedback publish to the haptic device
-    cmd_pub = n.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
-    lock_pub = n.advertise<std_msgs::Bool>("/lock", 1);
+    cmd_pub = n_.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
+    lock_pub = n_.advertise<std_msgs::Bool>("/lock", 1);
 
     // haptic position publisher in linear coordinates
-    haptic_pub = n.advertise<nav_msgs::Odometry>("haptic_position_pub",1) ;
+    haptic_pub = n_.advertise<nav_msgs::Odometry>("haptic_position_pub",1) ;
 
     // Master joint states subscriber
-    master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
+    master_sub = n_.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
 
     // Slave pose and velocity subscriber from ( gazebo or the real robot)
     //slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
   //  slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
-    slave_sub = n.subscribe("/ground_truth/state", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+    slave_sub = n_.subscribe("/ground_truth/state", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
     // subscribe for the environmental force from the potential fieldFp
     force_feedback_sub  = n_.subscribe("pf_force_feedback" , 1, &MasterController::getforce_feedback   , this);
@@ -446,21 +446,16 @@ void MasterController::feedback()
           0.0 ,0.0 ,0.0 ,0.0 ,1.0  ,0.0,
           0.0 ,0.0 ,0.0 ,0.0 ,0.0  ,1.0;
 
-//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1;
-//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1,
-//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1,
-//          0.1 ,0.1 ,0.1 ,0.1 ,0.1  ,0.1;
     feedback_matrix=-Fe;
     if(control_event )
     {
 
+        std::cout << " CONTROLLER _ M " << std::endl ;
 
         //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
-        Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_master *Km_2.transpose()  ;
-        //std::cout << " (current_velocity_slave -  r) " <<  (current_velocity_slave -  r).transpose() << std::endl ;
-        //std::cout << " KD: "<< Kd.transpose()<<std::endl;
-   //     std::cout << "fp: " << Fp.transpose() ;
+       // Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_master *Km_2.transpose()  ;
+
         feedback_matrix += ((current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
                 (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe ) ; // Human_force - Fe
@@ -494,14 +489,8 @@ void MasterController::feedback()
 
     // mapping the force to the joints
     force_msg.force.x=0.1*feedback_matrix(1,1);
-    force_msg.force.y=-feedback_matrix(2,2);
+    force_msg.force.y=feedback_matrix(2,2); // sign problem again
     force_msg.force.z=feedback_matrix(0,0);
-
-
-//    force_msg.force.x=0.1*feedback_matrix(1,1);
-//    force_msg.force.y=0.2*-feedback_matrix(2,2);
-//    force_msg.force.z=feedback_matrix(0,0);
-
 
     master_new_readings=false;
     slave_new_readings=false;

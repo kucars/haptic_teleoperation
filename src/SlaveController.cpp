@@ -1,7 +1,7 @@
 /***************************************************************************
 * Copyright (C) 2013 - 2014 by                                             *
-* Rui Figueiredo, Khalifa University Robotics Institute KURI               *
-* <rui.defigueiredo@kustar.ac.ae>                                          *
+* Reem Ashour, Khalifa University Robotics Institute KURI               *
+* <reem.ashour@kustar.ac.ae>                                          *
 *                                                                          *
 * 									   *
 * This program is free software; you can redistribute it and/or modify     *
@@ -19,14 +19,13 @@
 * Free Software Foundation, Inc., 					   *
 * 51 Franklin Steet, Fifth Floor, Boston, MA 02111-1307, USA. 		   *
 ***************************************************************************/
-
 #include "haptic_teleoperation/SlaveController.h"
 #include <time.h>
 #include "ardrone_autonomy/Navdata.h"
+
 #define RAD_TO_DEG 180/3.14
 double battery_per ;
 Eigen::Matrix<double,6,1> force_stop ;
-// Eigen::Matrix<double,6,6> velocity ;
 
 SlaveController::SlaveController(ros::NodeHandle & n_,
                                  double freq_,
@@ -51,8 +50,7 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     initParams();
     //slave_callback_type = boost::bind(&SlaveController::paramsCallback, this, _1, _2);
     //slave_server.setCallback(slave_callback_type);
-    //std::cout << "velocities min " << slave_velocity_min_.transpose() << std::endl ;
-    //std::cout << "velocities max " << slave_velocity_max_.transpose() << std::endl ;
+
     // Feedback publish
     cmd_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 
@@ -62,41 +60,27 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     // Slave pose and velocity subscriber
     slave_sub = n.subscribe("/ground_truth/state", 1, &SlaveController::slaveOdometryCallback, this);
 
-    // slave_sub = n.subscribe("/pose", 1, &SlaveController::slaveOdometryCallback, this);
     // navedata            = n.subscribe("/ardrone/navdata" , 1, &SlaveController::get_navdata   , this);
-    //std::cout << "velocities min " << slave_min_.transpose() << std::endl ;
-    // std::cout << "velocities max " << slave_max_.transpose() << std::endl ;
+    //force_feedback_sub  = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback   , this);
 
-
-    force_feedback_sub  = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback   , this);
-    //velocity_cmd_sub = n.subscribe("R/cmd_vel",1,&SlaveController::getvel_feedback, this );
-
-    std::cout << "end of constructor" << std::endl ;
 
 }
 
-//void SlaveController::getvel_feedback(const geometry_msgs::Twist::ConstPtr & vel)
+
+//void SlaveController::getforce_feedback(const geometry_msgs::PoseStamped::ConstPtr & force)
 //{
-//  velocity << vel->linear.x , 0 , 0 ,0 , 0, 0 ,
-//              0 , vel->linear.y,0,0,0,0,
-//              0,0,vel->linear.z,0,0,0,
-//              0,0,0,0,0,0,
-//              0,0,0,0,0,vel->angular.z;
 
+//    force_stop <<  force->pose.position.x,
+//            force->pose.position.y,
+//            force->pose.position.z,
+//            0,
+//            0,
+//            0;
+//    std::cout << "force_x" << force->pose.position.x << std::endl ;
+//    std::cout << "force_y" << force->pose.position.y << std::endl ;
+//    std::cout << "force_z" << force->pose.position.z << std::endl ;
 //}
-void SlaveController::getforce_feedback(const geometry_msgs::PoseStamped::ConstPtr & force)
-{
 
-    force_stop <<  force->pose.position.x,
-            force->pose.position.y,
-            force->pose.position.z,
-            0,
-            0,
-            0;
-    std::cout << "force_x" << force->pose.position.x << std::endl ;
-    std::cout << "force_y" << force->pose.position.y << std::endl ;
-    std::cout << "force_z" << force->pose.position.z << std::endl ;
-}
 void SlaveController::initParams()
 {
 
@@ -219,12 +203,12 @@ void SlaveController::initParams()
             fabs(slave_size(5,0)/master_size(5,0));
 
 }
-void SlaveController::get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg)
-{
-    battery_per   = msg->batteryPercent ;
-    std::cout << "Baterry: " << battery_per << std::endl;
+//void SlaveController::get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg)
+//{
+//    battery_per   = msg->batteryPercent ;
+//    std::cout << "Baterry: " << battery_per << std::endl;
 
-}
+//}
 void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level)
 {
     ROS_INFO_STREAM("Slave PID reconfigure Request ->"  << " kp_x:" << config.kp_x
@@ -262,6 +246,7 @@ void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig
             0, 0, 0, 0, config.lambda_pitch, 0,
             0, 0, 0, 0, 0, config.lambda_yaw;
 }
+
 
 
 
@@ -378,6 +363,8 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     previous_pose_master_scaled=current_pose_master_scaled;
 }
 
+
+
 // SLAVE MEASUREMENTS
 void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -432,15 +419,14 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
 
 }
 
+
 void SlaveController::feedback()
 {
     geometry_msgs::Twist twist_msg;
 
-    if (control_event && force_stop(0,0) > -1.0) //  && !lastPositionUpdate) &&  (battery_per > 30) //
+    if (control_event) //  && force_stop(0,0) > -1.0 && !lastPositionUpdate) &&  (battery_per > 30) //
     {
-       // std::cout << "force_stop(1,0) in if " << force_stop(0,0) << std::endl ;
-        //  std::cout << "velocities min " << slave_velocity_min.transpose() << std::endl ;
-        //  std::cout << "velocities max " << slave_velocity_max.transpose() << std::endl ;
+
         //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
         //Eigen::Matrix<double,6,6> feeback_matrix =
@@ -453,61 +439,59 @@ void SlaveController::feedback()
 
 
         // sending command velocities
-        twist_msg.linear.x=2*feeback_matrix(0,0);
-        twist_msg.linear.y=2*feeback_matrix(1,1);
+        twist_msg.linear.x=feeback_matrix(0,0);
+        twist_msg.linear.y=feeback_matrix(1,1);
         //if ( current_pose_slave (2,0) < 1.8 )
-        twist_msg.linear.z=2*feeback_matrix(2,2);
-        twist_msg.angular.z=2*feeback_matrix(5,5);
+        twist_msg.linear.z=feeback_matrix(2,2);
+        twist_msg.angular.z=feeback_matrix(5,5);
         master_new_readings=false;
         slave_new_readings=false;
 
     }
-    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) > 0.15 )//&& current_pose_master(0,0) > 0.0 //
-    {
-        std::cout << "IF  else 1" <<  std::endl ;
 
-        std::cout << "force_stop(1,0) in else" << force_stop(0,0) << std::endl ;
-        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
-        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
-        twist_msg.linear.x=0.0;
-        twist_msg.linear.y=0.0;
-        twist_msg.linear.z=0.0;
-        master_new_readings=false;
-        slave_new_readings=false;
+    //    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) > 0.15 )//&& current_pose_master(0,0) > 0.0 //
+    //    {
+    //        std::cout << "IF  else 1" <<  std::endl ;
 
-    }
-    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) < 0.15 )
-{
-        std::cout << "IF  else 2" <<  std::endl ;
+    //        std::cout << "force_stop(1,0) in else" << force_stop(0,0) << std::endl ;
+    //        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
+    //        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
+    //        twist_msg.linear.x=0.0;
+    //        twist_msg.linear.y=0.0;
+    //        twist_msg.linear.z=0.0;
+    //        master_new_readings=false;
+    //        slave_new_readings=false;
 
-
-        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
-        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
-
-        Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
-        Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
+    //    }
+    //    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) < 0.15 )
+    //{
+    //        std::cout << "IF  else 2" <<  std::endl ;
 
 
+    //        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
+    //        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
 
-        twist_msg.linear.x=2*feeback_matrix(0,0);
-        twist_msg.linear.y=2*feeback_matrix(1,1);
-        twist_msg.linear.z=2*feeback_matrix(2,2);
-        twist_msg.angular.z=2*feeback_matrix(5,5);
-
-        master_new_readings=false;
-        slave_new_readings=false;
-    }
-    else
-    {
-        std::cout << "JUST ELSE" <<  std::endl ;
+    //        Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
+    //        Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
 
 
 
-    }
+    //        twist_msg.linear.x=2*feeback_matrix(0,0);
+    //        twist_msg.linear.y=2*feeback_matrix(1,1);
+    //        twist_msg.linear.z=2*feeback_matrix(2,2);
+    //        twist_msg.angular.z=2*feeback_matrix(5,5);
+
+    //        master_new_readings=false;
+    //        slave_new_readings=false;
+    //    }
+    //    else
+    //    {
+    //        std::cout << "JUST ELSE" <<  std::endl ;
+    //    }
 
 
     cmd_pub.publish(twist_msg);
-    std::cout << "bublished succes: " << std::endl;
+    std::cout << "publish succes: " << std::endl;
 
 
 }

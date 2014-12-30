@@ -26,6 +26,8 @@
 #include "sensor_msgs/PointCloud.h"
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseArray.h>
+
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Eigen>
 #include <cmath>
@@ -36,6 +38,8 @@
 #include <tf/transform_listener.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <sensor_msgs/LaserScan.h>
+
+
 const double PI=3.14159265359;
 double lastTimeCalled ;//= ros::Time::now().toSec();
 
@@ -80,11 +84,12 @@ public:
         param_server.setCallback(param_callback_type);
         init_flag=false;
 
-        obstacle_readings_sub = n_.subscribe("/scan", 1, &ForceField::laserCallback, this);
-        visualization_markers_pub = n_.advertise<visualization_msgs::MarkerArray>("/force_field_markers", 100);
-        feedback_pub = n_.advertise<geometry_msgs::PoseStamped>("/pf_force_feedback", 100); // increased the rate
+        obstacle_readings_sub = n_.subscribe("/scan", 100, &ForceField::laserCallback, this);
+        visualization_markers_pub = n_.advertise<visualization_msgs::MarkerArray>("force_field_markers", 100);
+        feedback_pub = n_.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 100); // increased the rate
+        obstacle_pub = n_.advertise<geometry_msgs::PoseArray> ("obstacle", 1000) ;
         lastTimeCalled = ros::Time::now().toSec();
-    };
+    }
 
     void computeForceField()
     {
@@ -103,7 +108,7 @@ public:
         {
             for(int i=0; i<aux_it; ++i)
             {
-                std::cout << "aux != 0  " << std::endl ;
+                //       std::cout << "aux != 0  " << std::endl ;
                 force_field.push_back(getForcePoint(obstacles_positions_current[i], obstacles_positions_previous[i], ro));
                 resulting_force+=force_field[i];
             }
@@ -114,7 +119,7 @@ public:
         {
             resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
 
-            std::cout << "aux == 0  " << std::endl ;
+            //   std::cout << "aux == 0  " << std::endl ;
         }// Publish visual markers to see in rviz
 
         visualization_msgs::MarkerArray marker_array=rviz_arrows(force_field, obstacles_positions_current, std::string("force_field"));
@@ -126,14 +131,14 @@ public:
 
     Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d & c_previous, const double & ro)
     {
-        if(c_current.norm() < 3.0) // < ro
+        if(c_current.norm() < 0.8) // < ro
         {
             // Spring Damper
-            //Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
-            //   -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
+            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized()
+                    -kd_mat*(c_current.norm()-c_previous.norm())*c_current.normalized();
 
             // Spring
-            Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
+            //Eigen::Vector3d f=kp_mat*(ro-c_current.norm())*c_current.normalized();
 
             return f;
         }
@@ -149,6 +154,7 @@ private:
     ros::Subscriber obstacle_readings_sub;
     ros::Publisher visualization_markers_pub;
     ros::Publisher feedback_pub ; // resulting force
+    ros::Publisher obstacle_pub ;
     geometry_msgs::PoseStamped msg ;
 
     std::string pose_topic_name;
@@ -176,6 +182,7 @@ private:
     int count;
 
     Eigen::Vector3d resulting_force;
+
 
     void paramsCallback(haptic_teleoperation::ForceFieldConfig &config, uint32_t level)
     {
@@ -227,7 +234,8 @@ private:
         visualization_msgs::Marker marker;
         marker.header.frame_id = "laser"; // I have to change it to the base_link of the robot
         //marker.header.frame_id = "/Pioneer3AT/base_link";
-        //marker.header.frame_id = "/RosAria/base_link";
+        // marker.header.frame_id = "/RosAria/base_link";
+        //   marker.header.frame_id = "base_link"; // I have to change it to the base_link of the robot
 
         marker.header.stamp = ros::Time();
         marker.id = id;
@@ -291,80 +299,107 @@ private:
         return marker_array;
     }
 
-    void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+    void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan)
     {
         obstacles_positions_current.clear();
-        float minAngle = msg->angle_min ;
-        float maxAngle = msg->angle_max ;
-        float range_min = msg->range_min;
-        float range_max = msg->range_max;
-        float incrementAngle = msg->angle_increment ;
-        float msgSize = msg->ranges.size() ;
+        float minAngle = laser_scan->angle_min ;
+        float maxAngle = laser_scan->angle_max ;
+        float range_min = laser_scan->range_min;
+        float range_max = laser_scan->range_max;
+        float incrementAngle = laser_scan->angle_increment ;
+        float msgSize = laser_scan->ranges.size() ;
 
-       // std::cout << "range min and max " << range_min << "   " << range_max << std::endl ;
-       // std::cout << "\nminAngle" << minAngle << "\nmaxAngle" << maxAngle << "\nincreAngel" << incrementAngle << "\nmsgsize" << msgSize << std::endl ;
+        // std::cout << "range min and max " << range_min << "   " << range_max << std::endl ;
+        // std::cout << "\nminAngle" << minAngle << "\nmaxAngle" << maxAngle << "\nincreAngel" << incrementAngle << "\nmsgsize" << msgSize << std::endl ;
 
         float angle = minAngle;
 
 
-        for(int i=0; i<msgSize; i++)
+
+        geometry_msgs::PoseArray obs_msg ;
+        obs_msg.poses.clear();
+
+
+
+        tf::TransformListener listener;
+        listener.waitForTransform("laser", "base_link", ros::Time(0), ros::Duration(10.0));
+
+        for (int i = 0; i < laser_scan->ranges.size();i++)
+            // for(int i=0; i<msgSize; i++)
         {
 
-            float value = msg->ranges[i] ; // the distance from the min range angle to the max
+            float range = laser_scan->ranges[i] ; // the distance from the min range angle to the max
+            float angle  = laser_scan->angle_min + (i*laser_scan->angle_increment);
 
-            float xPoint;
-            float yPoint ;
-            if (angle == 0.0) // in the x axis
-            {
-                xPoint = value;
-                yPoint = 0.0 ;
-            }
-            else if ( angle*180/PI == 90  || angle*180/PI == -90 ) // in the y axis
-            {
-                xPoint = 0.0 ;
-                yPoint = value ;
-            }
-            else if (angle*180/PI > -90 && angle*180/PI < 90  ) // first and forth quartor
+
+
+            geometry_msgs::Pose p;
+            p.position.x =0.0 ;
+            p.position.y =0.0 ;
+            p.position.z =0.0 ;
+            if(range <= 1.0 && range >= 0.5)
             {
 
-                xPoint = cos(angle) * value ;
-                yPoint = sin(angle) * value ;
-                std::cout << "xPoint" << xPoint << std::endl ;
-                std::cout << "yPoint" << yPoint<< std::endl ;
+                std::cout << "In the range" << std::endl ;
+                float xPoint;
+                float yPoint;
+                float zPoint;
 
+                geometry_msgs::PointStamped laser_point;
 
-            }
-            else if ( (angle*180/PI > 90 && angle*180/PI < 120)  ) // second quartor
-            {
-                xPoint = -sin(angle - PI/2) * value ;
-                yPoint = cos(angle - PI/2) * value ;
-                std::cout << "xPoint" << xPoint << std::endl ;
-                std::cout << "yPoint" << yPoint<< std::endl ;
-            }
-            else if((angle*180/PI < -120 && angle*180/PI > -90))  // third quartor
-            {
-                xPoint = -sin(angle + PI/2) * value ;
-                yPoint = cos(angle +PI/2) * value ;
-                std::cout << "xPoint" << xPoint << std::endl ;
-                std::cout << "yPoint" << yPoint<< std::endl ;
-            }
+                laser_point.header.frame_id = "laser";
+                laser_point.header.stamp = ros::Time();
+                xPoint = laser_point.point.x = range*cos(angle) ;
+                yPoint =  laser_point.point.y = range*sin(angle) ;
+                zPoint =  laser_point.point.z = 0.0;
 
-            Eigen::Vector3d obstacle(xPoint,yPoint,0.0);
-
-            std::cout << "obstacle.norm: " << obstacle.norm() << "\n value " << value << std::endl ;
-            std::cout << "obs_x: " << obstacle.x() << std::endl ;
-            std::cout << "obs_y: " << obstacle.y() << std::endl ;
-
- // max range for the laser is 4 meters
-            if(value <= 3.9 && value >= 0.5)
-            {
+                Eigen::Vector3d obstacle(xPoint,yPoint,0.0);
                 ROS_INFO_STREAM("INSIDE THE LIMITS: "<<obstacle.norm());
                 obstacles_positions_current.push_back(obstacle);
+
+                geometry_msgs::PointStamped odom_point;
+
+                try{
+                    listener.transformPoint("/base_link", laser_point, odom_point);
+                    std::cout << "xPoint" << xPoint << std::endl ;
+                    std::cout << "yPoint" << yPoint<< std::endl ;
+                    std::cout << "obs_odom_x" << odom_point.point.x << std::endl ;
+                    std::cout << "obsOdom_y" << odom_point.point.y << std::endl ;
+                }
+                catch(tf::TransformException& ex){
+                    ROS_ERROR("Received an exception trying to transform a point : %s", ex.what());
+                }
+
+                //                float x_o = odom_point.point.x ;
+                //                float y_o = odom_point.point.y ;
+
+                p.position.x = odom_point.point.x ;;
+                p.position.y = odom_point.point.y;
+                std::cout << "obs_x: " <<  p.position.x  << std::endl ;
+                std::cout << "obs_y: " << p.position.y << std::endl ;
+
+                p.position.z = 0.0 ;
             }
-            // increment the angle
-            angle = angle + incrementAngle;
+
+
+            std::cout << "obs_x: " <<  p.position.x  << std::endl ;
+            std::cout << "obs_y: " << p.position.y << std::endl ;
+            std::cout << "obs_z: " << p.position.z << std::endl ;
+
+            obs_msg.poses.push_back(p);
+
 
         } // end of the for loop
+        obs_msg.header.frame_id = "/base_link";
+        obs_msg.header.stamp = ros::Time::now();
+        obstacle_pub.publish(obs_msg);
+
+
+
+
+
+
+
 
         if(!init_flag)
         {
@@ -384,12 +419,34 @@ private:
 
     void feedbackMaster()
     {
-        msg.pose.position.x=-resulting_force.x() ;
-        msg.pose.position.y =resulting_force.y() ;
+
+
+        double x = resulting_force.norm() ;
+        double xmax = 0.8 ;
+        double theta = atan(resulting_force.y()/resulting_force.x()) ;
+        double force  ;
+        if(x <= xmax)
+            force = resulting_force.norm();
+        else
+        {
+            if(resulting_force.norm() < 0 )
+                force = -1 * xmax ;
+            else if(resulting_force.norm() == 0 )
+                force = 0 ;
+            else
+                force = 1 * xmax ;
+
+        }
+
+        msg.pose.position.x = -1 * force * cos(theta) ;
+        msg.pose.position.y = -1 * force * sin(theta) ;
+
+//         msg.pose.position.x=-resulting_force.x() ; // sign ??????  I used to add a nigative sing
+//         msg.pose.position.y=-resulting_force.y() ;
         msg.pose.position.z=resulting_force.z() ;
-        std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
-        std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
-        std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
+        // std::cout << "resulting_risk_vector.x() " << msg.pose.position.x <<std::endl ;
+        //  std::cout << "resulting_risk_vector.y() " << msg.pose.position.y <<std::endl ;
+        //  std::cout << "resulting_risk_vector.z() " <<  msg.pose.position.z <<std::endl ;
         msg.header.stamp =  ros::Time::now();
         feedback_pub.publish(msg);
     }

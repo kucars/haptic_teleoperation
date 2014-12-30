@@ -48,8 +48,11 @@ public:
         a_max=1.0;
         param_callback_type = boost::bind(&ForceField::paramsCallback, this, _1, _2);
         param_server.setCallback(param_callback_type);
+
         visualization_markers_pub = n.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
+
         feedback_pub = n.advertise<geometry_msgs::PoseStamped>("pf_force_feedback", 1);
+
         init_flag=false;
         obstacle_readings_sub = n.subscribe("/cloud",100, &ForceField::sonarCallback, this);
         lastTimeCalled = ros::Time::now().toSec();
