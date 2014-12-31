@@ -136,6 +136,17 @@ add_library(controller
    src/ForceField.cpp
 )
 
+
+
+add_executable(prf src/node.cpp src/VirtualForcePrf.cpp src/ForceField.cpp)
+add_dependencies(prf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(prf
+  #ForceField
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
 ## Declare a cpp executable
 # add_executable(rosaria_nav_node src/rosaria_nav_node.cpp)
 #add_executable(transform src/transform.cpp)
@@ -147,12 +158,12 @@ add_library(controller
 
 
 
-add_executable(force_field src/feedback_force.cpp)
-add_dependencies(force_field ${PROJECT_NAME}_gencfg)
-target_link_libraries(force_field
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
- )
+#add_executable(force_field src/feedback_force.cpp)
+#add_dependencies(force_field ${PROJECT_NAME}_gencfg)
+#target_link_libraries(force_field
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+# )
 
 
 
@@ -169,52 +180,45 @@ target_link_libraries(force_field
 #   ${catkin_LIBRARIES}
 #   ${Boost_LIBRARIES}
 #)
-add_executable(prf src/node.cpp src/VirtualForcePrf.cpp src/ForceField.cpp)
-add_dependencies(prf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(prf
-  #ForceField
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-)
+
 
 #This is mine I should get it back 
-add_executable(potential_field src/feedback_force_potential.cpp)
-add_dependencies(potential_field ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(potential_field
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
+#add_executable(potential_field src/feedback_force_potential.cpp)
+#add_dependencies(potential_field ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(potential_field
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
 
 # this is mohammad algorithm 
-add_executable(prf_feedback_force  src/prf_feedback_force.cpp)
-add_dependencies(prf_feedback_force ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(prf_feedback_force
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
+#add_executable(prf_feedback_force  src/prf_feedback_force.cpp)
+#add_dependencies(prf_feedback_force ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(prf_feedback_force
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
 
 
-add_executable(laser2pointcloud src/laser2pointcloud.cpp)
-add_dependencies(laser2pointcloud ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(laser2pointcloud
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
+#add_executable(laser2pointcloud src/laser2pointcloud.cpp)
+#add_dependencies(laser2pointcloud ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(laser2pointcloud
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
 
 ## take off and landing 
-add_executable(takeoff src/take_off.cpp)
-add_dependencies(takeoff ${PROJECT_NAME}_gencfg)
-target_link_libraries(takeoff
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
-add_executable(land src/land.cpp)
-add_dependencies(land ${PROJECT_NAME}_gencfg)
-target_link_libraries(land
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
-)
+#add_executable(takeoff src/take_off.cpp)
+#add_dependencies(takeoff ${PROJECT_NAME}_gencfg)
+#target_link_libraries(takeoff
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
+#add_executable(land src/land.cpp)
+#add_dependencies(land ${PROJECT_NAME}_gencfg)
+#target_link_libraries(land
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+#)
 
 
 add_executable(controller_ros src/ControllerRos.cpp)
