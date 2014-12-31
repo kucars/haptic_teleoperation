@@ -133,7 +133,7 @@ Eigen::Vector3d ForceField::getForcePoint(Eigen::Vector3d & c_current)
 
 }
 
-void ForceField::runTest()
+void ForceField::runTest(std::string testName)
 {
     Eigen::Vector3d f;
     double laserRange = 4; // 4 meters
@@ -157,16 +157,15 @@ void ForceField::runTest()
             currentPose(2) = 0;
             f = this->getForcePoint(currentPose);
             double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
-//            double Fn = f.norm() ;
-//            if ( f.norm() >0.99 )
-//            std::cout << "Fnorm:"<< Fn << "       F magn: " << F << std::endl;
+            //            double Fn = f.norm() ;
+            //            if ( f.norm() >0.99 )
+            //            std::cout << "Fnorm:"<< Fn << "       F magn: " << F << std::endl;
             if(F>maxF)
                 maxF = F;
             if(F<minF)
                 minF = F;
             // This is how you get a pixel
             Vec3b color = image.at<cv::Vec3b>(cv::Point(x,y));
-
             color.val[0] = uchar(F * 255.0);
             color.val[1] = uchar(F * 255.0);
             color.val[2] =  uchar(F * 255.0);//(abs(F) * 255);
@@ -176,17 +175,25 @@ void ForceField::runTest()
             image.at<cv::Vec3b>(cv::Point(x,y)) = color;
         }
     }
+    //    std::string testName ;
+    //    std::stringstream sstm;
+    //    sstm << numberOfTest << "- newImage.png";
+    //    result = sstm.str();
+
+
     std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
-    imwrite("newImage.png", img);
+    imwrite(testName, img);
 }
 
 
+String ForceField::testName(double dmin, double amax , double rpz ,double tahead, int numberOfTest  )
+{
 
-// test for limits
-// check if the force is by taking the magnitude
-// test for the variables ( dmin , acceleratio .... )
-// transformation DONE
-// do set and get functions DONE for the child class
-// clean the code
+    std::string result ;
+    std::stringstream sstm;
+    sstm << numberOfTest+1 << "-" << " Minimum Distance: " << dmin << " Max Acce: " << amax << "Tahead: " << tahead << "Ppz: " << rpz << "  Image.png";
+    result = sstm.str();
+    return result ;
 
+}
 

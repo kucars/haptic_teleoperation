@@ -77,8 +77,9 @@ public:
     void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
     void feedbackMaster() ;
-    void runTest();
+    void runTest(string namOftest);
     virtual Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current) ;
+    String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest );
 
 protected:
     ros::NodeHandle n;
