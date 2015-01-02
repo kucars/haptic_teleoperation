@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   gazebo_msgs
   ardrone_autonomy
   geometry_msgs
+
+cmake_modules
  )
 
 ## System dependencies are found with CMake's conventions
@@ -138,9 +140,20 @@ add_library(controller
 
 
 
-add_executable(prf src/node.cpp src/VirtualForcePrf.cpp src/ForceField.cpp)
+add_executable(prf src/nodePrf.cpp src/VirtualForcePrf.cpp src/ForceField.cpp)
 add_dependencies(prf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(prf
+  #ForceField
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+#src/VirtualForceBrf.cpp src/ForceField.cpp
+
+add_executable(brf src/nodeBrf.cpp src/VirtualForceBrf.cpp src/ForceField.cpp)
+add_dependencies(brf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(brf
   #ForceField
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}

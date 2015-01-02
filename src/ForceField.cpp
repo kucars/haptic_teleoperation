@@ -39,10 +39,13 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 
 void ForceField::poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity)
 {
+    Eigen::Vector3d robot_vel ;
     std::cout << "get robot velocity " << std::endl ;
-    robot_vel[0] =  robot_velocity->twist.twist.linear.x ;
-    robot_vel[1] =  robot_velocity->twist.twist.linear.y  ;
-    robot_vel[2] =  robot_velocity->twist.twist.linear.z ;
+    robot_vel(0) =  robot_velocity->twist.twist.linear.x ;
+    robot_vel(1) =  robot_velocity->twist.twist.linear.y  ;
+    robot_vel(2) =  robot_velocity->twist.twist.linear.z ;
+
+    setRobotVelocity(robot_vel) ;
 }
 
 void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
@@ -103,7 +106,7 @@ void ForceField::computeForceField()
     {
         for(int i=0; i<aux_it; ++i)
         {
-            Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current[i]) ;
+            Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current[i], getRobotVelocity()) ;
             force_field.push_back(f);
             resulting_force+=force_field[i];
         }
@@ -127,13 +130,13 @@ void ForceField::feedbackMaster()
 }
 
 
-Eigen::Vector3d ForceField::getForcePoint(Eigen::Vector3d & c_current)
+Eigen::Vector3d ForceField::getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d  robot_velocity)
 {
     std::cout << "getting forces parent" << std::endl ;
 
 }
 
-void ForceField::runTest(std::string testName)
+void ForceField::runTestPrf(std::string testName)
 {
     Eigen::Vector3d f;
     double laserRange = 4; // 4 meters
@@ -141,6 +144,7 @@ void ForceField::runTest(std::string testName)
     int numberOfPixels = int(laserRange/laserResolution);
     double obstX,obstY;
     Eigen::Vector3d currentPose;
+
     // Initialize image container with all black
     cv::Mat img(numberOfPixels,numberOfPixels, CV_8UC3, cv::Scalar(0,0,0));
     cv::Mat image = img;
@@ -155,7 +159,7 @@ void ForceField::runTest(std::string testName)
             currentPose(0) = obstX;
             currentPose(1) = obstY;
             currentPose(2) = 0;
-            f = this->getForcePoint(currentPose);
+            f = this->getForcePoint(currentPose,getRobotVelocity());
             double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
             //            double Fn = f.norm() ;
             //            if ( f.norm() >0.99 )
@@ -186,12 +190,18 @@ void ForceField::runTest(std::string testName)
 }
 
 
-String ForceField::testName(double dmin, double amax , double rpz ,double tahead, int numberOfTest  )
+String ForceField::testName(double dmin, double amax , double rpz ,double tahead, int numberOfTest , double vel  )
 {
 
     std::string result ;
     std::stringstream sstm;
-    sstm << numberOfTest+1 << "-" << " Minimum Distance: " << dmin << " Max Acce: " << amax << "Tahead: " << tahead << "Ppz: " << rpz << "  Image.png";
+    sstm << numberOfTest+1 << "-"
+         << " Minimum Distance: "   << dmin
+         << " Max Acce: "           << amax
+         << " Tahead: "              << tahead
+         << " Ppz: "                 << rpz
+         << " velocity in x:"       << vel
+         << " Image.png";
     result = sstm.str();
     return result ;
 

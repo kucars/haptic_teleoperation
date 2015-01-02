@@ -62,7 +62,6 @@ public:
 
 
     // params
-    double robot_vel[3] ;
     bool init_flag ;
     std::vector<Eigen::Vector3d> obstacles_positions_current;
     std::vector<Eigen::Vector3d> obstacles_positions_previous;
@@ -77,14 +76,26 @@ public:
     void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
     void feedbackMaster() ;
-    void runTest(string namOftest);
-    virtual Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current) ;
-    String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest );
+    void runTestPrf(string namOftest);
+    virtual Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d robot_velocity) ;
+    String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
+    void setRobotVelocity(Eigen::Vector3d robotVel)
+    {
+            robotVelocity(0) = robotVel(0) ;
+            robotVelocity(1) = robotVel(1) ;
+            robotVelocity(2) = robotVel(2) ;
+
+    }
+
+    Eigen::Vector3d getRobotVelocity()
+    {
+        return robotVelocity ;
+    }
 
 protected:
     ros::NodeHandle n;
     ros::NodeHandle n_priv;
-
+    Eigen::Vector3d robotVelocity ;
 
 };
 
