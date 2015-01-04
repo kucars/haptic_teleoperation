@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
     VirtualForcePrf prf_obj(n);
 
-    for (int j=1 ; j<=8 ; j++)
+    for (int j=0 ; j<=8 ; j++)
     {
         std::cout << "J" << j << std::endl ;
         Robo_vel(0) =  (double) j/2 ;
