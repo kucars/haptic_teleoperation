@@ -51,93 +51,100 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (Eigen::Vector3d & c_current , Ei
     double dahead = sqrt((robot_vel(0) * robot_vel(0) + (robot_vel(1) * robot_vel(1)) + (robot_vel(2) * robot_vel(2)) ) ) * tahead ;
 
     // norm of y
-    double yi ;
-    double signy  ;
-    if (c_current(1)>= 0 )
-    {
-        yi = c_current(1) ;
-        signy = 1 ;
+    double yi;// = abs(c_current(1)) ;
+    double signy;//  = signed(c_current(1)) ;
+        if (c_current(1)>= 0 )
+        {
+            yi = c_current(1) ;
+            signy = 1 ;
 
-    }
-    else
-    {
-        yi = -c_current(1) ;
-        signy = -1 ;
-    }
+        }
+        else
+       {
+            yi = -c_current(1) ;
+            signy = -1 ;
+        }
     //        // critical area
-    if( (c_current(0) <=0 && sqrt(c_current(0)* c_current(0) + c_current(1)*c_current(1)) <= rpz)
-            || ( (c_current(0) >= 0) &&( c_current(0) <=dstop) && (yi<=rpz) )
-            || (c_current(0) > dstop && sqrt((c_current(0) - dstop)*(c_current(0) - dstop) + c_current(1)*c_current(1)) <= rpz))
+    if(        (c_current(0) <=0 && sqrt(pow(c_current(0),2) + pow(c_current(1),2)) <= rpz)
+            || ( (c_current(0) > 0) &&( c_current(0) <=dstop) && (yi<=rpz) )
+            || ( (c_current(0) > dstop) && (sqrt(pow((c_current(0) - dstop),2) + pow(c_current(1),2)) <= rpz) )
+      )
     {
 
-        Eigen::Vector3d f= -c_current.normalized() *1 ;
-           return f ;
+        Eigen::Vector3d f= c_current.normalized() *1 ;
+        return f ;
     }
-        else if ( c_current(0) <= 0 && sqrt(c_current(0)*c_current(0) + c_current(1) * c_current(1)) >rpz && sqrt(c_current(0)*c_current(0) + c_current(1) * c_current(1)) < (rpz + dmin))
+    else if ( (c_current(0) <= 0) && (sqrt(pow(c_current(0),2) + pow(c_current(1),2)) >rpz) && (sqrt(pow(c_current(0),2) + pow(c_current(1),2)) < (rpz + dmin)))
     {
-        double d = sqrt(c_current(0)*c_current(0) + c_current(1) * c_current(1)) - rpz  ;
+        double d = sqrt(pow(c_current(0),2) + pow(c_current(1),2)) - rpz  ;
         double d0 = dmin ;
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * PI/2) + (PI/2)) + 1 );
-     //   Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 );
+        //   Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
 
         return f ;
     }
-    else if ( c_current(0) >=0 && c_current(0) <=dstop &&  yi <= (rpz+dmin))
+    else if ( c_current(0) >=0 && c_current(0) <=dstop && (yi>rpz)&&  yi <= (rpz+dmin))
     {
         double d =yi- rpz ;
         double d0 = dmin ;
-  //      Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        return f ;
+    }
 
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * PI/2) + (PI/2)) + 1 );
+    else if ( c_current(0)>=dstop && sqrt( pow((c_current(0) - dstop),2) + pow(c_current(1),2) ) >= rpz && c_current(0) <= (dstop+dahead) &&  yi <= (rpz+dmin) && yi >= (((rpz+dmin) / dahead )* (c_current(0) - dstop)))
+
+//    else if ( c_current(0)>=dstop && sqrt( pow((c_current(0) - dstop),2) + pow(c_current(1),2) ) >= rpz && c_current(0) <= (dstop+dahead) &&  yi <= (rpz+dmin) && yi >= (((rpz+dmin) / dahead )* (c_current(0) - dstop)))
+    {
+
+        double d = sqrt(pow(c_current(0)-dstop,2) + pow(c_current(1),2)) - rpz ;
+
+        double theta = atan( yi / (c_current(0) - dstop)) ;
+        double phi = 90 - theta;
+        double xx= ((rpz+dmin)/sin(theta)) * sin(phi);
+       // double d0 = sqrt( pow(xx,2) + pow(rpz+dmin ,2)) - rpz ;
+        double youtline = (rpz + dmin )* signy ;
+        double xoutline = ((c_current(0) - dstop) / c_current(1) ) * youtline ; (youtline*(c_current(0) - dstop)/c_current(1) ) + dstop ;
+
+//        double youtline = (rpz + dmin )* signy ;
+//        double xoutline ;
+//        if (c_current(1) == 0 )
+//            xoutline = dahead + dstop ;
+//        else
+//            xoutline = (youtline*(c_current(0) - dstop)/c_current(1) ) + dstop ;
+
+//        if ( xoutline >= dahead)
+//        {
+//            double R = dmin + rpz ;
+//            double theta = atan(yi / (c_current(0) -dstop)) ;
+//            double phi = asin((dahead * sin(theta)) / R) ;
+//            double gama = phi + theta  ;
+//            xoutline = R * cos(gama) + dahead + dstop ;
+//            youtline = R * sin(gama) * signy ;
+
+
+//        }
+ //       double d = sqrt (pow((c_current(0) - dstop),2) + pow(c_current(1),2)) - rpz ;
+//        //double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
+        double d0 = sqrt( pow(xoutline,2) + pow(youtline,2)) - rpz ;
+
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
         return f ;
     }
 
 
-    else if ( c_current(0)>=dstop && sqrt(((c_current(0) - dstop)*(c_current(0) - dstop)) + (c_current(1) * c_current(1)) ) > rpz && c_current(0) <= (dstop+dahead ) && yi < (rpz+dmin))
-    {
-        double youtline = (rpz + dmin )* signy ;
-        double xoutline ;
-        if (c_current(1) == 0 )
-            xoutline = dahead + dstop ;
-        else
-            xoutline = (youtline*(c_current(0) - dstop)/c_current(1) ) + dstop ;
-
-        if ( xoutline >= dahead || ( (c_current(0) >= (dstop + dahead)) &&  sqrt  (   (    (c_current(0) - (dstop+dahead)) * (c_current(0) - (dstop+dahead))) + (c_current(1)* c_current(1))) <= (dmin+rpz)  ))
-        {
-            double R = dmin + rpz ;
-            double theta = atan(c_current(1) / (c_current(0) -dstop)) ;
-            double phi = asin(dahead * sin(theta) / R) ;
-            double gama = phi + theta  ;
-            double xoutline = R * cos(gama) + dahead + dstop ;
-            double youtline = R * sin(gama) * signy ;
-            double d = sqrt (((c_current(0) - dstop) * (c_current(0) - dstop)) + (c_current(1) * c_current(1))) - rpz ;
-            double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
-    //        Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
-
-            Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * PI/2) + (PI/2)) + 1 );
-            return f ;
-        }
-        else {
-            double d = sqrt(((c_current(0) - dstop ) * (c_current(0) - dstop )) + (c_current(1) * c_current(1) )) ;
-            double d0 = sqrt( xoutline*xoutline + youtline * youtline) - rpz ;
-            Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * PI/2) + (PI/2)) + 1 );
-         //   Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
-
-            return f ;
-        }
-    }
-    else if ( (c_current(0) >= (dstop + dahead)) &&  sqrt  (   (    (c_current(0) - (dstop+dahead)) * (c_current(0) - (dstop+dahead))) + (c_current(1)* c_current(1))) <= (dmin+rpz)  )
+    else if ((c_current(0) >= (dstop + dahead)) &&  sqrt(pow((c_current(0) - (dstop+dahead)),2) + pow(c_current(1),2)) <= (dmin+rpz)  || (c_current(0)>=dstop && c_current(0)< dahead+dstop && yi < ((dmin+rpz) / dahead)* (c_current(0) - dstop) ) )
     {
         double R = dmin + rpz ;
-        double theta = atan(c_current(1) / (c_current(0) -dstop)) ;
-        double phi = asin(dahead * sin(theta) / R) ;
+        double theta = atan(yi/ (c_current(0) -dstop)) ;
+        double phi = asin((dahead * sin(theta)) / R) ;
         double gama = phi + theta  ;
         double xoutline = R * cos(gama) + dahead + dstop ;
         double youtline = R * sin(gama) * signy  ;
-        double d = sqrt(((c_current(0) - dstop) * (c_current(0) - dstop)) + (c_current(1) * c_current(1))) - rpz ;
-        double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * PI/2) + (PI/2)) + 1 );
-      //  Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
+        double d = sqrt(pow((c_current(0) - dstop),2) + pow(c_current(1),2)) - rpz ;
+        //  double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
+        double d0 = sqrt(pow(xoutline-dstop,2) + pow(youtline,2)) - rpz ;
+
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
 
         return f ;
     }

@@ -141,7 +141,7 @@ void ForceField::runTestPrf(std::string testName)
     Eigen::Vector3d f;
     double laserRange = 4; // 4 meters
     double laserResolution = 0.005; // 5mm
-    int numberOfPixels = int(laserRange/laserResolution);
+    int numberOfPixels = int(4*laserRange/laserResolution);
     double obstX,obstY;
     Eigen::Vector3d currentPose;
 
