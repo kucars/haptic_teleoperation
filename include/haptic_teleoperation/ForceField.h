@@ -56,6 +56,7 @@ public:
     ros::Subscriber laser_sub;
     ros::Subscriber slave_pose_sub;
     ros::Publisher virtual_force_pub;
+    ros::Publisher laser_pub;
     laser_geometry::LaserProjection projector_;
     tf::TransformListener listener_;
 

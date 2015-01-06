@@ -33,8 +33,8 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
     init_flag = false;
     std::cout << "parent constructor" << std::endl;
     virtual_force_pub = n_.advertise<geometry_msgs::PoseStamped>("virtual_force_feedback", 100);
-     laser_sub = n_.subscribe("/scan", 100, &ForceField::laserCallback, this);
-    //laser_sub = n_.subscribe("/cloud", 100, &ForceField::pointCloudCallback, this);
+    laser_pub = n_.advertise<sensor_msgs::PointCloud>("pointCloudObs", 100);
+     laser_sub = n_.subscribe("/scan", 1, &ForceField::laserCallback, this);
     slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
 }
 
@@ -87,10 +87,13 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 
    sensor_msgs::PointCloud cloud;
 
-   //  projector_.projectLaser(*scan_in, cloud);
+cloud.header.frame_id = "base_link" ;
+    cloud.header.stamp =  ros::Time::now();
+	laser_pub.publish(cloud) ; 
+  //  projector_.projectLaser(*scan_in, cloud);
 
     projector_.transformLaserScanToPointCloud("base_link",*scan_in, cloud,listener_);
-
+//
 
     obstacles_positions_current.clear();
 
