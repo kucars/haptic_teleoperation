@@ -78,7 +78,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (Eigen::Vector3d & c_current , Ei
     {
         double d = sqrt(pow(c_current(0),2) + pow(c_current(1),2)) - rpz  ;
         double d0 = dmin ;
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 );
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 );
         //   Eigen::Vector3d f= -c_current.normalized()*((0.5 *cos((d/d0) * PI)) + 0.5) ;
 
         return f ;
@@ -87,7 +87,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (Eigen::Vector3d & c_current , Ei
     {
         double d =yi- rpz ;
         double d0 = dmin ;
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
         return f ;
     }
 
@@ -127,7 +127,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (Eigen::Vector3d & c_current , Ei
 //        //double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
         double d0 = sqrt( pow(xoutline,2) + pow(youtline,2)) - rpz ;
 
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
         return f ;
     }
 
@@ -151,7 +151,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (Eigen::Vector3d & c_current , Ei
         //  double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
         double d0 = sqrt(pow(xoutline-dstop,2) + pow(youtline,2)) - rpz ;
 
-        Eigen::Vector3d f= -c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        Eigen::Vector3d f= c_current.normalized() *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
 
         return f ;
     }

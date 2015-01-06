@@ -49,7 +49,6 @@
 using namespace cv ;
 
 const double PI=3.14159265359;
-
 class ForceField
 {
 public:
@@ -59,7 +58,6 @@ public:
     ros::Publisher virtual_force_pub;
     laser_geometry::LaserProjection projector_;
     tf::TransformListener listener_;
-
 
     // params
     bool init_flag ;
@@ -74,9 +72,12 @@ public:
     // functions
     void computeForceField() ;
     void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
+//    void pointCloudCallback(const sensor_msgs::PointCloud::ConstPtr& msg); // I may use this one
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
     void feedbackMaster() ;
     void runTestPrf(string namOftest);
+    void runTestSamplePrf(std::vector<Eigen::Vector3d> array) ;
+
     virtual Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d robot_velocity) ;
     String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
     void setRobotVelocity(Eigen::Vector3d robotVel)
