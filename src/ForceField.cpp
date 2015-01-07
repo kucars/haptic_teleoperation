@@ -34,7 +34,7 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
     std::cout << "parent constructor" << std::endl;
     virtual_force_pub = n_.advertise<geometry_msgs::PoseStamped>("virtual_force_feedback", 100);
     laser_pub = n_.advertise<sensor_msgs::PointCloud>("pointCloudObs", 100);
-     laser_sub = n_.subscribe("/scan", 1, &ForceField::laserCallback, this);
+    laser_sub = n_.subscribe("/scan", 1, &ForceField::laserCallback, this);
     slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
 }
 
@@ -42,12 +42,12 @@ void ForceField::poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocit
 {
     Eigen::Vector3d robotVel ;
     std::cout << "get robot velocity " << std::endl ;
-    //    robotVel(0) = 0 ;
-    //    robotVel(1) = 0 ;
-    //    robotVel(2) = 0 ;
-    robotVel(0) =  robot_velocity->twist.twist.linear.x ;
-    robotVel(1) =  robot_velocity->twist.twist.linear.y  ;
-    robotVel(2) =  robot_velocity->twist.twist.linear.z ;
+    robotVel(0) = 0 ;
+    robotVel(1) = 0 ;
+    robotVel(2) = 0 ;
+    //    robotVel(0) =  robot_velocity->twist.twist.linear.x ;
+    //    robotVel(1) =  robot_velocity->twist.twist.linear.y  ;
+    //    robotVel(2) =  robot_velocity->twist.twist.linear.z ;
 
     setRobotVelocity(robotVel) ;
 }
@@ -70,38 +70,33 @@ void ForceField::poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocit
 void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 {
 
-    std::cout << "laserCallBack " <<std::endl ;
+    //std::cout << "laserCallBack " <<std::endl ;
     std::cout << "scan_in->header.frame_id" << std::endl ;
-
-
-        if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                       "base_link",
-                                       //ros::Time::now(),
-                                       scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                                       ros::Duration(1.0))){
-            std::cout << "return2" <<std::endl ;
-            return;
-        }
+    if(!listener_.waitForTransform(scan_in->header.frame_id,
+                                   "base_link",
+                                   //ros::Time::now(),
+                                   scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
+                                   ros::Duration(1.0))){
+     //   std::cout << "return2" <<std::endl ;
+        return;
+    }
 
     std::cout << "point cloud  " <<std::endl ;
-
-   sensor_msgs::PointCloud cloud;
-
-cloud.header.frame_id = "base_link" ;
-    cloud.header.stamp =  ros::Time::now();
-	laser_pub.publish(cloud) ; 
-  //  projector_.projectLaser(*scan_in, cloud);
-
+    sensor_msgs::PointCloud cloud;
+    //projector_.projectLaser(*scan_in, cloud);
     projector_.transformLaserScanToPointCloud("base_link",*scan_in, cloud,listener_);
-//
+    //
+    cloud.header.frame_id = "base_link" ;
+    cloud.header.stamp = ros::Time::now();
+    laser_pub.publish(cloud) ;
 
-    obstacles_positions_current.clear();
+/*    obstacles_positions_current.clear();
 
     for(int i=0; i< cloud.points.size(); ++i)
     {
         Eigen::Vector3d obstacle(cloud.points[i].x,cloud.points[i].y,0.0);
         obstacles_positions_current.push_back(obstacle);
-    } // end of the for loop
+    }*/ // end of the for loop
 
 
     //    if(!init_flag)
@@ -111,8 +106,8 @@ cloud.header.frame_id = "base_link" ;
     //        obstacles_positions_previous=obstacles_positions_current;
     //        return;
     //    }
-
-    computeForceField();
+    //runTestSamplePrf(cloud) ;
+    computeForceField(cloud);
     std::cout << "system pause" <<std::endl ;
     feedbackMaster();
     //     std::system("pause") ;
@@ -122,7 +117,7 @@ cloud.header.frame_id = "base_link" ;
 
 }
 
-void ForceField::computeForceField()
+void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions_current)
 {
     std::cout << "computeForceField" << std::endl ;
 
@@ -131,7 +126,7 @@ void ForceField::computeForceField()
     unsigned int aux_it;
     // we take the smaller size to use it in the loop later
     // if(obstacles_positions_current.size()<=obstacles_positions_previous.size())
-    aux_it=obstacles_positions_current.size();
+    aux_it=obstacles_positions_current.points.size();
     // else
     //   aux_it=obstacles_positions_previous.size();
 
@@ -139,7 +134,7 @@ void ForceField::computeForceField()
     {
         for(int i=0; i<aux_it; ++i)
         {
-            Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current[i], getRobotVelocity()) ;
+            Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current.points[i], getRobotVelocity()) ;
             force_field.push_back(f);
             resulting_force+=force_field[i];
         }
@@ -166,7 +161,7 @@ void ForceField::feedbackMaster()
 }
 
 
-Eigen::Vector3d ForceField::getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d  robot_velocity)
+Eigen::Vector3d ForceField::getForcePoint(geometry_msgs::Point32  & c_current, Eigen::Vector3d  robot_velocity)
 {
     std::cout << "getting forces parent" << std::endl ;
 
@@ -179,7 +174,7 @@ void ForceField::runTestPrf(std::string testName)
     double laserResolution = 0.005; // 5mm
     int numberOfPixels = int(2*laserRange/laserResolution);
     double obstX,obstY;
-    Eigen::Vector3d currentPose;
+     geometry_msgs::Point32 currentPose;
 
     // Initialize image container with all black
     cv::Mat img(numberOfPixels,numberOfPixels, CV_8UC3, cv::Scalar(0,0,0));
@@ -192,9 +187,9 @@ void ForceField::runTestPrf(std::string testName)
         {
             obstX = (x - img.cols/2.0)*laserResolution;
             obstY = (img.rows/2.0 - y)*laserResolution;
-            currentPose(0) = obstX;
-            currentPose(1) = obstY;
-            currentPose(2) = 0;
+            currentPose.x = obstX;
+            currentPose.y = obstY;
+            currentPose.z = 0;
             f = this->getForcePoint(currentPose,getRobotVelocity());
             double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
             //            double Fn = f.norm() ;
@@ -219,42 +214,50 @@ void ForceField::runTestPrf(std::string testName)
     imwrite(testName, img);
 }
 
-void ForceField::runTestSamplePrf(std::vector<Eigen::Vector3d> array)
+void ForceField::runTestSamplePrf(sensor_msgs::PointCloud &  array)
 {
     Eigen::Vector3d f;
-    double laserRange = 4; // 4 meters
+    double laserRange = 10; // 4 meters
     double laserResolution = 0.005; // 5mm
     int numberOfPixels = int(2*laserRange/laserResolution);
     double obstX,obstY;
-    Eigen::Vector3d currentPose;
+    geometry_msgs::Point32 currentPose;
 
     // Initialize image container with all black
     cv::Mat img(numberOfPixels,numberOfPixels, CV_8UC3, cv::Scalar(0,0,0));
     cv::Mat image = img;
-    double maxF = 0;
-    double minF = 1000000;
-    for(int i=0;i<array.size();i++)
+    //    double maxF = 0;
+    //    double minF = 1000000;
+    std::cout << "4- size" << array.points.size() <<std::endl;
+
+    for(int i=0;i<array.points.size();i++)
     {
-        obstX = array[i](1) ;
-        obstY = array[i](2);
-        currentPose(0) = obstX;
-        currentPose(1) = obstY;
-        currentPose(2) = 0;
+        std::cout << "i: " << i << "\n value" << array.points[i].x <<std::endl;
+        obstX = array.points[i].x ;
+        obstY = array.points[i].y;
+        int x = (obstX/laserResolution) + img.cols/2.0 ;
+        int y = img.rows - (obstY/laserResolution) ;
+        std::cout << "x: " << x << std::endl ;
+        std::cout << "y: " << y << std::endl ;
+
+        currentPose.x = obstX;
+        currentPose.y = obstY;
+        currentPose.z = 0;
         f = this->getForcePoint(currentPose,getRobotVelocity());
         double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
 
         // This is how you get a pixel
-        Vec3b color = image.at<cv::Vec3b>(cv::Point(obstX,obstY));
+        Vec3b color = image.at<cv::Vec3b>(cv::Point(x,y));
         color.val[0] = uchar(F * 255.0);
         color.val[1] = uchar(F * 255.0);
         color.val[2] =  uchar(F * 255.0);//(abs(F) * 255);
         //std::cout<<"F:"<<F<<" color:"<<color.val[0]<< "\n";
         // Set Pixel color to be Force indicative
         // Assuming that the force is normalzied between 0 and 1
-        image.at<cv::Vec3b>(cv::Point(obstX,obstY)) = color;
-
+        std::cout << "FORCE MAG: " << F << std::endl ;
+        image.at<cv::Vec3b>(cv::Point(x,y)) = color;
     }
-    imwrite("testname", img);
+imwrite(" Image.png", img);
 }
 
 String ForceField::testName(double dmin, double amax , double rpz ,double tahead, int numberOfTest , double vel  )

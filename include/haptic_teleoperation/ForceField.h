@@ -27,6 +27,8 @@
 #include "nav_msgs/Odometry.h"
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Point32.h>
+
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Eigen>
 #include <cmath>
@@ -62,8 +64,8 @@ public:
 
     // params
     bool init_flag ;
-    std::vector<Eigen::Vector3d> obstacles_positions_current;
-    std::vector<Eigen::Vector3d> obstacles_positions_previous;
+  //  std::vector<Eigen::Vector3d> obstacles_positions_current;
+   // std::vector<Eigen::Vector3d> obstacles_positions_previous;
     Eigen::Vector3d resulting_force;
     geometry_msgs::PoseStamped msg ;
     // constructor & destructor
@@ -71,15 +73,15 @@ public:
     ~ForceField() {}
     ForceField(ros::NodeHandle & n_);
     // functions
-    void computeForceField() ;
+    void computeForceField(sensor_msgs::PointCloud & obstacles_positions_current) ;
     void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
 //    void pointCloudCallback(const sensor_msgs::PointCloud::ConstPtr& msg); // I may use this one
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
     void feedbackMaster() ;
     void runTestPrf(string namOftest);
-    void runTestSamplePrf(std::vector<Eigen::Vector3d> array) ;
+    void runTestSamplePrf(sensor_msgs::PointCloud &  array) ;
 
-    virtual Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current, Eigen::Vector3d robot_velocity) ;
+    virtual Eigen::Vector3d getForcePoint(geometry_msgs::Point32 & c_current, Eigen::Vector3d robot_velocity) ;
     String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
     void setRobotVelocity(Eigen::Vector3d robotVel)
     {
