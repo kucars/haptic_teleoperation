@@ -70,18 +70,34 @@ void ForceField::poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocit
 void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 {
 
-    //std::cout << "laserCallBack " <<std::endl ;
-    std::cout << "scan_in->header.frame_id" << std::endl ;
+//**************************************************************8
+  //  double distance ; 
+  // double maxRange=0; 
+  //  double rangeMin = scan_in->range_min ; 
+  //  double rangeMax = scan_in->range_max ; 
+  //  std::cout<<"RangeMin:"<< rangeMin <<"RangeMax" <<rangeMax<<"\n";	
+  //  for(int i=0;i<scan_in->ranges.size();i++)
+  //  {
+  //      distance = scan_in->ranges[i] ;
+  //     if (distance>maxRange)
+  //	{
+  // 		maxRange=distance;
+  //	}     
+  //  }
+  //  std::cout<<"Max Range:"<<maxRange<<"\n";	
+//****************************************************************************
+
+
+
     if(!listener_.waitForTransform(scan_in->header.frame_id,
                                    "base_link",
-                                   //ros::Time::now(),
+     //                              //ros::Time::now(),
                                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                                    ros::Duration(1.0))){
-     //   std::cout << "return2" <<std::endl ;
         return;
     }
 
-    std::cout << "point cloud  " <<std::endl ;
+    //std::cout << "point cloud  " <<std::endl ;
     sensor_msgs::PointCloud cloud;
     //projector_.projectLaser(*scan_in, cloud);
     projector_.transformLaserScanToPointCloud("base_link",*scan_in, cloud,listener_);
@@ -106,9 +122,10 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
     //        obstacles_positions_previous=obstacles_positions_current;
     //        return;
     //    }
-    //runTestSamplePrf(cloud) ;
+runTestObstacles(cloud) ; 
+   runTestSamplePrf(cloud) ;
     computeForceField(cloud);
-    std::cout << "system pause" <<std::endl ;
+//    std::cout << "system pause" <<std::endl ;
     feedbackMaster();
     //     std::system("pause") ;
 
@@ -217,29 +234,46 @@ void ForceField::runTestPrf(std::string testName)
 void ForceField::runTestSamplePrf(sensor_msgs::PointCloud &  array)
 {
     Eigen::Vector3d f;
-    double laserRange = 10; // 4 meters
+    double laserRange = 4.0; // 4 meters
     double laserResolution = 0.005; // 5mm
     int numberOfPixels = int(2*laserRange/laserResolution);
     double obstX,obstY;
     geometry_msgs::Point32 currentPose;
 
     // Initialize image container with all black
-    cv::Mat img(numberOfPixels,numberOfPixels, CV_8UC3, cv::Scalar(0,0,0));
+    cv::Mat img(numberOfPixels,numberOfPixels, CV_8UC3, cv::Scalar(255.0,255.0,255.0));
     cv::Mat image = img;
     //    double maxF = 0;
     //    double minF = 1000000;
-    std::cout << "4- size" << array.points.size() <<std::endl;
-
+  //  std::cout << "4- size" << array.points.size() <<std::endl;
+ 
+    double maxX=0; 
+    double maxY=0;
     for(int i=0;i<array.points.size();i++)
     {
-        std::cout << "i: " << i << "\n value" << array.points[i].x <<std::endl;
         obstX = array.points[i].x ;
         obstY = array.points[i].y;
+        if (obstX>maxX)
+ 	{
+		maxX=obstX;
+	}
+        if (obstY>maxY)
+ 	{
+		maxY=obstY;
+	}
+    }
+    std::cout<<"Max x:"<<maxX<<" maxY:"<<maxY<<"\n";
+    for(int i=0;i<array.points.size();i++)
+    {
+       // std::cout << "i: " << i << "\n value" << array.points[i].x <<std::endl;
+        obstX = array.points[i].x ;
+        obstY = array.points[i].y;
+	if(obstX > 4.0 || obstY > 4 )
+	continue; 
         int x = (obstX/laserResolution) + img.cols/2.0 ;
-        int y = img.rows - (obstY/laserResolution) ;
-        std::cout << "x: " << x << std::endl ;
-        std::cout << "y: " << y << std::endl ;
-
+        int y = img.rows/2.0 - (obstY/laserResolution) ;
+       // std::cout << "x: " << x << std::endl ;
+       // std::cout << "y: " << y << std::endl ;
         currentPose.x = obstX;
         currentPose.y = obstY;
         currentPose.z = 0;
@@ -247,18 +281,57 @@ void ForceField::runTestSamplePrf(sensor_msgs::PointCloud &  array)
         double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
 
         // This is how you get a pixel
+
         Vec3b color = image.at<cv::Vec3b>(cv::Point(x,y));
-        color.val[0] = uchar(F * 255.0);
-        color.val[1] = uchar(F * 255.0);
-        color.val[2] =  uchar(F * 255.0);//(abs(F) * 255);
+        color.val[0] = uchar(F);
+        color.val[1] = uchar(F);
+        color.val[2] =  uchar(F);//(abs(F) * 255);
         //std::cout<<"F:"<<F<<" color:"<<color.val[0]<< "\n";
         // Set Pixel color to be Force indicative
         // Assuming that the force is normalzied between 0 and 1
-        std::cout << "FORCE MAG: " << F << std::endl ;
+       // std::cout << "FORCE MAG: " << F << std::endl ;
         image.at<cv::Vec3b>(cv::Point(x,y)) = color;
     }
 imwrite(" Image.png", img);
+exit(1) ; 
 }
+void ForceField::runTestObstacles(sensor_msgs::PointCloud &  array)
+{
+
+    double laserRange = 4.0; // 4 meters
+    double laserResolution = 0.005; // 5mm
+    int numberOfPixels = int(2*laserRange/laserResolution);
+    double obstX,obstY;
+    geometry_msgs::Point32 currentPose;
+
+    // Initialize image container with all black
+    cv::Mat img(numberOfPixels,numberOfPixels, CV_8UC3, cv::Scalar(255.0,255.0,255.0));
+    cv::Mat image = img;
+
+
+    for(int i=0;i<array.points.size();i++)
+    {
+
+        obstX = array.points[i].x ;
+        obstY = array.points[i].y;
+	if(obstX > 4.0 || obstY > 4 )
+	continue; 
+        int x = (obstX/laserResolution) + img.cols/2.0 ;
+        int y = img.rows/2.0 - (obstY/laserResolution) ;
+        // This is how you get a pixel
+        Vec3b color = image.at<cv::Vec3b>(cv::Point(x,y));
+
+        color.val[0] = uchar(255.0);
+        color.val[1] = uchar(0.0);
+        color.val[2] = uchar(0.0);
+       
+        image.at<cv::Vec3b>(cv::Point(x,y)) = color;
+    }
+imwrite("obstacles.png", img);
+ 
+}
+
+       
 
 String ForceField::testName(double dmin, double amax , double rpz ,double tahead, int numberOfTest , double vel  )
 {

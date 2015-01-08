@@ -13,14 +13,9 @@ int main(int argc, char **argv)
     n_priv.param<double>("frequency", freq, 50.0);
     ros::Rate loop_rate(freq);
 
-//    double dmin= 1.2 ;
-//    double amax= 1.0 ;
-//    double rpz = 0.4 ;
-//    double  tahead = 2 ;
 
 
-
-    VirtualForcePrf prf_obj;
+   
 
     //************* testing one sample data ******************** //
 
@@ -28,13 +23,18 @@ int main(int argc, char **argv)
 
 
     //**************** real time experiment ******************** //
+   double dmin= 1.2 ;
+    double amax= 1.0 ;
+    double rpz = 0.4 ;
+    double  tahead = 2 ;
 
-    //    Eigen::Vector3d robotVel ;
-    //    robotVel(0) = 0 ;
-    //    robotVel(1) = 0 ;
-    //    robotVel(2) = 0 ;
-    //    VirtualForcePrf prf_obj(n);
-    //    prf_obj.setParameters(dmin,amax,rpz,tahead) ;
+
+        Eigen::Vector3d robotVel ;
+        robotVel(0) = 0 ;
+        robotVel(1) = 0 ;
+        robotVel(2) = 0 ;
+        VirtualForcePrf prf_obj(n);
+        prf_obj.setParameters(dmin,amax,rpz,tahead) ;
     // ******************* End **********************************//
 
 

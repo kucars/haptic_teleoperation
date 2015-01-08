@@ -80,7 +80,7 @@ public:
     void feedbackMaster() ;
     void runTestPrf(string namOftest);
     void runTestSamplePrf(sensor_msgs::PointCloud &  array) ;
-
+	void runTestObstacles(sensor_msgs::PointCloud &  array) ; 
     virtual Eigen::Vector3d getForcePoint(geometry_msgs::Point32 & c_current, Eigen::Vector3d robot_velocity) ;
     String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
     void setRobotVelocity(Eigen::Vector3d robotVel)
