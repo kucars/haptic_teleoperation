@@ -10,15 +10,13 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   visualization_msgs
   tf
-#  phantom_omni
+# phantom_omni
   dynamic_reconfigure
   message_generation
   laser_geometry
   gazebo_msgs
-  #ardrone_autonomy
   geometry_msgs
-
-#cmake_modules
+  cmake_modules
  )
 
 ## System dependencies are found with CMake's conventions
