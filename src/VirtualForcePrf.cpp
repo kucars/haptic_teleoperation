@@ -76,14 +76,14 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (geometry_msgs::Point32 & c_curre
       )
     {
 
-        Eigen::Vector3d f= obsVecNorm *1 ;
+        Eigen::Vector3d f= -obsVecNorm *1 ;
         return f ;
     }
     else if ( (c_current.x <= 0) && (sqrt(pow(c_current.x,2) + pow(c_current.y,2)) >rpz) && (sqrt(pow(c_current.x,2) + pow(c_current.y,2)) < (rpz + dmin)))
     {
         double d = sqrt(pow(c_current.x,2) + pow(c_current.y,2)) - rpz  ;
         double d0 = dmin ;
-        Eigen::Vector3d f= obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 );
+        Eigen::Vector3d f= -obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 );
         //   Eigen::Vector3d f= -obsVecNorm*((0.5 *cos((d/d0) * PI)) + 0.5) ;
 
         return f ;
@@ -92,7 +92,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (geometry_msgs::Point32 & c_curre
     {
         double d =yi- rpz ;
         double d0 = dmin ;
-        Eigen::Vector3d f= obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        Eigen::Vector3d f= -obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
         return f ;
     }
 
@@ -132,7 +132,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (geometry_msgs::Point32 & c_curre
 //        //double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
         double d0 = sqrt( pow(xoutline,2) + pow(youtline,2)) - rpz ;
 
-        Eigen::Vector3d f= obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        Eigen::Vector3d f= -obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
         return f ;
     }
 
@@ -156,7 +156,7 @@ Eigen::Vector3d VirtualForcePrf::getForcePoint (geometry_msgs::Point32 & c_curre
         //  double d0 = sqrt( (xoutline-dstop)*(xoutline-dstop) + youtline * youtline) - rpz ;
         double d0 = sqrt(pow(xoutline-dstop,2) + pow(youtline,2)) - rpz ;
 
-        Eigen::Vector3d f= obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
+        Eigen::Vector3d f= -obsVecNorm *(cos(((d/d0) * (PI/2)) + (PI/2)) + 1 ) ;
 
         return f ;
     }

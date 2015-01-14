@@ -110,6 +110,16 @@ target_link_libraries(prf
    ${OpenCV_LIBRARIES}
 )
 
+add_executable(virtulaImpedance src/nodeVI.cpp src/VirtualImpedanceForce.cpp src/ForceField.cpp)
+add_dependencies(virtulaImpedance ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(virtulaImpedance
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+catkin_add_gtest(utest src/ForceFieldTests.cpp)
+
 #src/VirtualForceBrf.cpp src/ForceField.cpp
 
 

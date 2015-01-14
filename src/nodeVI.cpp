@@ -1,4 +1,4 @@
-#include "haptic_teleoperation/VirtualForcePrf.h"
+#include "haptic_teleoperation/VirtualImpedanceForce.h"
 sensor_msgs::PointCloud obstacles_positions;
 bool testFlag = true ;
 
@@ -12,29 +12,21 @@ int main(int argc, char **argv)
     double freq;
     n_priv.param<double>("frequency", freq, 50.0);
     ros::Rate loop_rate(freq);
-
-
-
-   
-
-    //************* testing one sample data ******************** //
+   //************* testing one sample data ******************** //
 
     // ******************* End*************************//
 
 
     //**************** real time experiment ******************** //
-   double dmin= 3 ;
-    double amax= 1.0 ;
-    double rpz = 1 ;
-    double  tahead = 2 ;
-
+    std::cout<<"Main"<<"\n";
 
         Eigen::Vector3d robotVel ;
         robotVel(0) = 0 ;
         robotVel(1) = 0 ;
         robotVel(2) = 0 ;
-        VirtualForcePrf prf_obj(n);
-        prf_obj.setParameters(dmin,amax,rpz,tahead) ;
+        VirtualImpedanceForce obj(n);
+        //obj.setInitFlag(false);
+        obj.runTestVirtualImpedance() ;
     // ******************* End **********************************//
 
 
@@ -81,10 +73,3 @@ int main(int argc, char **argv)
 }
 
 
-        //        std::cout << "loop" << std::endl;
-
-        //      if (obstacles_positions.points.size() != 0)
-        //     {
-        // std::cout << "3- msg->points.size()" << obstacles_positions.size() <<std::endl;
-        //         prf_obj.runTestSamplePrf(obstacles_positions) ;
-        //     }
