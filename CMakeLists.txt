@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   gazebo_msgs
   geometry_msgs
-  #cmake_modules
+  cmake_modules
  )
 
 ## System dependencies are found with CMake's conventions
@@ -113,6 +113,15 @@ target_link_libraries(prf
 add_executable(virtulaImpedance src/nodeVI.cpp src/VirtualImpedanceForce.cpp src/ForceField.cpp)
 add_dependencies(virtulaImpedance ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(virtulaImpedance
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+add_executable(Brf src/nodeBrf.cpp src/VirtualForceBrf.cpp src/ForceField.cpp)
+add_dependencies(Brf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(Brf
+  #ForceField
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
    ${OpenCV_LIBRARIES}
