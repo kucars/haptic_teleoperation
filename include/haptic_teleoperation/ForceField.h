@@ -126,6 +126,10 @@ protected:
     Eigen::Vector3d robotVelocity ;
 //    bool init_flag ;
 
+//double FFmag ; 
+//double maxFF ; 
+//double minFF ;
+
 
 };
 

@@ -23,18 +23,20 @@ int main(int argc, char **argv)
 
 
     //**************** real time experiment ******************** //
-   double dmin= 3 ;
+   double dmin= 3.0 ;
     double amax= 1.0 ;
-    double rpz = 1 ;
+    double rpz = 1.0;
     double  tahead = 2 ;
 
 
-        Eigen::Vector3d robotVel ;
-        robotVel(0) = 0 ;
-        robotVel(1) = 0 ;
-        robotVel(2) = 0 ;
+      //  Eigen::Vector3d robotVel ;
+       // robotVel(0) = 0 ;
+       // robotVel(1) = 0 ;
+       // robotVel(2) = 0 ;
         VirtualForcePrf prf_obj(n);
         prf_obj.setParameters(dmin,amax,rpz,tahead) ;
+
+
     // ******************* End **********************************//
 
 

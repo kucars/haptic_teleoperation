@@ -2,7 +2,11 @@
 #include "haptic_teleoperation/VirtualForcePrf.h"
 
 VirtualForcePrf::VirtualForcePrf(ros::NodeHandle & n_):ForceField(n_)
-{std::cout << "child constructor" << std::endl ; }
+{
+
+std::cout << "child constructor" << std::endl ; 
+
+}
 
 void VirtualForcePrf::setParameters(double dmin, double amax, double rpz, double tahead)
 {
