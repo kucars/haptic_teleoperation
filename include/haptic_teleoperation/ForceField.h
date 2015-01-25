@@ -56,42 +56,59 @@ class ForceField
 {
 public:
 
+<<<<<<< HEAD
 
 
+=======
+    // *********** PUb and SUb ***************** //
+>>>>>>> 62f88012a4af802c6f11cf9a9261bd8042aca9b7
     ros::Subscriber laser_sub;
     ros::Subscriber slave_pose_sub;
     ros::Publisher virtual_force_pub;
     ros::Publisher laser_pub;
     ros::Publisher visualization_markers_pub ;
+
+    // parameters, variables and msgs
     laser_geometry::LaserProjection projector_;
     tf::TransformListener listener_;
 
+
+    Eigen::Vector3d resulting_force;
+    Eigen::Vector3d pre_resulting_force;
+
+    geometry_msgs::PoseStamped msg ;
+    //Eigen::Vector3d preResultingForce;
+    // geometry_msgs::Point32 &  c_previous ;
     // params
     //  std::vector<Eigen::Vector3d> obstacles_positions_current;
     // std::vector<Eigen::Vector3d> obstacles_positions_previous;
-    Eigen::Vector3d resulting_force;
-    geometry_msgs::PoseStamped msg ;
-    //Eigen::Vector3d preResultingForce;
-   // geometry_msgs::Point32 &  c_previous ;
 
-    // constructor & destructor
+
+    //************** constructor & destructor ****************** //
     ForceField() {std::cout << "default parent constructor" << std::endl;}
     ~ForceField() {}
     ForceField(ros::NodeHandle & n_);
-    // functions
+
+    // ******************* Callback functions ************************* //
     void computeForceField(sensor_msgs::PointCloud & obstacles_positions_current) ;
+    void feedbackMaster() ;
+
+    // ************ helping functions ********************************** //
+    void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
     void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
     //    void pointCloudCallback(const sensor_msgs::PointCloud::ConstPtr& msg); // I may use this one
-    void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
-    void feedbackMaster() ;
+
+
     // ******************* viviualization ****************
     visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space);
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const geometry_msgs::Point32 & arrow_origin, int id, std::string name_space ) ;
+
     //********* PRF run test functions ************** //
     void runTestPrf(string namOftest);
+    String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
+
     void runTestSamplePrf(sensor_msgs::PointCloud &  array) ;
     void runTestObstacles(sensor_msgs::PointCloud &  array) ;
-    String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
     // ****** BRF run test functions ********************
     void runTestBrf(double gain) ;
     String testNameBRF(double gain ) ;
@@ -115,25 +132,12 @@ public:
         return robotVelocity ;
     }
 
-//    void setInitFlag(bool F){ init_flag = F ; }
-
-//    bool getInit_flag()
-//    {
-//        return init_flag ;
-//    }
-
 
 protected:
     ros::NodeHandle n;
     ros::NodeHandle n_priv;
     Eigen::Vector3d robotVelocity ;
-//    bool init_flag ;
-
-//double FFmag ; 
-//double maxFF ; 
-//double minFF ;
-
-
+    bool init_flag ;
 };
 
 #endif 

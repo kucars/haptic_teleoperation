@@ -30,11 +30,10 @@
 
 ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 {
-    //    init_flag = false;
+    init_flag = true;
     std::cout << "parent constructor" << std::endl;
     virtual_force_pub = n_.advertise<geometry_msgs::PoseStamped>("/virtual_force_feedback", 100);
     // virtual_force_pub = n_.advertise<geometry_msgs::Twist>("/Pioneer3AT/cmd_vel", 100); // GAZEBO
-
     laser_pub = n_.advertise<sensor_msgs::PointCloud>("pointCloudObs", 100);
     //laser_sub = n_.subscribe("/Pioneer3AT/laserscan" , 1, &ForceField::laserCallback, this);  // GAZEBO
     laser_sub = n_.subscribe("/scan",1, &ForceField::laserCallback, this);
@@ -176,6 +175,15 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
         std::cout << "zero force no obstacles " << std::endl ;
     }
 
+
+    if( init_flag)
+    {
+        std::cout << " RETURN &&&&&&&&&&&&&&&&&&&&&&&&&&" << std::endl ;
+        pre_resulting_force = resulting_force ;
+        init_flag = false ;
+        return ;
+
+    }
     double f = resulting_force.norm() ;
     std::cout << " resulting force magnitude  " << F << std::endl ;
     geometry_msgs::Point32 point; point.x = 0.0 ; point.y = 0.0 ; point.z =0.0;
@@ -484,8 +492,10 @@ void ForceField::runTestVirtualImpedance()
 
     for(int x=0;x<img.cols;x++)
     {
+        std::cout << " loop 1" << std::endl ;
         for(int y=0;y<img.rows;y++)
         {
+            std::cout << "loop2" << std::endl ;
             obstX = (x - img.cols/2.0)*laserResolution;
             obstY = (img.rows/2.0 - y)*laserResolution;
             currentPose.x = obstX;
@@ -493,7 +503,6 @@ void ForceField::runTestVirtualImpedance()
             currentPose.z = 0;
             f = this->getForcePoint(currentPose , getRobotVelocity());
             //            c_previous = currentPose ;
-
             double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
             //            double Fn = f.norm() ;
             //            if ( f.norm() >0.99 )
@@ -515,7 +524,7 @@ void ForceField::runTestVirtualImpedance()
     }
 
     std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
-    imwrite("testName Virtual Impedance.png", img);
+    imwrite("testName Virtual Impedance7.png", img);
     exit(1) ;
 }
 
@@ -540,10 +549,10 @@ void ForceField::runTestBrf(double gain)
     double minF = 1000000;
     for(int x=0;x<img.cols;x++)
     {
-   //     std::cout << " FOR LOOP ! " << std::endl ;
+        //     std::cout << " FOR LOOP ! " << std::endl ;
         for(int y=0;y<img.rows;y++)
         {
- //           std::cout << " FOR LOOP 2 " << std::endl ;
+            //           std::cout << " FOR LOOP 2 " << std::endl ;
 
             obstX = (x - img.cols/2.0)*laserResolution;
             obstY = (img.rows/2.0 - y)*laserResolution;
@@ -552,7 +561,7 @@ void ForceField::runTestBrf(double gain)
             currentPose.z = 0;
             f = this->getForcePoint(currentPose,getRobotVelocity() );
             double F = sqrt(f(0)*f(0) + f(1)*f(1) + f(2)*f(2));
-        //    std::cout << " F = " << F << std::endl;
+            //    std::cout << " F = " << F << std::endl;
             //            //            double Fn = f.norm() ;
             //            //            if ( f.norm() >0.99 )
             //            //            std::cout << "Fnorm:"<< Fn << "       F magn: " << F << std::endl;
