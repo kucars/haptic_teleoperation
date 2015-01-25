@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   gazebo_msgs
   geometry_msgs
-  cmake_modules
+  #cmake_modules
  )
 
 ## System dependencies are found with CMake's conventions
@@ -125,6 +125,13 @@ target_link_libraries(Brf
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
    ${OpenCV_LIBRARIES}
+)
+
+add_executable(move_robot src/move_husky.cpp)
+add_dependencies(move_robot ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(move_robot
+ ${catkin_LIBRARIES}
+ ${Boost_LIBRARIES}
 )
 
 catkin_add_gtest(utest src/ForceFieldTests.cpp)

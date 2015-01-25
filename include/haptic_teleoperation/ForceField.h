@@ -56,6 +56,8 @@ class ForceField
 {
 public:
 
+
+
     ros::Subscriber laser_sub;
     ros::Subscriber slave_pose_sub;
     ros::Publisher virtual_force_pub;

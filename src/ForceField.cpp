@@ -39,7 +39,9 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
     //laser_sub = n_.subscribe("/Pioneer3AT/laserscan" , 1, &ForceField::laserCallback, this);  // GAZEBO
     laser_sub = n_.subscribe("/scan",1, &ForceField::laserCallback, this);
     std::cout << "reading /scan" << std::endl;
-    slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
+    slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this );
+
+  //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
     // slave_pose_sub = n_.subscribe("/Pioneer3AT/pose" , 100 , &ForceField::poseCallback, this ); // GAZEBO
     visualization_markers_pub = n_.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
     std::cout << "build" << std::endl;
@@ -125,37 +127,40 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
     resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
     std::vector<Eigen::Vector3d> force_field;
     unsigned int aux_it = obstacles_positions_current.points.size();
-    // std::cout << "aux1" << aux_it <<  std::endl ;
+     std::cout << "aux1" << aux_it <<  std::endl ;
 
     if (aux_it != 0 )
     {
+        std::cout << "laser data" <<   std::endl ;
+
         for(int i=0; i<aux_it; ++i)
         {
 
             Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current.points[i], getRobotVelocity()) ;
             force_field.push_back(f);
             resulting_force+=force_field[i];
-            F = sqrt(force_field[i](0)*force_field[i](0) + force_field[i](1)*force_field[i](1) + force_field[i](2)*force_field[i](2));
-                    std::cout << "F  " << F <<  std::endl ;
+
+//            F = sqrt(force_field[i](0)*force_field[i](0) + force_field[i](1)*force_field[i](1) + force_field[i](2)*force_field[i](2));
+//                    std::cout << "F  " << F <<  std::endl ;
 
 
 
-            if(F>maxFF)
-            {
-                maxIndex = i ;
-                maxFF = F;
+//            if(F>maxFF)
+//            {
+//                maxIndex = i ;
+//                maxFF = F;
 
-            }        if(F<minFF)
-            {
-                minIndex = i ;
-                minFF = F;
+//            }        if(F<minFF)
+//            {
+//                minIndex = i ;
+//                minFF = F;
 
-            }
+//            }
         }
 
 
-        resulting_force = (force_field[maxIndex] + force_field[minIndex])/ 2;
-        //  resulting_force = resulting_force/aux_it ;
+       // resulting_force = (force_field[maxIndex] + force_field[minIndex])/ 2;
+         resulting_force = resulting_force/aux_it ;
 
 
         // taking the avarage..
@@ -178,6 +183,7 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
     visualization_msgs::Marker marker=rviz_arrow(resulting_force, point, 0, std::string("resulting_risk_vector"));
     marker_array.markers.push_back(marker);
     visualization_markers_pub.publish(marker_array);
+
 }
 
 void ForceField::feedbackMaster()

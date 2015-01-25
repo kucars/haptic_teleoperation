@@ -20,13 +20,13 @@ int main(int argc, char **argv)
     //**************** real time experiment ******************** //
     std::cout<<"Main"<<"\n";
 
-        Eigen::Vector3d robotVel ;
-        robotVel(0) = 0 ;
-        robotVel(1) = 0 ;
-        robotVel(2) = 0 ;
+//        Eigen::Vector3d robotVel ;
+//        robotVel(0) = 0 ;
+//        robotVel(1) = 0 ;
+//        robotVel(2) = 0 ;
         VirtualImpedanceForce obj(n);
         //obj.setInitFlag(false);
-        obj.runTestVirtualImpedance() ;
+      //  obj.runTestVirtualImpedance() ;
     // ******************* End **********************************//
 
 
