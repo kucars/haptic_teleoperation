@@ -56,12 +56,10 @@ class ForceField
 {
 public:
 
-<<<<<<< HEAD
 
 
-=======
     // *********** PUb and SUb ***************** //
->>>>>>> 62f88012a4af802c6f11cf9a9261bd8042aca9b7
+
     ros::Subscriber laser_sub;
     ros::Subscriber slave_pose_sub;
     ros::Publisher virtual_force_pub;

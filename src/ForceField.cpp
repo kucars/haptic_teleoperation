@@ -523,7 +523,7 @@ void ForceField::runTestVirtualImpedance()
         }
     }
 
-    std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
+  //  std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
     imwrite("testName Virtual Impedance7.png", img);
     exit(1) ;
 }

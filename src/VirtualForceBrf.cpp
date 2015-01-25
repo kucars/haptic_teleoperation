@@ -21,6 +21,7 @@ Eigen::Vector3d VirtualForceBrf::getForcePoint (geometry_msgs::Point32 & c_curre
     obsVector(2) = 0 ;
 
     double obsMag = sqrt(pow(c_current.x, 2) + pow(c_current.y , 2) + pow(c_current.z , 2)) ;
+
     Eigen::Vector3d obsVecNorm = obsVector / obsMag ;
 
 

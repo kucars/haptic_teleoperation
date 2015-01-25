@@ -118,9 +118,9 @@ target_link_libraries(virtulaImpedance
    ${OpenCV_LIBRARIES}
 )
 
-add_executable(Brf src/nodeBrf.cpp src/VirtualForceBrf.cpp src/ForceField.cpp)
-add_dependencies(Brf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(Brf
+add_executable(brf src/nodeBrf.cpp src/VirtualForceBrf.cpp src/ForceField.cpp)
+add_dependencies(brf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(brf
   #ForceField
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
