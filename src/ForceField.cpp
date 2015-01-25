@@ -525,7 +525,7 @@ void ForceField::runTestVirtualImpedance()
 // ***************************************** End VI *******************************************
 
 // ********************* BRF run test functions ***************************************
-void ForceField::runTestBrf(double gain)
+void ForceField::runTestBrf(string nameOfTest)
 {
     //std::cout << "runTestBrf" << std::endl ;
 
@@ -575,15 +575,15 @@ void ForceField::runTestBrf(double gain)
         }
     }
     std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
-    imwrite(testNameBRF(gain), img);
+    imwrite(nameOfTest, img);
 }
 
-String ForceField::testNameBRF(double gain )
+String ForceField::testNameBRF(double gain , double j )
 {
 
     std::string result ;
     std::stringstream sstm;
-    sstm << "Gain "   << gain   << " Image.png";
+    sstm << "velocity" << j<< "  Gain "   << gain<< " Image.png";
     result = sstm.str();
     return result ;
 

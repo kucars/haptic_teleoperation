@@ -105,8 +105,8 @@ public:
     void runTestSamplePrf(sensor_msgs::PointCloud &  array) ;
     void runTestObstacles(sensor_msgs::PointCloud &  array) ;
     // ****** BRF run test functions ********************
-    void runTestBrf(double gain) ;
-    String testNameBRF(double gain ) ;
+    void runTestBrf(string namOftest) ;
+    String testNameBRF(double gain, double x ) ;
     // ******* Virtual Impedance ********************
     void runTestVirtualImpedance() ;
 
