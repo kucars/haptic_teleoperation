@@ -345,7 +345,7 @@ void ForceField::runTestPrf(std::string testName)
             image.at<cv::Vec3b>(cv::Point(x,y)) = color;
         }
     }
-    std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
+    std::cout<<"PRF : Max f is:"<<maxF<<" min f:"<<minF<<"\n";
     imwrite(testName, img);
 }
 void ForceField::runTestSamplePrf(sensor_msgs::PointCloud &  array)
