@@ -53,6 +53,7 @@ class Controller
 		ros::Subscriber force_feedback_sub ; 
 		ros::Publisher haptic_pub ;
 		ros::Subscriber navedata;
+
 		//ros::Subscriber velocity_cmd_sub;	
 	       // ros::Publisher velocity_cmd_pub;	
 		// params

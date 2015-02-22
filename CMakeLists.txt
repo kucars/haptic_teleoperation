@@ -7,6 +7,7 @@ project(haptic_teleoperation)
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
+  rospy
   sensor_msgs
   visualization_msgs
   tf
@@ -18,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   ardrone_autonomy
   geometry_msgs
 
-cmake_modules
+#cmake_modules
  )
 
 ## System dependencies are found with CMake's conventions
@@ -26,6 +27,8 @@ find_package(Boost REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(fcl REQUIRED)
+find_package(octmap REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/PIDController.cfg
@@ -95,7 +98,9 @@ generate_dynamic_reconfigure_options(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
-   geometry_msgs  sensor_msgs nav_msgs visualization_msgs ardrone_autonomy
+   geometry_msgs  sensor_msgs nav_msgs visualization_msgs ardrone_autonomy 
+   DEPENDS eigen 
+   PCL
 )
 
 ###################################
@@ -127,6 +132,8 @@ include_directories(include
   ${Boost_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${FCL_INCLUDE_DIRS}
+  ${OCTOMAP_INCLUDE_DIRS}
 )
 
 
@@ -136,6 +143,7 @@ add_library(controller
    src/MasterController.cpp
    src/SlaveController.cpp
    src/ForceField.cpp
+   src/CollisionDetection.cpp
 )
 
 
@@ -234,12 +242,16 @@ target_link_libraries(brf
 #)
 
 
-add_executable(controller_ros src/ControllerRos.cpp)
+add_executable(controller_ros src/ControllerRos.cpp src/Controller.cpp src/SlaveController.cpp src/MasterController.cpp src/CollisionDetection.cpp)
 add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
 target_link_libraries(controller_ros
    controller
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
+   ${FCL_LIBRARIES}
+   ${OCTOMAP_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+
 )
 
 add_executable(ModelState src/ModelState.cpp)

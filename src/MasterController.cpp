@@ -67,7 +67,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     slave_sub = n_.subscribe("/ground_truth/state", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
     // subscribe for the environmental force from the potential fieldFp
-    force_feedback_sub  = n_.subscribe("pf_force_feedback" , 1, &MasterController::getforce_feedback   , this);
+    force_feedback_sub  = n_.subscribe("/virtual_force_feedback" , 1, &MasterController::getforce_feedback   , this);
 
 
 }
@@ -345,11 +345,7 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
 
     haptic_position.header.stamp =  ros::Time::now();
     haptic_pub.publish(haptic_position);
-
-
     current_velocity_master=(current_pose_master-previous_pose_master)/period;
-
-
     haptic_position.pose.pose.position.x = -x_master + master_min(0,0)+master_max(0,0);
     haptic_position.pose.pose.position.y = -y_master + master_min(1,0)+master_max(1,0);
     haptic_position.pose.pose.position.z = z_master  ;
@@ -488,7 +484,11 @@ void MasterController::feedback()
 //    }
 
     // mapping the force to the joints
-    force_msg.force.x=0.1*feedback_matrix(1,1);
+//    force_msg.force.x=0.1*feedback_matrix(1,1);
+//    force_msg.force.y=feedback_matrix(2,2); // sign problem again
+//    force_msg.force.z=feedback_matrix(0,0);
+
+    force_msg.force.x=feedback_matrix(1,1);
     force_msg.force.y=feedback_matrix(2,2); // sign problem again
     force_msg.force.z=feedback_matrix(0,0);
 
