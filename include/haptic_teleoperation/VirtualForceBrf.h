@@ -12,7 +12,7 @@ public:
     VirtualForceBrf(ros::NodeHandle & n_);
     VirtualForceBrf() {std::cout << "default child constructor" << std::endl ; }
     ~VirtualForceBrf(){}
-    Eigen::Vector3d getForcePoint(Eigen::Vector3d & c_current , Eigen::Vector3d & robot_vel) ;
+    Eigen::Vector3d getForcePoint(geometry_msgs::Point32 & c_current, Eigen::Vector3d robot_velocity) ;
     void setGain(double gain);
     double getGain();
 private: 
