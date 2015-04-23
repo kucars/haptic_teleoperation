@@ -170,6 +170,12 @@ target_link_libraries(createOctmap
    ${PCL_LIBRARIES}
 )
 
+#add_executable(autopilot_interface src/autopilot_interface.cpp)
+#add_dependencies(autopilot_interface ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(autopilot_interface
+# ${catkin_LIBRARIES}
+# ${Boost_LIBRARIES}
+#)
 
 #add_executable(move_robot src/move_husky.cpp)
 #add_dependencies(move_robot ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
@@ -177,6 +183,11 @@ target_link_libraries(createOctmap
 # ${catkin_LIBRARIES}
 # ${Boost_LIBRARIES}
 #)
+
+add_executable(robot_teleop src/robotteleop_keyboard.cpp)
+target_link_libraries(robot_teleop ${catkin_LIBRARIES})
+
+
 
 catkin_add_gtest(utest src/ForceFieldTests.cpp)
 
