@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   rospy
   roscpp
+  rospy
   sensor_msgs
   visualization_msgs
   tf
@@ -25,7 +26,12 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   gazebo_msgs
   geometry_msgs
+<<<<<<< HEAD
+
+#cmake_modules
+=======
   cmake_modules
+>>>>>>> d33431b537e77cea47f8f47db788ff104401d318
  )
 
 
@@ -39,9 +45,13 @@ find_package(Eigen REQUIRED)
 find_package(PCL REQUIRED COMPONENTS )
 find_package(OpenCV REQUIRED)
 find_package(fcl REQUIRED)
+<<<<<<< HEAD
+find_package(octmap REQUIRED)
+=======
 find_package(octomap REQUIRED)
 
 
+>>>>>>> d33431b537e77cea47f8f47db788ff104401d318
 
 generate_dynamic_reconfigure_options(
  # cfg/PIDController.cfg
@@ -81,7 +91,13 @@ add_service_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
+<<<<<<< HEAD
+   geometry_msgs  sensor_msgs nav_msgs visualization_msgs ardrone_autonomy 
+   DEPENDS eigen 
+   PCL
+=======
    geometry_msgs  sensor_msgs nav_msgs visualization_msgs #ardrone_autonomy
+>>>>>>> d33431b537e77cea47f8f47db788ff104401d318
 )
 
 
@@ -118,6 +134,7 @@ add_library(
    #src/MasterController.cpp
    #src/SlaveController.cpp
    src/ForceField.cpp
+   src/CollisionDetection.cpp
 )
 
 
@@ -158,6 +175,18 @@ target_link_libraries(brf
 #)
 
 
+<<<<<<< HEAD
+add_executable(controller_ros src/ControllerRos.cpp src/Controller.cpp src/SlaveController.cpp src/MasterController.cpp src/CollisionDetection.cpp)
+add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
+target_link_libraries(controller_ros
+   controller
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${FCL_LIBRARIES}
+   ${OCTOMAP_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+
+=======
 add_executable(createOctmap src/createOctmap.cpp)
 add_dependencies(createOctmap ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(createOctmap
@@ -168,6 +197,7 @@ target_link_libraries(createOctmap
    ${OCTOMAP_LIBRARIES}
    ${PCL_INCLUDE_DIRS}
    ${PCL_LIBRARIES}
+>>>>>>> d33431b537e77cea47f8f47db788ff104401d318
 )
 
 #add_executable(autopilot_interface src/autopilot_interface.cpp)

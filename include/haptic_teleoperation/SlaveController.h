@@ -47,14 +47,20 @@ class SlaveController : public Controller
 		  Eigen::Matrix<double,6,1> slave_velocity_max_);
 
 		void paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level);
+        void setfeedbackForce(Eigen::Vector3d &f) ;
+        double getfeedbackForceNorm(){
+            return feedbackForce.norm();
+        }
 
 	private:
 		// MASTER MEASUREMENTS
 		void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
+        void feedbackFocreCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
 		// SLAVE MEASUREMENTS
 		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
-    		void get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg);
+        void get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg);
+        bool geoFence(double timeSample ,  Eigen::Matrix<double,6,1>  currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry, double fn) ;
 
 		void feedback();
 
@@ -65,6 +71,8 @@ class SlaveController : public Controller
 
 		Eigen::Matrix<double,6,1> master_to_slave_scale;
 		Eigen::Matrix<double,6,1> master_pose_slave_velocity_scale;
+        Eigen::Vector3d feedbackForce;
+
 
 };
 #endif

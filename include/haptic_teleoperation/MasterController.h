@@ -54,7 +54,7 @@ class MasterController : public Controller
 		void getforce_feedback  (const  geometry_msgs::PoseStamped::ConstPtr     & force);    
 
 		// MASTER MEASUREMENTS
-        	void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
+        void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
 
 		// SLAVE MEASUREMENTS
 		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);

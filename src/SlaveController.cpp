@@ -46,7 +46,7 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     master_pose_slave_velocity_scale(master_pose_slave_velocity_scale_),
     Controller(n_,freq_, Kp_, Kd_, Bd_,Fp_, lambda_, master_min_, master_max_, slave_min_, slave_max_, slave_velocity_min_, slave_velocity_max_)
 {
-    std::cout << " Initilization" << std::endl ;
+    //   std::cout << " Initilization" << std::endl ;
     initParams();
     //slave_callback_type = boost::bind(&SlaveController::paramsCallback, this, _1, _2);
     //slave_server.setCallback(slave_callback_type);
@@ -57,6 +57,8 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     // Master joint states subscriber
     master_sub = n.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveController::masterJointsCallback, this);
 
+    force_feedback_sub = n.subscribe<geometry_msgs::PoseStamped>("/virtual_force_feedback", 1, &SlaveController::feedbackFocreCallback, this);
+
     // Slave pose and velocity subscriber
     slave_sub = n.subscribe("/ground_truth/state", 1, &SlaveController::slaveOdometryCallback, this);
 
@@ -66,6 +68,14 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
 
 }
 
+void SlaveController::setfeedbackForce(Eigen::Vector3d  &f)
+
+{
+
+    feedbackForce(0) = f(0) ;
+    feedbackForce(1) = f(1) ;
+    feedbackForce(2) = f(2) ;
+}
 
 //void SlaveController::getforce_feedback(const geometry_msgs::PoseStamped::ConstPtr & force)
 //{
@@ -209,6 +219,8 @@ void SlaveController::initParams()
 //    std::cout << "Baterry: " << battery_per << std::endl;
 
 //}
+
+
 void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level)
 {
     ROS_INFO_STREAM("Slave PID reconfigure Request ->"  << " kp_x:" << config.kp_x
@@ -249,11 +261,24 @@ void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig
 
 
 
+void SlaveController::feedbackFocreCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    double x = msg->pose.position.x ;
+    double y = msg->pose.position.y ;
+    double z = msg->pose.position.z ;
+    //std::cout << "X: " << x << "  Y:  " << y  << "   Z:  " << z << std::endl ;
+    Eigen::Vector3d f(x,y,z) ;
+
+    setfeedbackForce(f) ;
+    //feedbackForce =  Eigen::Vector3d(msg->pose.position.x,msg->pose.position.y ,msg->pose.position.z) ;
+
+}
+
 
 // MASTER MEASUREMENTS
 void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states)
 {
-    std::cout << "getting joint data " << std::endl;
+    //   std::cout << "getting joint data " << std::endl;
     double x_master=(master_max(0,0)-master_min(0,0))/2.0+master_min(0,0);
     double y_master=(master_max(1,0)-master_min(1,0))/2.0+master_min(1,0);
     double z_master=(master_max(2,0)-master_min(2,0))/2.0+master_min(2,0);
@@ -343,7 +368,7 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     // x_m, y_m, z_m maps to velocities in slave side
     current_pose_master_scaled(0,0)=(current_pose_master(0,0)-master_min(0,0))*master_pose_slave_velocity_scale(0,0)+slave_velocity_min(0,0);
 
-    std::cout << "current_pose_master_scaled x " << current_pose_master_scaled(0,0) ;
+    // std::cout << "current_pose_master_scaled x " << current_pose_master_scaled(0,0) ;
 
     current_pose_master_scaled(1,0)=(current_pose_master(1,0)-master_min(1,0))*master_pose_slave_velocity_scale(1,0)+slave_velocity_min(1,0);
     current_pose_master_scaled(2,0)=(current_pose_master(2,0)-master_min(2,0))*master_pose_slave_velocity_scale(2,0)+slave_velocity_min(2,0);
@@ -355,7 +380,7 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
 
     // Velocity master
     current_velocity_master_scaled=(current_pose_master_scaled-previous_pose_master_scaled)/period;
-    std::cout << "current_velocity_master_scaled  " << current_velocity_master_scaled ;
+    // std::cout << "current_velocity_master_scaled  " << current_velocity_master_scaled ;
 
     master_new_readings=true;
     feedback();
@@ -379,14 +404,15 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
 
     if(!init_slave_readings)
     {
+
         previous_pose_slave << msg->pose.pose.position.x,
                 msg->pose.pose.position.y,
                 msg->pose.pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw; // should be relative
-        //std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
-
+        //  std::cout << "previous_pose_slave:" << previous_pose_slave(5,0) << " yaw:" << yaw << std::endl;
+        // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
         yaw_slave_previous=yaw;
         init_slave_readings=true;
         return;
@@ -400,8 +426,22 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
                 msg->pose.pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
-                yaw-yaw_slave_previous; // should be relative
-        //std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
+                yaw_slave_previous; // should be relative
+        //      std::cout << "current_pose_slave:" << current_pose_slave(5,0) << " yaw_slave_previous:" << yaw_slave_previous << std::endl;
+
+        //        std::cout << current_pose_slave(0,0) << std::endl ;
+        //        std::cout << current_pose_slave(1,0) << std::endl ;
+        //        std::cout << current_pose_slave(2,0) << std::endl ;
+        //        std::cout << current_pose_slave(3,0) << std::endl ;
+        //        std::cout << current_pose_slave(4,0) << std::endl ;
+        //        std::cout << current_pose_slave(5,0) << std::endl ;
+
+
+        //    double test = current_pose_slave(5,0) ;
+        //        std::cout << "yaw:" << yaw << "                  yaw previous:" << yaw_slave_previous << std::endl;
+        //        std::cout << "current_pose_slave:" << test  << "                 previous_pose_slave previous:" << previous_pose_slave(5,0) << std::endl;
+        //        std::cout << "yaw TO DEG:" << yaw*RAD_TO_DEG  << "                  yaw previous TO DEG:" << yaw_slave_previous * RAD_TO_DEG << std::endl;
+        //        std::cout << "current_pose_slave TO DEG (((:" << current_pose_slave(5,0)*RAD_TO_DEG  << "             previous_pose_slave previous TO DEG )))):" << previous_pose_slave(5,0) * RAD_TO_DEG << std::endl;
 
         yaw_slave_previous=yaw;
     }
@@ -422,10 +462,14 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
 
 void SlaveController::feedback()
 {
+    std::cout << " FEED BACK MASTER FUNCTION" << std::endl ;
+    std::cout << "Force normalized " << getfeedbackForceNorm() << std::endl ;
+
     geometry_msgs::Twist twist_msg;
 
     if (control_event) //  && force_stop(0,0) > -1.0 && !lastPositionUpdate) &&  (battery_per > 30) //
     {
+
 
         //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
@@ -438,60 +482,72 @@ void SlaveController::feedback()
         Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
 
 
-        // sending command velocities
-        twist_msg.linear.x=feeback_matrix(0,0);
-        twist_msg.linear.y=feeback_matrix(1,1);
-        //if ( current_pose_slave (2,0) < 1.8 )
-        twist_msg.linear.z=feeback_matrix(2,2);
-        twist_msg.angular.z=feeback_matrix(5,5);
-        master_new_readings=false;
-        slave_new_readings=false;
+        double timeSample = 1 ; //0.05;
 
+        double xBoundry = 1.8  - 0.36 ;
+        double yBoundry = 1.8  - 0.36 ;
+        //double forceNorm =sqrt(pow(feedbackForce(0,0),2) + pow(feedbackForce(0,1),2) + pow(feedbackForce(0,2),2)) ;
+        if(geoFence(timeSample,current_pose_slave,feeback_matrix ,xBoundry , yBoundry, feedbackForce.norm() ) )
+        {
+            //            twist_msg.linear.x=feeback_matrix(0,0);
+            //            twist_msg.linear.y=feeback_matrix(1,1);
+            //            twist_msg.linear.z=feeback_matrix(2,2);
+            //            twist_msg.angular.z=feeback_matrix(5,5);
+            //            master_new_readings=false;
+            //            slave_new_readings=false;
+
+            std::cout << "OUSDIE ###################3"  << std:: endl ;
+            twist_msg.linear.x=0.0;
+            twist_msg.linear.y=0.0;
+            twist_msg.linear.z=0.0;
+            twist_msg.angular.z=feeback_matrix(5,5);
+            master_new_readings=false;
+            slave_new_readings=false;
+        }
+        else
+        {
+            std::cout << "INSIDE ********************" << std:: endl ;
+            twist_msg.linear.x=feeback_matrix(0,0) + feedbackForce(0);
+            twist_msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
+            twist_msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
+            twist_msg.angular.z=feeback_matrix(5,5);
+            master_new_readings=false;
+            slave_new_readings=false;
+        }
     }
-
-    //    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) > 0.15 )//&& current_pose_master(0,0) > 0.0 //
-    //    {
-    //        std::cout << "IF  else 1" <<  std::endl ;
-
-    //        std::cout << "force_stop(1,0) in else" << force_stop(0,0) << std::endl ;
-    //        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
-    //        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
-    //        twist_msg.linear.x=0.0;
-    //        twist_msg.linear.y=0.0;
-    //        twist_msg.linear.z=0.0;
-    //        master_new_readings=false;
-    //        slave_new_readings=false;
-
-    //    }
-    //    else if (control_event && force_stop(0,0) < -1.0 && current_pose_master(0,0) < 0.15 )
-    //{
-    //        std::cout << "IF  else 2" <<  std::endl ;
-
-
-    //        std::cout << "current_pose_master(0,0)" <<current_pose_master(0,0) << std::endl ;
-    //        std::cout << "current_pose_master(1,0)" <<current_pose_master(1,0) << std::endl ;
-
-    //        Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
-    //        Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
-
-
-
-    //        twist_msg.linear.x=2*feeback_matrix(0,0);
-    //        twist_msg.linear.y=2*feeback_matrix(1,1);
-    //        twist_msg.linear.z=2*feeback_matrix(2,2);
-    //        twist_msg.angular.z=2*feeback_matrix(5,5);
-
-    //        master_new_readings=false;
-    //        slave_new_readings=false;
-    //    }
-    //    else
-    //    {
-    //        std::cout << "JUST ELSE" <<  std::endl ;
-    //    }
-
-
     cmd_pub.publish(twist_msg);
-    std::cout << "publish succes: " << std::endl;
+
 
 
 }
+
+bool SlaveController::geoFence(double timeSample ,  Eigen::Matrix<double,6,1>  currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry , double forceNorm)
+{
+
+    double theta = currentPose(5,0) ;
+    double x =  currentPose(0,0) ;
+    double y =  currentPose(1,0) ;
+    double speedInx = desiredVelocity(0,0) ; // * sin(theta) ;
+    double speedIny = desiredVelocity(1,1) ; //* cos(theta);
+    std::cout << "speedInx" << speedInx << std::endl ;
+    std::cout << "Pose in x" << x << "    Pose in y " << y << std::endl ;
+    //std::cout << "haptic in x" <<current_pose_master(0,0) << "    haptic in y " << current_pose_master(1,0) << std::endl ;
+
+   //double timestamp = 1 ; //0.05;
+    std::cout << "theta " << theta << std::endl ;
+     std::cout << "COS theta " << cos(theta) << std::endl ;
+    std::cout << "SIN theta " << sin(theta) << std::endl ;
+
+    std::cout << "x+speedInx*timestamp" << current_pose_slave(0,0)+speedInx*sin(theta)*timeSample << std::endl ;
+    std::cout << "x+speedInx*timestamp" << current_pose_slave(1,0)+speedInx*cos(theta)*timeSample << std::endl ;
+    double xPrime = speedInx*cos(theta)*timeSample ;
+    double yPrime = speedInx*sin(theta)*timeSample ;
+   // double forceNorm = feedbackForce.normalized() ;
+    if( (x+xPrime > xBoundry) || (x+xPrime < -xBoundry) ||   ( y+yPrime>yBoundry) || (y+yPrime < -yBoundry ))//  || forceNorm>= 0.4 )
+        return true  ;
+    else
+        return false ;
+
+}
+
+// 0.4 meter
