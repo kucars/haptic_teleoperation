@@ -5,6 +5,8 @@
 #include "tf/message_filter.h"
 #include "message_filters/subscriber.h"
 #include "laser_geometry/laser_geometry.h"
+#include "geometry_msgs/PoseStamped.h"
+
 #include <octomap_msgs/Octomap.h>
 #include <octomap/ColorOcTree.h>
 #include <octomap/octomap.h>
@@ -105,7 +107,9 @@ public:
     {
 
         laser_sub = n_.subscribe("/scan",1, &LaserScanToPointCloud::laserCallback, this);
-        slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
+
+ //       slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
+        slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
 
         //laser_pub = n_.advertise<sensor_msgs::PointCloud2>("pointCloudObs", 10);
         vis_pub = n_.advertise<visualization_msgs::Marker>("Sphere", 1);
@@ -123,17 +127,19 @@ public:
         double t1 = ros::Time::now().toSec() ;
         //std::cout<<"LASER" << scan_in->header.frame_id << std::endl ;
         if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                       "base_link",
+                                       //"base_link",
+                                       "/uav/base_link_ENU",
                                        // "Pioneer3AT/base_link",  // GAZEBO
                                        //ros::Time::now(),
                                        scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                                       ros::Duration(3.0))){
+                                       ros::Duration(3.0)))
+        {
             std::cout << "RETURN" << std::endl ;
             return;
         }
         sensor_msgs::PointCloud msg;
         //projector_.projectLaser(*scan_in, msg);
-        projector_.transformLaserScanToPointCloud("base_link",*scan_in, msg,listener_);
+        projector_.transformLaserScanToPointCloud("/uav/base_link_ENU",*scan_in, msg,listener_);
         // std::cout << "cloud_size" << msg.points.size() << std::endl;
         // std::cout << "cloud_0" << msg.points[0].x << std::endl;
 
@@ -144,7 +150,7 @@ public:
         octomap::Pointcloud st_cld;
         // visualization_msgs::MarkerArray marker_array ; // = rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
         for(int i = 0;i<msg.points.size();i++){
-            if((msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z + msg.points[i].z) < 2 )
+            if((msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z + msg.points[i].z) < 3 && (msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z + msg.points[i].z) > 0.2 )
             {
                 octomap::point3d endpoint((float) msg.points[i].x,(float) msg.points[i].y,(float) msg.points[i].z);
                 //  visualization_msgs::Marker marker =  rviz_arrow(endpoint,i ,"tree");
@@ -167,6 +173,7 @@ public:
         octomap.resolution =0.1;
         octomap.header.frame_id = "/map";
         octomap.header.stamp = ros::Time::now();
+
         bool res = octomap_msgs::fullMapToMsg(*st_tree, octomap);
         octmap_pub.publish(octomap) ;
 
@@ -219,7 +226,7 @@ public:
             if (result.isCollision() == true )
             {
 
-                std::cout << "EXIT " << std::endl ;
+                std::cout << "inCollision " << std::endl ;
                 // exit(0) ;
                 collide_flag.data = true ;
                 collide_F_pub.publish(collide_flag) ;
@@ -235,19 +242,29 @@ public:
         for(size_t i = 0; i < boxes.size(); ++i)
             delete boxes[i];
         double t2 = ros::Time::now().toSec();
-        std::cout << "Operation TIme is " << t2 - t1 << std::endl ;
+        //std::cout << "Operation Time is " << t2 - t1 << std::endl ;
 
     }
-    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_pose)
+    void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_pose)
+
+//    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_pose)
     {
         // std::cout << "get robot data " << std::endl ;
-        robotpose(0) =  robot_pose->pose.pose.position.x ;
-        robotpose(1) =  robot_pose->pose.pose.position.y  ;
-        robotpose(2) =  robot_pose->pose.pose.position.z ;
-        poseQ[0] = robot_pose->pose.pose.orientation.x;
-        poseQ[1] = robot_pose->pose.pose.orientation.y;
-        poseQ[2] = robot_pose->pose.pose.orientation.z;
-        poseQ[3] = robot_pose->pose.pose.orientation.w;
+        robotpose(0) =  robot_pose->pose.position.x ;
+        robotpose(1) =  robot_pose->pose.position.y  ;
+        robotpose(2) =  robot_pose->pose.position.z ;
+        poseQ[0] = robot_pose->pose.orientation.x;
+        poseQ[1] = robot_pose->pose.orientation.y;
+        poseQ[2] = robot_pose->pose.orientation.z;
+        poseQ[3] = robot_pose->pose.orientation.w;
+
+//        robotpose(0) =  robot_pose->pose.pose.position.x ;
+//        robotpose(1) =  robot_pose->pose.pose.position.y  ;
+//        robotpose(2) =  robot_pose->pose.pose.position.z ;
+//        poseQ[0] = robot_pose->pose.pose.orientation.x;
+//        poseQ[1] = robot_pose->pose.pose.orientation.y;
+//        poseQ[2] = robot_pose->pose.pose.orientation.z;
+//        poseQ[3] = robot_pose->pose.pose.orientation.w;
     }
 
 
@@ -276,26 +293,27 @@ public:
     void drawSphere(Vec3f vec )
     {
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "odom";
+        //marker.header.frame_id = "odom";
+        marker.header.frame_id = "uav/base_link_ENU";
         marker.header.stamp = ros::Time();
         marker.ns = "my_namespace";
         marker.id = 0;
         // if(shape == "Sphere")
-        //   marker.type = visualization_msgs::Marker::SPHERE;
+           marker.type = visualization_msgs::Marker::SPHERE;
         // if(shape == "Cube")
-        marker.type = visualization_msgs::Marker::CUBE;
+        //marker.type = visualization_msgs::Marker::CUBE;
 
         marker.action = visualization_msgs::Marker::ADD;
         marker.pose.position.x = vec[0];
         marker.pose.position.y = vec[1];
         marker.pose.position.z = vec[2];
-        marker.pose.orientation.x = 0;
-        marker.pose.orientation.y = 0;//poseQ[1];
-        marker.pose.orientation.z = 0;//poseQ[2];
-        marker.pose.orientation.w = 0;//poseQ[3];
-        marker.scale.x = 1;
-        marker.scale.y = 1.0;
-        marker.scale.z = 1.0;
+        marker.pose.orientation.x = poseQ[0];
+        marker.pose.orientation.y = poseQ[1];
+        marker.pose.orientation.z = poseQ[2];
+        marker.pose.orientation.w = poseQ[3];
+        marker.scale.x = 0.5;
+        marker.scale.y = 0.5;
+        marker.scale.z = 0.5;
         marker.color.a = 1.0;
         marker.color.r = 1.0;
         marker.color.g = 0.0;
@@ -309,7 +327,9 @@ public:
     visualization_msgs::Marker drawCUBE(Vec3f vec , int id )
     {
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "odom";
+//        marker.header.frame_id = "odom";
+        marker.header.frame_id = "uav/base_link_ENU";
+
         marker.header.stamp = ros::Time();
         marker.ns = "my_namespace";
         marker.id = id;
