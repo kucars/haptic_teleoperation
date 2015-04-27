@@ -108,7 +108,7 @@ public:
 
         laser_sub = n_.subscribe("/scan",1, &LaserScanToPointCloud::laserCallback, this);
 
- //       slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
+        //       slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
         slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
 
         //laser_pub = n_.advertise<sensor_msgs::PointCloud2>("pointCloudObs", 10);
@@ -127,21 +127,20 @@ public:
         double t1 = ros::Time::now().toSec() ;
         //std::cout<<"LASER" << scan_in->header.frame_id << std::endl ;
         if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                       //"base_link",
-                                       "/uav/base_link_ENU",
-                                       // "Pioneer3AT/base_link",  // GAZEBO
-                                       //ros::Time::now(),
+                                       "world",
+                                       //"/uav/baselink_ENU",
                                        scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                                       ros::Duration(3.0)))
+                                       ros::Duration(1.0)))
         {
             std::cout << "RETURN" << std::endl ;
             return;
         }
+
         sensor_msgs::PointCloud msg;
         //projector_.projectLaser(*scan_in, msg);
-        projector_.transformLaserScanToPointCloud("/uav/base_link_ENU",*scan_in, msg,listener_);
-        // std::cout << "cloud_size" << msg.points.size() << std::endl;
-        // std::cout << "cloud_0" << msg.points[0].x << std::endl;
+        //projector_.transformLaserScanToPointCloud("/uav/base_link_ENU",*scan_in, msg,listener_);
+
+        projector_.transformLaserScanToPointCloud("world",*scan_in, msg,listener_);
 
 
 
@@ -150,7 +149,7 @@ public:
         octomap::Pointcloud st_cld;
         // visualization_msgs::MarkerArray marker_array ; // = rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
         for(int i = 0;i<msg.points.size();i++){
-            if((msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z + msg.points[i].z) < 3 && (msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z + msg.points[i].z) > 0.2 )
+            if((msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z*msg.points[i].z) < 2 && (msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z * msg.points[i].z) > 0.5)
             {
                 octomap::point3d endpoint((float) msg.points[i].x,(float) msg.points[i].y,(float) msg.points[i].z);
                 //  visualization_msgs::Marker marker =  rviz_arrow(endpoint,i ,"tree");
@@ -215,8 +214,8 @@ public:
             AABB b = box->getAABB() ;
             Vec3f vec2 =  b.center();
 
-            visualization_msgs::Marker marker = drawCUBE(vec2, i) ;
-            marker_array.markers.push_back(marker);
+            visualization_msgs::Marker marker ; // = drawCUBE(vec2, i) ;
+           // marker_array.markers.push_back(marker);
             fcl::CollisionResult result;
             fcl::CollisionRequest request(num_max_contacts, enable_contact);
             fcl::collide(&co0, box, request, result);
@@ -226,6 +225,8 @@ public:
             if (result.isCollision() == true )
             {
 
+                marker = drawCUBE(vec2,i,2) ;
+                marker_array.markers.push_back(marker);
                 std::cout << "inCollision " << std::endl ;
                 // exit(0) ;
                 collide_flag.data = true ;
@@ -234,6 +235,8 @@ public:
             }
             else
             {
+                marker = drawCUBE(vec2, i, 1) ;
+                marker_array.markers.push_back(marker);
                 collide_flag.data = false ;
                 collide_F_pub.publish(collide_flag) ;
             }
@@ -247,7 +250,7 @@ public:
     }
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_pose)
 
-//    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_pose)
+    //    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_pose)
     {
         // std::cout << "get robot data " << std::endl ;
         robotpose(0) =  robot_pose->pose.position.x ;
@@ -258,13 +261,13 @@ public:
         poseQ[2] = robot_pose->pose.orientation.z;
         poseQ[3] = robot_pose->pose.orientation.w;
 
-//        robotpose(0) =  robot_pose->pose.pose.position.x ;
-//        robotpose(1) =  robot_pose->pose.pose.position.y  ;
-//        robotpose(2) =  robot_pose->pose.pose.position.z ;
-//        poseQ[0] = robot_pose->pose.pose.orientation.x;
-//        poseQ[1] = robot_pose->pose.pose.orientation.y;
-//        poseQ[2] = robot_pose->pose.pose.orientation.z;
-//        poseQ[3] = robot_pose->pose.pose.orientation.w;
+        //        robotpose(0) =  robot_pose->pose.pose.position.x ;
+        //        robotpose(1) =  robot_pose->pose.pose.position.y  ;
+        //        robotpose(2) =  robot_pose->pose.pose.position.z ;
+        //        poseQ[0] = robot_pose->pose.pose.orientation.x;
+        //        poseQ[1] = robot_pose->pose.pose.orientation.y;
+        //        poseQ[2] = robot_pose->pose.pose.orientation.z;
+        //        poseQ[3] = robot_pose->pose.pose.orientation.w;
     }
 
 
@@ -294,12 +297,12 @@ public:
     {
         visualization_msgs::Marker marker;
         //marker.header.frame_id = "odom";
-        marker.header.frame_id = "uav/base_link_ENU";
+        marker.header.frame_id = "/uav/baselink_ENU";
         marker.header.stamp = ros::Time();
         marker.ns = "my_namespace";
         marker.id = 0;
         // if(shape == "Sphere")
-           marker.type = visualization_msgs::Marker::SPHERE;
+        marker.type = visualization_msgs::Marker::SPHERE;
         // if(shape == "Cube")
         //marker.type = visualization_msgs::Marker::CUBE;
 
@@ -324,11 +327,11 @@ public:
         vis_pub.publish( marker );
     }
 
-    visualization_msgs::Marker drawCUBE(Vec3f vec , int id )
+    visualization_msgs::Marker drawCUBE(Vec3f vec , int id , int c_color)
     {
         visualization_msgs::Marker marker;
-//        marker.header.frame_id = "odom";
-        marker.header.frame_id = "uav/base_link_ENU";
+        //        marker.header.frame_id = "odom";
+        marker.header.frame_id = "/world";
 
         marker.header.stamp = ros::Time();
         marker.ns = "my_namespace";
@@ -346,35 +349,46 @@ public:
         marker.pose.orientation.y = 0;//poseQ[1];
         marker.pose.orientation.z = 0;//poseQ[2];
         marker.pose.orientation.w = 0;//poseQ[3];
-        marker.scale.x = 0.1;
-        marker.scale.y = 0.1;
-        marker.scale.z = 0.1;
+
+        marker.scale.x = 0.05;
+        marker.scale.y = 0.05;
+        marker.scale.z = 0.05;
         marker.color.a = 1.0;
         marker.color.r = 0.0;
         marker.color.g = 0.0;
-        marker.color.b = 1.0;
-        marker.lifetime = ros::Duration();
-        //only if using a MESH_RESOURCE marker type:
-        //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
-        return marker ;
-    }
+        if(c_color == 1)
+        {
+            marker.color.r = 0.0;
+            marker.color.b = 1.0;
+        }
+        else
+        {
+            marker.color.r = 1.0;
+            marker.color.b = 0.0;
+        }
 
-};
+            marker.lifetime = ros::Duration();
+            //only if using a MESH_RESOURCE marker type:
+            //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
+            return marker ;
+        }
 
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "my_scan_to_cloud");
-    ros::NodeHandle n;
-    ros::NodeHandle n_priv("~");
-    double freq;
-    n_priv.param<double>("frequency", freq, 100.0);
-    ros::Rate loop_rate(freq);
-    LaserScanToPointCloud lstopc(n);
-    std::cout << "Object created" << std::endl ;
-    while(ros::ok())
+    };
+
+    int main(int argc, char** argv)
     {
-        ros::spinOnce();
-        loop_rate.sleep();
+        ros::init(argc, argv, "my_scan_to_cloud");
+        ros::NodeHandle n;
+        ros::NodeHandle n_priv("~");
+        double freq;
+        n_priv.param<double>("frequency", freq, 100.0);
+        ros::Rate loop_rate(freq);
+        LaserScanToPointCloud lstopc(n);
+        std::cout << "Object created" << std::endl ;
+        while(ros::ok())
+        {
+            ros::spinOnce();
+            loop_rate.sleep();
+        }
+        return 0;
     }
-    return 0;
-}
