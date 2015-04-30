@@ -176,23 +176,28 @@ void RobotTeleop::keyLoop()
     {
       case KEYCODE_L:
         ROS_DEBUG("LEFT");
-        linear_y = -0.1;
-	angular_z = 0.0; 
-
-        break;
+	angular_z = 0.0; 	
+        linear_x = 0.0;
+        linear_y = 0.1;
+	break;
       case KEYCODE_R:
         ROS_DEBUG("RIGHT");
-        linear_y = 0.1;
-      	angular_z = 0.0; 
-	break;
+        angular_z = 0.0;
+	linear_x = 0.0;
+        linear_y = -0.1;
+      	break;
       case KEYCODE_U:
         ROS_DEBUG("UP");
-        linear_x = -0.1;
+        linear_y = 0.0;
 	angular_z = 0.0; 
+	linear_x = 0.1;
         break;
       case KEYCODE_D:
         ROS_DEBUG("DOWN");
-        linear_x = 0.1;
+        linear_x = 0.0;
+	linear_y = 0.0;
+	angular_z = 0.1; 
+
         break;
       case KEYCODE_Q:
         ROS_DEBUG("Emergancy");
@@ -215,8 +220,16 @@ void RobotTeleop::keyLoop()
 void RobotTeleop::publish(double linear_y, double linear_x , double angular_z)  
 {
     geometry_msgs::TwistStamped vel;
-    vel.twist.linear.x = linear_x * cos(yaw) ;
-    vel.twist.linear.y = linear_y * sin (yaw);
+    
+    double r = sqrt((linear_x* linear_x) + (linear_y * linear_y)) ;
+    double theta = atan(linear_y / linear_x);
+    
+    
+    vel.twist.linear.x = r * cos(theta + yaw) ;
+    vel.twist.linear.y = r * sin (theta + yaw);
+    std::cout << "vel.twist.linear.x" << vel.twist.linear.x << std::endl ; 
+    std::cout << "vel.twist.linear.y" << vel.twist.linear.y<< std::endl ; 
+
     vel.twist.angular.z = angular_z;
 
     vel_pub_.publish(vel);    
