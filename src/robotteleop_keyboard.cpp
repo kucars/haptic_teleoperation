@@ -36,6 +36,10 @@
 #include <stdio.h>
 #include "boost/thread/mutex.hpp"
 #include "boost/thread/thread.hpp"
+#include <geometry_msgs/PoseStamped.h>
+#include <tf/transform_broadcaster.h>
+#include <Eigen/Eigen>
+
 
 #define KEYCODE_R 0x43 
 #define KEYCODE_L 0x44
@@ -54,12 +58,18 @@ private:
 
   
   ros::NodeHandle nh_,ph_;
-  double linear_x, linear_y;
+  double linear_x, linear_y, angular_z ; 
   ros::Time first_publish_;
   ros::Time last_publish_;
   double l_scale_, a_scale_;
   ros::Publisher vel_pub_;
-  void publish(double, double);
+  ros::Subscriber pose_sub_;
+  double robot_ox; 
+  double robot_oz; 
+  double robot_oy; 
+  void publish(double, double, double);
+  void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  double roll, pitch, yaw;
   boost::mutex publish_mutex_;
 
 };
@@ -68,14 +78,26 @@ RobotTeleop::RobotTeleop():
   ph_("~"),
   linear_x(0),
   linear_y(0),
+  angular_z(0),
   l_scale_(1.0),
   a_scale_(1.0)
 {
   ph_.param("scale_angular", a_scale_, a_scale_);
   ph_.param("scale_linear", l_scale_, l_scale_);
-
   vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped>("/cmd_vel_test", 1);
+  pose_sub_ = nh_.subscribe("/mavros/vision_pose/pose" ,1, &RobotTeleop::poseCallback, this );
+  
 }
+
+void RobotTeleop::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+  
+  tf::Transform transform;
+  tf::Quaternion q( msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z,msg->pose.orientation.w);
+  tf::Matrix3x3(q).getRPY(roll, pitch, yaw);  
+}
+
+
 
 int kfd = 0;
 struct termios cooked, raw;
@@ -115,7 +137,7 @@ void RobotTeleop::watchdog()
   boost::mutex::scoped_lock lock(publish_mutex_);
   if ((ros::Time::now() > last_publish_ + ros::Duration(10.0)) &&
       (ros::Time::now() > first_publish_ + ros::Duration(10.0)))
-    publish(0, 0);
+    publish(0, 0, 0);
 }
 
 void RobotTeleop::keyLoop()
@@ -154,24 +176,29 @@ void RobotTeleop::keyLoop()
     {
       case KEYCODE_L:
         ROS_DEBUG("LEFT");
-        linear_y = 0.1;
+        linear_y = -0.1;
+	angular_z = 0.0; 
+
         break;
       case KEYCODE_R:
         ROS_DEBUG("RIGHT");
-        linear_y = -0.1;
-        break;
+        linear_y = 0.1;
+      	angular_z = 0.0; 
+	break;
       case KEYCODE_U:
         ROS_DEBUG("UP");
-        linear_x = 0.1;
+        linear_x = -0.1;
+	angular_z = 0.0; 
         break;
       case KEYCODE_D:
         ROS_DEBUG("DOWN");
-        linear_x = -0.1;
+        linear_x = 0.1;
         break;
       case KEYCODE_Q:
         ROS_DEBUG("Emergancy");
         linear_x = 0.0;
         linear_y = 0.0;
+	angular_z = 0.0; 
         break;
     }
     boost::mutex::scoped_lock lock(publish_mutex_);
@@ -179,17 +206,19 @@ void RobotTeleop::keyLoop()
       first_publish_ = ros::Time::now();
     }
     last_publish_ = ros::Time::now();
-    publish(linear_y, linear_x);
+    publish(linear_y, linear_x, angular_z);
   }
 
   return;
 }
 
-void RobotTeleop::publish(double linear_y, double linear_x)  
+void RobotTeleop::publish(double linear_y, double linear_x , double angular_z)  
 {
     geometry_msgs::TwistStamped vel;
-    vel.twist.linear.x = linear_x ;
-    vel.twist.linear.y = linear_y;
+    vel.twist.linear.x = linear_x * cos(yaw) ;
+    vel.twist.linear.y = linear_y * sin (yaw);
+    vel.twist.angular.z = angular_z;
+
     vel_pub_.publish(vel);    
 
 

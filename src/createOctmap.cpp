@@ -124,7 +124,7 @@ public:
 
     void laserCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in)
     {
-        double t1 = ros::Time::now().toSec() ;
+        double tstart= ros::Time::now().toSec() ;
         //std::cout<<"LASER" << scan_in->header.frame_id << std::endl ;
         if(!listener_.waitForTransform(scan_in->header.frame_id,
                                        "world",
@@ -147,16 +147,31 @@ public:
         octomap::OcTree* st_tree = new octomap::OcTree(0.1);
         //     OcTree st_tree (0.01); // create empty tree with resolution 0.1
         octomap::Pointcloud st_cld;
-        // visualization_msgs::MarkerArray marker_array ; // = rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
+         double t01 = ros::Time::now().toSec();
+
+	// visualization_msgs::MarkerArray marker_array ; // = rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
         for(int i = 0;i<msg.points.size();i++){
-            if((msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z*msg.points[i].z) < 2 && (msg.points[i].x*msg.points[i].x + msg.points[i].y*msg.points[i].y + msg.points[i].z * msg.points[i].z) > 0.5)
+            if( sqrt( ((msg.points[i].x - robotpose(0))*(msg.points[i].x-robotpose(0)))
+	      + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
+              + ((msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2)))) > 0.3
+	      && 
+              sqrt( ((msg.points[i].x-robotpose(0))*(msg.points[i].x-robotpose(0)))
+	      + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
+              + (msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2))) < 2)
             {
                 octomap::point3d endpoint((float) msg.points[i].x,(float) msg.points[i].y,(float) msg.points[i].z);
                 //  visualization_msgs::Marker marker =  rviz_arrow(endpoint,i ,"tree");
                 //    marker_array.markers.push_back(marker);
                 st_cld.push_back(endpoint);
             }
+            std::cout << "No Obstacles are recorded  " << std::endl ;
+           
+	      
         }
+        
+         double t10 = ros::Time::now().toSec();
+         std::cout << "Operation Time for getting the distance between the robot and the obstcale: " << t10- t01 << std::endl ;
+
         //visualization_markers_pub_map.publish(marker_array);
         // maybe this should be th position of the robot
         octomap::point3d origin(0.0,0.0,0.0);
@@ -178,7 +193,7 @@ public:
 
 
         std_msgs::Bool collide_flag;
-        boost::shared_ptr<Box> Shpere0(new Box(1,1,1));
+        boost::shared_ptr<Box> Shpere0(new Box(2,2,2));
         //        GJKSolver_libccd solver;
         //        Vec3f contact_points;
         //        FCL_REAL penetration_depth;
@@ -197,10 +212,10 @@ public:
         Vec3f vec =  a.center() ;
         drawSphere( vec ) ;
 
+        double t1 = ros::Time::now().toSec();
 
         std::vector<CollisionObject*> boxes;
         generateBoxesFromOctomap(boxes, *st_tree2);
-
 
         visualization_msgs::MarkerArray marker_array ;
         for(size_t i = 0; i < boxes.size(); ++i)
@@ -245,8 +260,9 @@ public:
         for(size_t i = 0; i < boxes.size(); ++i)
             delete boxes[i];
         double t2 = ros::Time::now().toSec();
-        //std::cout << "Operation Time is " << t2 - t1 << std::endl ;
+        std::cout << "Operation Time is " << t2 - t1 << std::endl ;
 
+	std::cout << "time or call back function" << t2 - tstart << std::endl ;
     }
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_pose)
 
@@ -321,7 +337,7 @@ public:
         marker.color.r = 1.0;
         marker.color.g = 0.0;
         marker.color.b = 0.0;
-        marker.lifetime = ros::Duration();
+        marker.lifetime = ros::Duration(0.3);
         //only if using a MESH_RESOURCE marker type:
         //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
         vis_pub.publish( marker );
@@ -367,7 +383,7 @@ public:
             marker.color.b = 0.0;
         }
 
-            marker.lifetime = ros::Duration();
+            marker.lifetime = ros::Duration(0.3);
             //only if using a MESH_RESOURCE marker type:
             //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
             return marker ;
