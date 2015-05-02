@@ -1,33 +1,33 @@
 /***************************************************************************
-* Copyright (C) 2013 - 2014 by                                             *
-* Reem Ashour, Khalifa University Robotics Institute KURI               *
-* <reem.ashour@kustar.ac.ae>                                          *
-*                                                                          *
-* 									   *
-* This program is free software; you can redistribute it and/or modify     *
-* it under the terms of the GNU General Public License as published by     *
-* the Free Software Foundation; either version 2 of the License, or        *
-* (at your option) any later version. 					   *
-* 									   *
-* This program is distributed in the hope that it will be useful, 	   *
-* but WITHOUT ANY WARRANTY; without even the implied warranty of 	   *
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 		   *
-* GNU General Public License for more details. 				   *
-* 									   *
-* You should have received a copy of the GNU General Public License 	   *
-* along with this program; if not, write to the 			   *
-* Free Software Foundation, Inc., 					   *
-* 51 Franklin Steet, Fifth Floor, Boston, MA 02111-1307, USA. 		   *
+* Copyright (C) 2013 - 2014 by *
+* Reem Ashour, Khalifa University Robotics Institute KURI *
+* <reem.ashour@kustar.ac.ae> *
+* *
+* *
+* This program is free software; you can redistribute it and/or modify *
+* it under the terms of the GNU General Public License as published by *
+* the Free Software Foundation; either version 2 of the License, or *
+* (at your option) any later version. *
+* *
+* This program is distributed in the hope that it will be useful, *
+* but WITHOUT ANY WARRANTY; without even the implied warranty of *
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the *
+* GNU General Public License for more details. *
+* *
+* You should have received a copy of the GNU General Public License *
+* along with this program; if not, write to the *
+* Free Software Foundation, Inc., *
+* 51 Franklin Steet, Fifth Floor, Boston, MA 02111-1307, USA. *
 ***************************************************************************/
 #include "haptic_teleoperation/SlaveController.h"
 #include <time.h>
 #include "ardrone_autonomy/Navdata.h"
-//#include "haptic_teleoperation/collisionDetection.h"
 
 #define RAD_TO_DEG 180/3.14
 double battery_per ;
-//Eigen::Matrix<double,6,1> force_stop ;
-sensor_msgs::PointCloud laser_msg;
+Eigen::Matrix<double,6,1> force_stop ;
+
+bool inCollison ;
 
 
 SlaveController::SlaveController(ros::NodeHandle & n_,
@@ -49,34 +49,44 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     master_pose_slave_velocity_scale(master_pose_slave_velocity_scale_),
     Controller(n_,freq_, Kp_, Kd_, Bd_,Fp_, lambda_, master_min_, master_max_, slave_min_, slave_max_, slave_velocity_min_, slave_velocity_max_)
 {
-    //   std::cout << " Initilization" << std::endl ;
+    // std::cout << " Initilization" << std::endl ;
     initParams();
     //slave_callback_type = boost::bind(&SlaveController::paramsCallback, this, _1, _2);
     //slave_server.setCallback(slave_callback_type);
-
     // Feedback publish
-    cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/cmd_vel", 1);
 
+    cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
     // Master joint states subscriber
     master_sub = n_.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveController::masterJointsCallback, this);
+    force_feedback_sub = n_.subscribe<geometry_msgs::PoseStamped>("/virtual_force_feedback", 1, &SlaveController::feedbackFocreCallback, this);
+
+    collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
 
     // Slave pose and velocity subscriber
-    slave_sub = n.subscribe("/ground_truth/state", 1, &SlaveController::slaveOdometryCallback, this);
-
-    laser_sub = n_.subscribe("/scan",1, &SlaveController::laserDataCallback, this);
-    vis_pub = n_.advertise<visualization_msgs::Marker>("/Sphere", 1);
-    vis_cude_pub = n_.advertise<visualization_msgs::MarkerArray>("/Cube", 1);
-    octmap_pub = n_.advertise<octomap_msgs::Octomap>("/octomap_rviz", 1);
-    // inCollision = false ;
-
+    slave_sub = n_.subscribe("/ground_truth/state", 1, &SlaveController::slaveOdometryCallback, this);
+    //force_feedback_sub = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback , this);
 
 }
 
+void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
+{
+    std::cout << "GET inCollison " << std::endl  ;
+
+    inCollison = _inCollision->data ;
+
+    std::cout << "inCollison" << inCollison << std::endl  ;
+
+}
+
+void SlaveController::setfeedbackForce(Eigen::Vector3d &f)
+{
+    feedbackForce(0) = f(0) ;
+    feedbackForce(1) = f(1) ;
+    feedbackForce(2) = f(2) ;
+}
 
 void SlaveController::initParams()
 {
-
-
     // parameters
     double freq;
     double kp_x;
@@ -85,78 +95,71 @@ void SlaveController::initParams()
     double kp_roll;
     double kp_pitch;
     double kp_yaw;
-
     double kd_x;
     double kd_y;
     double kd_z;
     double kd_roll;
     double kd_pitch;
     double kd_yaw;
-
     double fp_x;
     double fp_y;
     double fp_z;
     double fp_roll;
     double fp_pitch;
     double fp_yaw;
-
     //initialize operational parameters
     n_priv.param<double>("frequency", freq, 10.0);
-
     double slave_min_x;
     double slave_min_y;
     double slave_min_z;
     double slave_min_roll;
     double slave_min_pitch;
     double slave_min_yaw;
-    n_priv.param<double>("slave_min_x",     slave_min_x, 1.0);
-    n_priv.param<double>("slave_min_y",     slave_min_y, 1.0);
-    n_priv.param<double>("slave_min_z",     slave_min_z, 1.0);
-    n_priv.param<double>("slave_min_roll",  slave_min_roll, 1.0);
+    n_priv.param<double>("slave_min_x", slave_min_x, 1.0);
+    n_priv.param<double>("slave_min_y", slave_min_y, 1.0);
+    n_priv.param<double>("slave_min_z", slave_min_z, 1.0);
+    n_priv.param<double>("slave_min_roll", slave_min_roll, 1.0);
     n_priv.param<double>("slave_min_pitch", slave_min_pitch, 1.0);
-    n_priv.param<double>("slave_min_yaw",   slave_min_yaw, 1.0);
+    n_priv.param<double>("slave_min_yaw", slave_min_yaw, 1.0);
     Eigen::Matrix<double,6,1> slave_min;
-    slave_min <<  slave_min_x,
+    slave_min << slave_min_x,
             slave_min_y,
             slave_min_z,
             slave_min_roll,
             slave_min_pitch,
             slave_min_yaw;
-
     double slave_max_x;
     double slave_max_y;
     double slave_max_z;
     double slave_max_roll;
     double slave_max_pitch;
     double slave_max_yaw;
-    n_priv.param<double>("slave_max_x",     slave_max_x, 1.0);
-    n_priv.param<double>("slave_max_y",     slave_max_y, 1.0);
-    n_priv.param<double>("slave_max_z",     slave_max_z, 1.0);
-    n_priv.param<double>("slave_max_roll",  slave_max_roll,  1.0);
+    n_priv.param<double>("slave_max_x", slave_max_x, 1.0);
+    n_priv.param<double>("slave_max_y", slave_max_y, 1.0);
+    n_priv.param<double>("slave_max_z", slave_max_z, 1.0);
+    n_priv.param<double>("slave_max_roll", slave_max_roll, 1.0);
     n_priv.param<double>("slave_max_pitch", slave_max_pitch, 1.0);
-    n_priv.param<double>("slave_max_yaw",   slave_max_yaw,   1.0);
+    n_priv.param<double>("slave_max_yaw", slave_max_yaw, 1.0);
     Eigen::Matrix<double,6,1> slave_max;
-    slave_max <<  slave_max_x,
+    slave_max << slave_max_x,
             slave_max_y,
             slave_max_z,
             slave_max_roll,
             slave_max_pitch,
             slave_max_yaw;
-
     Eigen::Matrix<double,6,1> slave_size=slave_max-slave_min;
-
     double master_min_x;
     double master_min_y;
     double master_min_z;
     double master_min_roll;
     double master_min_pitch;
     double master_min_yaw;
-    n_priv.param<double>("master_min_x",     master_min_x,     1.0);
-    n_priv.param<double>("master_min_y",     master_min_y,     1.0);
-    n_priv.param<double>("master_min_z",     master_min_z,     1.0);
-    n_priv.param<double>("master_min_roll",  master_min_roll,  1.0);
+    n_priv.param<double>("master_min_x", master_min_x, 1.0);
+    n_priv.param<double>("master_min_y", master_min_y, 1.0);
+    n_priv.param<double>("master_min_z", master_min_z, 1.0);
+    n_priv.param<double>("master_min_roll", master_min_roll, 1.0);
     n_priv.param<double>("master_min_pitch", master_min_pitch, 1.0);
-    n_priv.param<double>("master_min_yaw",   master_min_yaw,   1.0);
+    n_priv.param<double>("master_min_yaw", master_min_yaw, 1.0);
     Eigen::Matrix<double,6,1> master_min;
     master_min << master_min_x,
             master_min_y,
@@ -164,19 +167,18 @@ void SlaveController::initParams()
             master_min_roll,
             master_min_pitch,
             master_min_yaw;
-
     double master_max_x;
     double master_max_y;
     double master_max_z;
     double master_max_roll;
     double master_max_pitch;
     double master_max_yaw;
-    n_priv.param<double>("master_max_x",     master_max_x,     1.0);
-    n_priv.param<double>("master_max_y",     master_max_y,     1.0);
-    n_priv.param<double>("master_max_z",     master_max_z,     1.0);
-    n_priv.param<double>("master_max_roll",  master_max_roll,  1.0);
+    n_priv.param<double>("master_max_x", master_max_x, 1.0);
+    n_priv.param<double>("master_max_y", master_max_y, 1.0);
+    n_priv.param<double>("master_max_z", master_max_z, 1.0);
+    n_priv.param<double>("master_max_roll", master_max_roll, 1.0);
     n_priv.param<double>("master_max_pitch", master_max_pitch, 1.0);
-    n_priv.param<double>("master_max_yaw",   master_max_yaw,   1.0);
+    n_priv.param<double>("master_max_yaw", master_max_yaw, 1.0);
     Eigen::Matrix<double,6,1> master_max;
     master_max << master_max_x,
             master_max_y,
@@ -184,46 +186,41 @@ void SlaveController::initParams()
             master_max_roll,
             master_max_pitch,
             master_max_yaw;
-
     Eigen::Matrix<double,6,1> master_size=master_max-master_min;
-
     master_to_slave_scale << fabs(slave_size(0,0)/master_size(0,0)),
             fabs(slave_size(1,0)/master_size(1,0)),
             fabs(slave_size(2,0)/master_size(2,0)),
             fabs(slave_size(3,0)/master_size(3,0)),
             fabs(slave_size(4,0)/master_size(4,0)),
             fabs(slave_size(5,0)/master_size(5,0));
-
 }
-void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level){
-    ROS_INFO_STREAM("Slave PID reconfigure Request ->"  << " kp_x:" << config.kp_x
+
+void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig &config, uint32_t level)
+{
+    ROS_INFO_STREAM("Slave PID reconfigure Request ->" << " kp_x:" << config.kp_x
                     << " kp_y:" << config.kp_y
                     << " kp_z:" << config.kp_z
                     << " kd_x:" << config.kd_x
                     << " kd_y:" << config.kd_y
                     << " kd_z:" << config.kd_z);
-
     Kp << config.kp_x,
             config.kp_y,
             config.kp_z,
             config.kp_roll,
             config.kp_pitch,
             config.kp_yaw;
-
     Kd << config.kd_x,
             config.kd_y,
             config.kd_z,
             config.kd_roll,
             config.kd_pitch,
             config.kd_yaw;
-
     Bd << config.bd_x,
             config.bd_y,
             config.bd_z,
             config.bd_roll,
             config.bd_pitch,
             config.bd_yaw;
-
     lambda << config.lambda_x, 0, 0, 0 ,0, 0,
             0, config.lambda_y, 0, 0, 0, 0,
             0, 0, config.lambda_z, 0, 0, 0,
@@ -231,10 +228,20 @@ void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig
             0, 0, 0, 0, config.lambda_pitch, 0,
             0, 0, 0, 0, 0, config.lambda_yaw;
 }
+void SlaveController::feedbackFocreCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+    double x = msg->pose.position.x ;
+    double y = msg->pose.position.y ;
+    double z = msg->pose.position.z ;
+    //std::cout << "X: " << x << " Y: " << y << " Z: " << z << std::endl ;
+    Eigen::Vector3d f(x,y,z) ;
+    setfeedbackForce(f) ;
+    //feedbackForce = Eigen::Vector3d(msg->pose.position.x,msg->pose.position.y ,msg->pose.position.z) ;
+}
 // MASTER MEASUREMENTS
 void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states)
 {
-    //   std::cout << "getting joint data " << std::endl;
+    // std::cout << "getting joint data " << std::endl;
     double x_master=(master_max(0,0)-master_min(0,0))/2.0+master_min(0,0);
     double y_master=(master_max(1,0)-master_min(1,0))/2.0+master_min(1,0);
     double z_master=(master_max(2,0)-master_min(2,0))/2.0+master_min(2,0);
@@ -250,7 +257,6 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
         {
             ROS_ERROR("%s",ex.what());
         }
-
         x_master=transform.getOrigin().x();
         if(x_master<master_min(0,0))
         {
@@ -260,7 +266,6 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
         {
             x_master=master_max(0,0);
         }
-
         y_master=transform.getOrigin().y();
         if(y_master<master_min(1,0))
         {
@@ -270,7 +275,6 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
         {
             y_master=master_max(1,0);
         }
-
         z_master=transform.getOrigin().z();
         if(z_master<master_min(2,0))
         {
@@ -281,7 +285,6 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
             z_master=master_max(2,0);
         }
     }
-
     if(angular_button_pressed)
     {
         // Wrist3 controls angular speed
@@ -303,7 +306,6 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     // Pose master
     // x and y are mirrored
     // angles are relative
-
     current_pose_master <<
                            (-x_master + master_min(0,0)+master_max(0,0)),
             (-y_master + master_min(1,0)+master_max(1,0)),
@@ -311,42 +313,33 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
             0.0,
             0.0,
             yaw_master;
-
-
     current_velocity_master=(current_pose_master-previous_pose_master)/period;
-
     //double yaw_master_scaled=yaw_master*master_to_slave_scale(5,0);
-
     /////////////////////////
     // Scale to slave side //
     /////////////////////////
-
     // x_m, y_m, z_m maps to velocities in slave side
     current_pose_master_scaled(0,0)=(current_pose_master(0,0)-master_min(0,0))*master_pose_slave_velocity_scale(0,0)+slave_velocity_min(0,0);
-
     // std::cout << "current_pose_master_scaled x " << current_pose_master_scaled(0,0) ;
-
     current_pose_master_scaled(1,0)=(current_pose_master(1,0)-master_min(1,0))*master_pose_slave_velocity_scale(1,0)+slave_velocity_min(1,0);
     current_pose_master_scaled(2,0)=(current_pose_master(2,0)-master_min(2,0))*master_pose_slave_velocity_scale(2,0)+slave_velocity_min(2,0);
     // relative angular position changes in master side maps to relative angular position changes in slave side
     current_pose_master_scaled(3,0)=(current_pose_master(3,0))*master_to_slave_scale(3,0);
     current_pose_master_scaled(4,0)=(current_pose_master(4,0))*master_to_slave_scale(4,0);
     current_pose_master_scaled(5,0)=(current_pose_master(5,0))*master_to_slave_scale(5,0);
-
-
     // Velocity master
     current_velocity_master_scaled=(current_pose_master_scaled-previous_pose_master_scaled)/period;
-    // std::cout << "current_velocity_master_scaled  " << current_velocity_master_scaled ;
-
+    // std::cout << "current_velocity_master_scaled " << current_velocity_master_scaled ;
     master_new_readings=true;
     feedback();
     previous_pose_master=current_pose_master;
     previous_pose_master_scaled=current_pose_master_scaled;
 }
+// SLAVE MEASUREMENTS
 
 
-// The following callback function uses nav_msgs/Odometry
-void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg){
+void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
     // Pose slave
     Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.pose.orientation.w,
                                                        msg->pose.pose.orientation.x,
@@ -355,17 +348,15 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
     double yaw = euler(0,0);
     double pitch = euler(1,0);
     double roll = euler(2,0);
-
     if(!init_slave_readings)
     {
-
         previous_pose_slave << msg->pose.pose.position.x,
                 msg->pose.pose.position.y,
                 msg->pose.pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw; // should be relative
-        //  std::cout << "previous_pose_slave:" << previous_pose_slave(5,0) << " yaw:" << yaw << std::endl;
+        // std::cout << "previous_pose_slave:" << previous_pose_slave(5,0) << " yaw:" << yaw << std::endl;
         // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
         yaw_slave_previous=yaw;
         init_slave_readings=true;
@@ -373,322 +364,94 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
     }
     else
     {
-        // lastPositionUpdate      = ros::Time::now().toSec();
-
+        // lastPositionUpdate = ros::Time::now().toSec();
         current_pose_slave << msg->pose.pose.position.x,
                 msg->pose.pose.position.y,
                 msg->pose.pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw_slave_previous; // should be relative
-
+        // std::cout << "current_pose_slave:" << current_pose_slave(5,0) << " yaw_slave_previous:" << yaw_slave_previous << std::endl;
+        // std::cout << current_pose_slave(0,0) << std::endl ;
+        // std::cout << current_pose_slave(1,0) << std::endl ;
+        // std::cout << current_pose_slave(2,0) << std::endl ;
+        // std::cout << current_pose_slave(3,0) << std::endl ;
+        // std::cout << current_pose_slave(4,0) << std::endl ;
+        // std::cout << current_pose_slave(5,0) << std::endl ;
+        // double test = current_pose_slave(5,0) ;
+        // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
+        // std::cout << "current_pose_slave:" << test << " previous_pose_slave previous:" << previous_pose_slave(5,0) << std::endl;
+        // std::cout << "yaw TO DEG:" << yaw*RAD_TO_DEG << " yaw previous TO DEG:" << yaw_slave_previous * RAD_TO_DEG << std::endl;
+        // std::cout << "current_pose_slave TO DEG (((:" << current_pose_slave(5,0)*RAD_TO_DEG << " previous_pose_slave previous TO DEG )))):" << previous_pose_slave(5,0) * RAD_TO_DEG << std::endl;
         yaw_slave_previous=yaw;
     }
-
     current_velocity_slave << msg->twist.twist.linear.x,
             msg->twist.twist.linear.y,
             msg->twist.twist.linear.z,
             msg->twist.twist.angular.x,
             msg->twist.twist.angular.y,
             msg->twist.twist.angular.z;
-
     slave_new_readings=true;
     feedback();
     previous_pose_slave=current_pose_slave;
-
 }
-
-
-
-void SlaveController::laserDataCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in){
-    try {
-
-
-        if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                       "world",
-                                       // "Pioneer3AT/base_link",  // GAZEBO
-                                       //ros::Time::now(),
-                                       scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                                       ros::Duration(1.0))){
-            std::cout << "RETURN" << std::endl ;
-            return;
-        }
-    }
-    catch (...)
-    {
-        ROS_INFO("ERROR Happend");
-    }
-    //  sensor_msgs::PointCloud msg;
-
-    projector_.transformLaserScanToPointCloud("base_link",*scan_in, laser_msg,listener_);
-
-    octomap::OcTree* st_tree = new octomap::OcTree(0.1);
-    octomap::Pointcloud st_cld;
-
-    for(int i = 0;i<laser_msg.points.size();i++){
-        if( sqrt( ((laser_msg.points[i].x - robotpose(0))*(laser_msg.points[i].x-robotpose(0)))
-      + ((laser_msg.points[i].y-robotpose(1))*(laser_msg.points[i].y-robotpose(1)))
-          + ((laser_msg.points[i].z-robotpose(2))*(laser_msg.points[i].z-robotpose(2)))) > 0.3
-      &&
-          sqrt( ((laser_msg.points[i].x-robotpose(0))*(msg.points[i].x-robotpose(0)))
-      + ((laser_msg.points[i].y-robotpose(1))*(laser_msg.points[i].y-robotpose(1)))
-          + (laser_msg.points[i].z-robotpose(2))*(laser_msg.points[i].z-robotpose(2))) < 4)
-        {
-
-        octomap::point3d endpoint((float) laser_msg.points[i].x,(float) laser_msg.points[i].y,(float) laser_msg.points[i].z);
-        st_cld.push_back(endpoint);
-
-        }
-    }
-
-
-
-    octomap::point3d origin(0.0,0.0,0.0);
-    st_tree->insertPointCloud(st_cld,origin);
-    st_tree->updateInnerOccupancy();
-    st_tree->writeBinary("static_occ.bt");
-    // convert the octomap::octree to fcl::octree fcl_octree object
-    OcTree* st_tree2 = new OcTree(boost::shared_ptr<const octomap::OcTree>(st_tree));
-
-    octomap_msgs::Octomap octomap ;
-    octomap.binary = 1 ;
-    octomap.id = 1 ;
-    octomap.resolution =0.1;
-    octomap.header.frame_id = "/map";
-    octomap.header.stamp = ros::Time::now();
-    bool res = octomap_msgs::fullMapToMsg(*st_tree, octomap);
-    octmap_pub.publish(octomap) ;
-
-
-    //std_msgs::Bool collide_flag;
-    boost::shared_ptr<Sphere> Shpere0(new Sphere(0.4));
-    Transform3f tf0, tf1;
-    tf0.setIdentity();
-    tf0.setTranslation(Vec3f(current_pose_slave(0,0)+xPrime,current_pose_slave(1,0)+ yPrime,current_pose_slave(2,0)));
-    tf1.setIdentity();
-    CollisionObject co0(Shpere0, tf0);
-    AABB a = co0.getAABB() ;
-    Vec3f vec =  a.center() ;
-    drawSphere( vec ) ;
-
-
-    std::vector<CollisionObject*> boxes;
-    generateBoxesFromOctomap(boxes, *st_tree2);
-    visualization_msgs::MarkerArray marker_array ;
-
-    static const int num_max_contacts = std::numeric_limits<int>::max();
-    static const bool enable_contact = true ;
-    CollisionObject* box = NULL;
-    AABB b;
-    Vec3f vec2;
-    fcl::CollisionResult result;
-    for(size_t i = 0; i < boxes.size(); ++i)
-    {
-        box  = boxes[i];
-        b    = box->getAABB() ;
-        vec2 = b.center();
-
-        visualization_msgs::Marker marker = drawCUBE(vec2, i) ;
-        marker_array.markers.push_back(marker);
-
-        if(box)
-        {
-            fcl::CollisionRequest request(num_max_contacts, enable_contact);
-            fcl::collide(&co0, box, request, result);
-
-
-
-            if (result.isCollision() == true )
-            {
-                inCollision = true;
-                // break ;
-                std::cout << i << ":  true " << std::endl ;
-                break;
-            }
-            else
-            {
-                inCollision = false;
-                 std::cout<< i << ":  false " << std::endl ;
-
-            }
-        }
-    }
-    //  boxes.resize(0);
-    for(size_t i = 0; i < boxes.size(); ++i)
-    {
-        delete boxes[i];
-    }
-    vis_cude_pub.publish(marker_array);
-
-}
-
-
-
-bool SlaveController::geoFence(double timeSample ,  Eigen::Matrix<double,6,1>  currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry)
+void SlaveController::feedback()
 {
-
-    double theta = currentPose(5,0) ;
-    double x =  currentPose(0,0) ;
-    double y =  currentPose(1,0) ;
-    double speedInx = desiredVelocity(0,0) ; // * sin(theta) ;
-    double speedIny = desiredVelocity(1,1) ; //* cos(theta);
-
-    xPrime = speedInx*cos(theta)*timeSample ;
-    // if we are using Ground robot we use the speedinx in both cases but when we are using the flying robot we use the speediny
-    yPrime = speedIny*sin(theta)*timeSample ;
-    std::cout << "current position" << x << "   " << y  << std::endl ;
-    std::cout << "next position" << x << "   " << y  << std::endl ;
-
-    std::cout << " In Collision" << inCollision << std::endl ;
-    if( (x+xPrime > xBoundry) || (x+xPrime < -xBoundry) ||   ( y+yPrime>yBoundry) || (y+yPrime < -yBoundry ) || inCollision == true)
-        return true  ;
-    else
-        return false ;
-
-}
-
-
-
-
-void SlaveController::generateBoxesFromOctomap(std::vector<CollisionObject*>& boxes, OcTree& tree){
-
-    std::vector<boost::array<FCL_REAL, 6> > boxes_ = tree.toBoxes();
-    for(std::size_t i = 0; i < boxes_.size(); ++i)
+   // std::cout << " FEED BACK MASTER FUNCTION" << std::endl ;
+   // std::cout << "Force normalized " << getfeedbackForceNorm() << std::endl ;
+    geometry_msgs::Twist twist_msg;
+    if (control_event) // && force_stop(0,0) > -1.0 && !lastPositionUpdate) && (battery_per > 30) //
     {
-        FCL_REAL x = boxes_[i][0];
-        FCL_REAL y = boxes_[i][1];
-        FCL_REAL z = boxes_[i][2];
-        FCL_REAL size = boxes_[i][3];
-        FCL_REAL cost = boxes_[i][4];
-        FCL_REAL threshold = boxes_[i][5];
-        Box* box = new Box(size, size, size);
-        box->cost_density = cost;
-        box->threshold_occupied = threshold;
-        CollisionObject* obj = new CollisionObject(boost::shared_ptr<CollisionGeometry>(box), Transform3f(Vec3f(x, y, z)));
-        boxes.push_back(obj);
-    }
-    // std::cout << "boxes size: " << boxes.size() << std::endl;
-}
-void SlaveController::drawSphere(Vec3f vec ){
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "odom";
-    marker.header.stamp = ros::Time();
-    marker.ns = "my_namespace";
-    marker.id = 0;
-    // if(shape == "Sphere")
-    marker.type = visualization_msgs::Marker::SPHERE;
-    // if(shape == "Cube")
-    // marker.type = visualization_msgs::Marker::CUBE;
-
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = vec[0];
-    marker.pose.position.y = vec[1];
-    marker.pose.position.z = vec[2];
-    marker.pose.orientation.x = 0;
-    marker.pose.orientation.y = 0;//poseQ[1];
-    marker.pose.orientation.z = 0;//poseQ[2];
-    marker.pose.orientation.w = 0;//poseQ[3];
-    marker.scale.x = 1;
-    marker.scale.y = 1.0;
-    marker.scale.z = 1.0;
-    marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-    marker.lifetime = ros::Duration();
-    //only if using a MESH_RESOURCE marker type:
-    //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
-    vis_pub.publish( marker );
-}
-visualization_msgs::Marker SlaveController::drawCUBE(Vec3f vec , int id ){
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "odom";
-    marker.header.stamp = ros::Time();
-    marker.ns = "my_namespace";
-    marker.id = id;
-    // if(shape == "Sphere")
-    //marker.type = visualization_msgs::Marker::SPHERE;
-    // if(shape == "Cube")
-    marker.type = visualization_msgs::Marker::CUBE;
-
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = vec[0];
-    marker.pose.position.y = vec[1];
-    marker.pose.position.z = vec[2];
-    marker.pose.orientation.x = 0;
-    marker.pose.orientation.y = 0;//poseQ[1];
-    marker.pose.orientation.z = 0;//poseQ[2];
-    marker.pose.orientation.w = 0;//poseQ[3];
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
-    marker.color.a = 1.0;
-    marker.color.r = 0.0;
-    marker.color.g = 0.0;
-    marker.color.b = 1.0;
-    marker.lifetime = ros::Duration();
-    //only if using a MESH_RESOURCE marker type:
-    //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
-    return marker ;
-}
-
-// 0.4 meter
-
-
-void SlaveController::feedback(){
-
-
-    geometry_msgs::TwistStamped twist_msg;
-
-    //geometry_msgs::TwistStamped twist_msg;
-
-    if (control_event)
-    {
-
-
-        //Eigen::Matrix<double,6,1> r=current_velocity_master_scaled+lambda*current_pose_master_scaled;
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
-        //Eigen::Matrix<double,6,6> feeback_matrix =
-        //       (current_pose_master_scaled - current_pose_slave)* Kp.transpose() +
-        //     (r - current_velocity_slave)                     * Kd.transpose() +
-        //    (current_velocity_master_scaled  - current_velocity_slave) * Bd.transpose();
-
-        //  Eigen::Matrix<double,6,6> feeback_matrix =  (r - current_velocity_slave)* Kd.transpose() ;// r * Kd.transpose() ;
-        Eigen::Matrix<double,6,6> feeback_matrix =   r * Kd.transpose() ;
+        Eigen::Matrix<double,6,6> feeback_matrix = r * Kd.transpose() ;
         double timeSample = 1 ; //0.05;
-        double xBoundry = 1.8  - 0.36 ;
-        double yBoundry = 1.8  - 0.36 ;
-
-        //if(geoFence(timeSample,current_pose_slave,feeback_matrix ,xBoundry , yBoundry) )
-       if(inCollision)
-
+        double xBoundry = 9*0.6 ;
+        double yBoundry = 5*0.6 ;
+        //double forceNorm =sqrt(pow(feedbackForce(0,0),2) + pow(feedbackForce(0,1),2) + pow(feedbackForce(0,2),2)) ;
+        if(geoFence(timeSample,current_pose_slave,feeback_matrix ,xBoundry , yBoundry) || inCollison)
         {
-            twist_msg.header.frame_id = "uav/base_link_ENU" ;
-            twist_msg.header.stamp = ros::Time::now() ;
-            std::cout << "OUT" << std:: endl ;
-
-            std::cout << "\033[1;31m  Warning \033[0m\n"  << std:: endl ;
-            twist_msg.twist.linear.x=0.0;
-            twist_msg.twist.linear.y=0.0;
-            twist_msg.twist.linear.z=0.0;
-            twist_msg.twist.angular.z=feeback_matrix(5,5);
+            std::cout << "OUSDIE ###################" << std:: endl ;
+            twist_msg.linear.x=0.0;
+            twist_msg.linear.y=0.0;
+            twist_msg.linear.z=0.0;
+            twist_msg.angular.z=feeback_matrix(5,5);
             master_new_readings=false;
             slave_new_readings=false;
         }
         else
         {
-            twist_msg.header.frame_id = "uav/base_link_ENU" ;
-            twist_msg.header.stamp = ros::Time::now() ;
-
-            std::cout << "INSIDE" << std:: endl ;
-            twist_msg.twist.linear.x=feeback_matrix(0,0) ; //+ feedbackForce(0);
-            twist_msg.twist.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
-            twist_msg.twist.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
-            twist_msg.twist.angular.z=feeback_matrix(5,5);
+            std::cout << "INSIDE ********************" << std:: endl ;
+            twist_msg.linear.x=feeback_matrix(0,0);//+ feedbackForce(0);
+            twist_msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
+            twist_msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
+            twist_msg.angular.z=feeback_matrix(5,5);
             master_new_readings=false;
             slave_new_readings=false;
         }
     }
     cmd_pub.publish(twist_msg);
-
 }
+bool SlaveController::geoFence(double timeSample , Eigen::Matrix<double,6,1> currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry )
+{
+    double theta = currentPose(5,0) ;
+    double x = currentPose(0,0) ;
+    double y = currentPose(1,0) ;
+    double speedInx = desiredVelocity(0,0) ; // * sin(theta) ;
+    double speedIny = desiredVelocity(1,1) ; //* cos(theta);
+
+
+    double xPrime = speedInx*cos(theta)*timeSample ;
+    double yPrime = speedInx*sin(theta)*timeSample ;
+
+//    std::cout << "xPrime" << xPrime << std::endl ;
+//    std::cout << "yPrime" << yPrime << std::endl ;
+//    std::cout << "x + xPrime" << x+ xPrime << std::endl ;
+
+//    std::cout << "y + yPrime" << y + yPrime << std::endl ;
+
+    if( (x+xPrime > xBoundry) || ( y+yPrime>yBoundry) ||( x+xPrime < 0.0) || ( y+yPrime< 0.0)  )
+        return true ;
+    else
+        return false ;
+}
+// 0.4 meter

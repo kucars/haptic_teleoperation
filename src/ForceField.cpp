@@ -40,7 +40,7 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
     std::cout << "reading /scan" << std::endl;
     slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this );
 
-  //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
+    //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
     // slave_pose_sub = n_.subscribe("/Pioneer3AT/pose" , 100 , &ForceField::poseCallback, this ); // GAZEBO
     visualization_markers_pub = n_.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
     std::cout << "build" << std::endl;
@@ -86,7 +86,7 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 
     // Transformation
     if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                   "base_link",
+                                   "world",
                                    // "Pioneer3AT/base_link",  // GAZEBO
                                    //                              //ros::Time::now(),
                                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
@@ -126,7 +126,7 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
     resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
     std::vector<Eigen::Vector3d> force_field;
     unsigned int aux_it = obstacles_positions_current.points.size();
-     std::cout << "aux1" << aux_it <<  std::endl ;
+    std::cout << "aux1" << aux_it <<  std::endl ;
 
     if (aux_it != 0 )
     {
@@ -139,34 +139,9 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
             force_field.push_back(f);
             resulting_force+=force_field[i];
 
-//            F = sqrt(force_field[i](0)*force_field[i](0) + force_field[i](1)*force_field[i](1) + force_field[i](2)*force_field[i](2));
-//                    std::cout << "F  " << F <<  std::endl ;
+            resulting_force = resulting_force/aux_it ;
 
-
-
-//            if(F>maxFF)
-//            {
-//                maxIndex = i ;
-//                maxFF = F;
-
-//            }        if(F<minFF)
-//            {
-//                minIndex = i ;
-//                minFF = F;
-
-//            }
         }
-
-
-       // resulting_force = (force_field[maxIndex] + force_field[minIndex])/ 2;
-         resulting_force = resulting_force/aux_it ;
-
-
-        // taking the avarage..
-        //  std::cout << "aux2" << aux_it <<  std::endl ;
-        //  std::cout << "F1  " << resulting_force.x() <<  std::endl ;
-        //  std::cout << "Fx  "  << resulting_force.x() <<  std::endl ;
-        //  std::cout << "Fy  "  << resulting_force.y() <<  std::endl ;
 
     }
     else
@@ -523,7 +498,7 @@ void ForceField::runTestVirtualImpedance()
         }
     }
 
-  //  std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
+    //  std::cout<<"Max f is:"<<maxF<<" min f:"<<minF<<"\n";
     imwrite("testName Virtual Impedance7.png", img);
     exit(1) ;
 }

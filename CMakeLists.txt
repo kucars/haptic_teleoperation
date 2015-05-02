@@ -20,14 +20,14 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   visualization_msgs
   tf
-# phantom_omni
+  phantom_omni
   dynamic_reconfigure
   message_generation
   laser_geometry
   gazebo_msgs
   geometry_msgs
 
-  cmake_modules
+
 
  )
 
@@ -67,11 +67,11 @@ generate_dynamic_reconfigure_options(
 # )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-   FILES
-   hmm_srv.srv
+##add_service_files(
+#   FILES
+#   hmm_srv.srv
 #   Service2.srv
- )
+# )
 
 ## Generate actions in the 'action' folder  nav_msgs
 # add_action_files(
@@ -164,17 +164,7 @@ target_link_libraries(brf
 
 
 
-#add_executable(controller_ros src/ControllerRos.cpp src/Controller.cpp src/SlaveController.cpp src/MasterController.cpp src/CollisionDetection.cpp)
-#add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
-#target_link_libraries(controller_ros
- #  controller
- #  ${catkin_LIBRARIES}
- #  ${Boost_LIBRARIES}
- #  ${FCL_LIBRARIES}
- #  ${OCTOMAP_LIBRARIES}
- #  ${OpenCV_LIBRARIES}
 
-#) 
 add_executable(createOctmap src/createOctmap.cpp)
 add_dependencies(createOctmap ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(createOctmap
@@ -188,12 +178,34 @@ target_link_libraries(createOctmap
 
 )
 
-#add_executable(autopilot_interface src/autopilot_interface.cpp)
-#add_dependencies(autopilot_interface ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(autopilot_interface
-# ${catkin_LIBRARIES}
-# ${Boost_LIBRARIES}
-#)
+
+add_executable(controller_ros src/ControllerRos.cpp src/Controller.cpp src/SlaveController.cpp src/MasterController.cpp )
+add_dependencies(controller_ros ${PROJECT_NAME}_gencfg)
+target_link_libraries(controller_ros
+   controller
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${FCL_LIBRARIES}
+   ${OCTOMAP_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+
+) 
+
+add_executable(CollisionDetection src/collisionDetecctionGV.cpp)
+add_dependencies(CollisionDetection ${PROJECT_NAME}_gencfg)
+target_link_libraries(CollisionDetection
+   ${fcl_LIBRARIES}
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+   ${OCTOMAP_LIBRARIES}
+   ${PCL_INCLUDE_DIRS}
+   ${PCL_LIBRARIES}
+
+) 
+
+
+
 
 #add_executable(move_robot src/move_husky.cpp)
 #add_dependencies(move_robot ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
@@ -209,7 +221,7 @@ target_link_libraries(robot_teleop ${catkin_LIBRARIES})
 
 catkin_add_gtest(utest src/ForceFieldTests.cpp)
 
-#src/VirtualForceBrf.cpp src/ForceField.cpp
+
 
 
 
