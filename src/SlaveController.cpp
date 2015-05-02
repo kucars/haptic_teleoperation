@@ -27,7 +27,7 @@
 double battery_per ;
 Eigen::Matrix<double,6,1> force_stop ;
 
-bool inCollison ;
+//bool inCollison ;
 
 
 SlaveController::SlaveController(ros::NodeHandle & n_,
@@ -55,28 +55,28 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     //slave_server.setCallback(slave_callback_type);
     // Feedback publish
 
-    cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+    cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/cmd_vel", 1);
+   // cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+
     // Master joint states subscriber
     master_sub = n_.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveController::masterJointsCallback, this);
     force_feedback_sub = n_.subscribe<geometry_msgs::PoseStamped>("/virtual_force_feedback", 1, &SlaveController::feedbackFocreCallback, this);
-
-    collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
-
+   //collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
     // Slave pose and velocity subscriber
     slave_sub = n_.subscribe("/ground_truth/state", 1, &SlaveController::slaveOdometryCallback, this);
     //force_feedback_sub = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback , this);
 
 }
 
-void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
-{
-    std::cout << "GET inCollison " << std::endl  ;
+//void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
+//{
+//    std::cout << "GET inCollison " << std::endl  ;
 
-    inCollison = _inCollision->data ;
+//    inCollison = _inCollision->data ;
 
-    std::cout << "inCollison" << inCollison << std::endl  ;
+//    std::cout << "inCollison" << inCollison << std::endl  ;
 
-}
+//}
 
 void SlaveController::setfeedbackForce(Eigen::Vector3d &f)
 {
@@ -336,99 +336,153 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     previous_pose_master_scaled=current_pose_master_scaled;
 }
 // SLAVE MEASUREMENTS
-
-
-void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
-{
+void SlaveController::slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
     // Pose slave
-    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.pose.orientation.w,
-                                                       msg->pose.pose.orientation.x,
-                                                       msg->pose.pose.orientation.y,
-                                                       msg->pose.pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
+                                                       msg->pose.orientation.x,
+                                                       msg->pose.orientation.y,
+                                                       msg->pose.orientation.z).matrix().eulerAngles(2, 1, 0);
     double yaw = euler(0,0);
     double pitch = euler(1,0);
     double roll = euler(2,0);
+
     if(!init_slave_readings)
     {
-        previous_pose_slave << msg->pose.pose.position.x,
-                msg->pose.pose.position.y,
-                msg->pose.pose.position.z,
+
+        previous_pose_slave << msg->pose.position.x,
+                msg->pose.position.y,
+                msg->pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw; // should be relative
-        // std::cout << "previous_pose_slave:" << previous_pose_slave(5,0) << " yaw:" << yaw << std::endl;
-        // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
+
         yaw_slave_previous=yaw;
         init_slave_readings=true;
         return;
     }
     else
     {
-        // lastPositionUpdate = ros::Time::now().toSec();
-        current_pose_slave << msg->pose.pose.position.x,
-                msg->pose.pose.position.y,
-                msg->pose.pose.position.z,
+        // lastPositionUpdate      = ros::Time::now().toSec();
+
+        current_pose_slave << msg->pose.position.x,
+                msg->pose.position.y,
+                msg->pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw_slave_previous; // should be relative
-        // std::cout << "current_pose_slave:" << current_pose_slave(5,0) << " yaw_slave_previous:" << yaw_slave_previous << std::endl;
-        // std::cout << current_pose_slave(0,0) << std::endl ;
-        // std::cout << current_pose_slave(1,0) << std::endl ;
-        // std::cout << current_pose_slave(2,0) << std::endl ;
-        // std::cout << current_pose_slave(3,0) << std::endl ;
-        // std::cout << current_pose_slave(4,0) << std::endl ;
-        // std::cout << current_pose_slave(5,0) << std::endl ;
-        // double test = current_pose_slave(5,0) ;
-        // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
-        // std::cout << "current_pose_slave:" << test << " previous_pose_slave previous:" << previous_pose_slave(5,0) << std::endl;
-        // std::cout << "yaw TO DEG:" << yaw*RAD_TO_DEG << " yaw previous TO DEG:" << yaw_slave_previous * RAD_TO_DEG << std::endl;
-        // std::cout << "current_pose_slave TO DEG (((:" << current_pose_slave(5,0)*RAD_TO_DEG << " previous_pose_slave previous TO DEG )))):" << previous_pose_slave(5,0) * RAD_TO_DEG << std::endl;
+
+        //    double test = current_pose_slave(5,0) ;
+        //        std::cout << "yaw:" << yaw << "                  yaw previous:" << yaw_slave_previous << std::endl;
+        //        std::cout << "current_pose_slave:" << test  << "                 previous_pose_slave previous:" << previous_pose_slave(5,0) << std::endl;
+        //        std::cout << "yaw TO DEG:" << yaw*RAD_TO_DEG  << "                  yaw previous TO DEG:" << yaw_slave_previous * RAD_TO_DEG << std::endl;
+        //        std::cout << "current_pose_slave TO DEG (((:" << current_pose_slave(5,0)*RAD_TO_DEG  << "             previous_pose_slave previous TO DEG )))):" << previous_pose_slave(5,0) * RAD_TO_DEG << std::endl;
+
         yaw_slave_previous=yaw;
     }
-    current_velocity_slave << msg->twist.twist.linear.x,
-            msg->twist.twist.linear.y,
-            msg->twist.twist.linear.z,
-            msg->twist.twist.angular.x,
-            msg->twist.twist.angular.y,
-            msg->twist.twist.angular.z;
+
+
     slave_new_readings=true;
     feedback();
     previous_pose_slave=current_pose_slave;
+
 }
+
+//void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+//{
+//    // Pose slave
+//    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.pose.orientation.w,
+//                                                       msg->pose.pose.orientation.x,
+//                                                       msg->pose.pose.orientation.y,
+//                                                       msg->pose.pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+//    double yaw = euler(0,0);
+//    double pitch = euler(1,0);
+//    double roll = euler(2,0);
+//    if(!init_slave_readings)
+//    {
+//        previous_pose_slave << msg->pose.pose.position.x,
+//                msg->pose.pose.position.y,
+//                msg->pose.pose.position.z,
+//                roll-previous_pose_slave(3,0),
+//                pitch-previous_pose_slave(4,0),
+//                yaw; // should be relative
+//        // std::cout << "previous_pose_slave:" << previous_pose_slave(5,0) << " yaw:" << yaw << std::endl;
+//        // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
+//        yaw_slave_previous=yaw;
+//        init_slave_readings=true;
+//        return;
+//    }
+//    else
+//    {
+//        // lastPositionUpdate = ros::Time::now().toSec();
+//        current_pose_slave << msg->pose.pose.position.x,
+//                msg->pose.pose.position.y,
+//                msg->pose.pose.position.z,
+//                roll-previous_pose_slave(3,0),
+//                pitch-previous_pose_slave(4,0),
+//                yaw_slave_previous; // should be relative
+//        // std::cout << "current_pose_slave:" << current_pose_slave(5,0) << " yaw_slave_previous:" << yaw_slave_previous << std::endl;
+//        // std::cout << current_pose_slave(0,0) << std::endl ;
+//        // std::cout << current_pose_slave(1,0) << std::endl ;
+//        // std::cout << current_pose_slave(2,0) << std::endl ;
+//        // std::cout << current_pose_slave(3,0) << std::endl ;
+//        // std::cout << current_pose_slave(4,0) << std::endl ;
+//        // std::cout << current_pose_slave(5,0) << std::endl ;
+//        // double test = current_pose_slave(5,0) ;
+//        // std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
+//        // std::cout << "current_pose_slave:" << test << " previous_pose_slave previous:" << previous_pose_slave(5,0) << std::endl;
+//        // std::cout << "yaw TO DEG:" << yaw*RAD_TO_DEG << " yaw previous TO DEG:" << yaw_slave_previous * RAD_TO_DEG << std::endl;
+//        // std::cout << "current_pose_slave TO DEG (((:" << current_pose_slave(5,0)*RAD_TO_DEG << " previous_pose_slave previous TO DEG )))):" << previous_pose_slave(5,0) * RAD_TO_DEG << std::endl;
+//        yaw_slave_previous=yaw;
+//    }
+//    current_velocity_slave << msg->twist.twist.linear.x,
+//            msg->twist.twist.linear.y,
+//            msg->twist.twist.linear.z,
+//            msg->twist.twist.angular.x,
+//            msg->twist.twist.angular.y,
+//            msg->twist.twist.angular.z;
+//    slave_new_readings=true;
+//    feedback();
+//    previous_pose_slave=current_pose_slave;
+//}
 void SlaveController::feedback()
 {
    // std::cout << " FEED BACK MASTER FUNCTION" << std::endl ;
    // std::cout << "Force normalized " << getfeedbackForceNorm() << std::endl ;
-    geometry_msgs::Twist twist_msg;
+    geometry_msgs::TwistStamped twist_msg;
+
+    geometry_msgs::Twist msg;
     if (control_event) // && force_stop(0,0) > -1.0 && !lastPositionUpdate) && (battery_per > 30) //
     {
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
         Eigen::Matrix<double,6,6> feeback_matrix = r * Kd.transpose() ;
-        double timeSample = 1 ; //0.05;
-        double xBoundry = 9*0.6 ;
-        double yBoundry = 5*0.6 ;
+//        double timeSample = 1 ; //0.05;
+//        double xBoundry = 9*0.6 ;
+//        double yBoundry = 5*0.6 ;
         //double forceNorm =sqrt(pow(feedbackForce(0,0),2) + pow(feedbackForce(0,1),2) + pow(feedbackForce(0,2),2)) ;
-        if(geoFence(timeSample,current_pose_slave,feeback_matrix ,xBoundry , yBoundry) || inCollison)
-        {
-            std::cout << "OUSDIE ###################" << std:: endl ;
-            twist_msg.linear.x=0.0;
-            twist_msg.linear.y=0.0;
-            twist_msg.linear.z=0.0;
-            twist_msg.angular.z=feeback_matrix(5,5);
-            master_new_readings=false;
-            slave_new_readings=false;
-        }
-        else
-        {
+//        if(geoFence(timeSample,current_pose_slave,feeback_matrix ,xBoundry , yBoundry) || inCollison)
+//        {
+//            std::cout << "OUSDIE ###################" << std:: endl ;
+//            twist_msg.linear.x=0.0;
+//            twist_msg.linear.y=0.0;
+//            twist_msg.linear.z=0.0;
+//            twist_msg.angular.z=feeback_matrix(5,5);
+//            master_new_readings=false;
+//            slave_new_readings=false;
+//        }
+//        else
+//        {
             std::cout << "INSIDE ********************" << std:: endl ;
-            twist_msg.linear.x=feeback_matrix(0,0);//+ feedbackForce(0);
-            twist_msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
-            twist_msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
-            twist_msg.angular.z=feeback_matrix(5,5);
+            msg.linear.x=feeback_matrix(0,0);//+ feedbackForce(0);
+            msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
+            msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
+            msg.angular.z=feeback_matrix(5,5);
             master_new_readings=false;
             slave_new_readings=false;
-        }
+     //   }
     }
+    twist_msg.twist = msg ;
+    twist_msg.header.stamp = ros::Time::now() ;
+
     cmd_pub.publish(twist_msg);
 }
 bool SlaveController::geoFence(double timeSample , Eigen::Matrix<double,6,1> currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry )

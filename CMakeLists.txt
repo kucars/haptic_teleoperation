@@ -26,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   gazebo_msgs
   geometry_msgs
-
+ cmake_modules
 
 
  )
@@ -47,8 +47,8 @@ find_package(octomap REQUIRED)
 
 generate_dynamic_reconfigure_options(
  # cfg/PIDController.cfg
- # cfg/MasterController.cfg
- # cfg/SlaveController.cfg
+  cfg/MasterController.cfg
+  cfg/SlaveController.cfg
   cfg/ForceField.cfg
  # cfg/potential_field.cfg
 
