@@ -56,6 +56,8 @@ using namespace fcl;
 //using namespace octomap;
 
 Eigen::Vector3d robotpose ;
+Eigen::Vector3d robotvel ;
+
 double poseQ[4] ;
 
 FCL_REAL extents [6] = {0, 0, 0, 10, 10, 10};
@@ -90,45 +92,44 @@ class LaserScanToPointCloud{
 public:
 
     ros::NodeHandle n_;
+
     laser_geometry::LaserProjection projector_;
     tf::TransformListener listener_;
-    //message_filters::Subscriber<sensor_msgs::LaserScan> laser_sub_;
-    //tf::MessageFilter<sensor_msgs::LaserScan> laser_notifier_;
-    //ros::Publisher laser_pub;
+
     ros::Subscriber laser_sub;
+    ros::Subscriber slave_pose_sub ;
+    ros::Subscriber slave_vel_sub;
+
     ros::Publisher vis_pub ;
+    ros::Publisher  vis_cube_pub ;
     ros::Publisher octmap_pub;
     ros::Publisher collide_F_pub ;
-    ros::Subscriber slave_pose_sub ;
-    ros::Publisher  vis_cude_pub ;
-    //  moveit_visual_tools::MoveItVisualToolsPtr visual_tools_;
+
+    double roll, pitch, yaw ;
 
     LaserScanToPointCloud(ros::NodeHandle n):n_(n)
     {
 
+        // subscribers
         laser_sub = n_.subscribe("/scan",1, &LaserScanToPointCloud::laserCallback, this);
-
-        //       slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
         slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
+        slave_vel_sub = n_.subscribe("/cmd_vel_des" , 100 ,&LaserScanToPointCloud::velCallback, this);
 
-        //laser_pub = n_.advertise<sensor_msgs::PointCloud2>("pointCloudObs", 10);
+        // Publishers
         vis_pub = n_.advertise<visualization_msgs::Marker>("Sphere", 1);
-        vis_cude_pub = n_.advertise<visualization_msgs::MarkerArray>("Cube", 1);
-
+        vis_cube_pub = n_.advertise<visualization_msgs::MarkerArray>("Cube", 1);
         octmap_pub = n_.advertise<octomap_msgs::Octomap>("octomap_rviz", 1);
         collide_F_pub = n_.advertise<std_msgs::Bool>("collision_flag",1) ;
 
-        //      visual_tools_.reset(new moveit_visual_tools::MoveItVisualTools("base_link","/moveit_visual_markers"));
+
 
     }
 
     void laserCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in)
     {
         double tstart= ros::Time::now().toSec() ;
-        //std::cout<<"LASER" << scan_in->header.frame_id << std::endl ;
         if(!listener_.waitForTransform(scan_in->header.frame_id,
                                        "world",
-                                       //"/uav/baselink_ENU",
                                        scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                                        ros::Duration(1.0)))
         {
@@ -138,46 +139,38 @@ public:
 
         sensor_msgs::PointCloud msg;
         //projector_.projectLaser(*scan_in, msg);
-        //projector_.transformLaserScanToPointCloud("/uav/base_link_ENU",*scan_in, msg,listener_);
-
         projector_.transformLaserScanToPointCloud("world",*scan_in, msg,listener_);
 
-
-
+        // create empty tree with resolution 0.1
         octomap::OcTree* st_tree = new octomap::OcTree(0.1);
-        //     OcTree st_tree (0.01); // create empty tree with resolution 0.1
         octomap::Pointcloud st_cld;
-         double t01 = ros::Time::now().toSec();
+        double t01 = ros::Time::now().toSec();
 
-	// visualization_msgs::MarkerArray marker_array ; // = rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
+        // filtring the laser data
         for(int i = 0;i<msg.points.size();i++){
             if( sqrt( ((msg.points[i].x - robotpose(0))*(msg.points[i].x-robotpose(0)))
-	      + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
-              + ((msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2)))) > 0.3
-	      && 
-              sqrt( ((msg.points[i].x-robotpose(0))*(msg.points[i].x-robotpose(0)))
-	      + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
-              + (msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2))) < 2)
+                      + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
+                      + ((msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2)))) > 0.3
+                    &&
+                    sqrt( ((msg.points[i].x-robotpose(0))*(msg.points[i].x-robotpose(0)))
+                          + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
+                          + (msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2))) < 2)
             {
                 octomap::point3d endpoint((float) msg.points[i].x,(float) msg.points[i].y,(float) msg.points[i].z);
-                //  visualization_msgs::Marker marker =  rviz_arrow(endpoint,i ,"tree");
-                //    marker_array.markers.push_back(marker);
                 st_cld.push_back(endpoint);
             }
             std::cout << "No Obstacles are recorded  " << std::endl ;
-           
-	      
         }
         
-         double t10 = ros::Time::now().toSec();
-         std::cout << "Operation Time for getting the distance between the robot and the obstcale: " << t10- t01 << std::endl ;
+        double t10 = ros::Time::now().toSec();
+        std::cout << "Operation Time for getting the distance between the robot and the obstcale: " << t10- t01 << std::endl ;
 
-        //visualization_markers_pub_map.publish(marker_array);
-        // maybe this should be th position of the robot
+        // maybe this should be the position of the robot
         octomap::point3d origin(0.0,0.0,0.0);
         st_tree->insertPointCloud(st_cld,origin);
         st_tree->updateInnerOccupancy();
         st_tree->writeBinary("static_occ.bt");
+
         // convert the octomap::octree to fcl::octree fcl_octree object
         OcTree* st_tree2 = new OcTree(boost::shared_ptr<const octomap::OcTree>(st_tree));
 
@@ -187,7 +180,6 @@ public:
         octomap.resolution =0.1;
         octomap.header.frame_id = "/map";
         octomap.header.stamp = ros::Time::now();
-
         bool res = octomap_msgs::fullMapToMsg(*st_tree, octomap);
         octmap_pub.publish(octomap) ;
 
@@ -201,9 +193,19 @@ public:
 
         Transform3f tf0;
         tf0.setIdentity();
-        tf0.setTranslation(Vec3f(robotpose(0),robotpose(1),robotpose(2)));
+        double timeSample = 1 ;
+        double x = robotpose(0) ;
+        double y = robotpose(1) ;
+        double speedInx = robotvel(0) ; // * sin(theta) ;
+        double speedIny = robotvel(1) ; //* cos(theta);
+        double xPrime = speedInx*cos(yaw)*timeSample ;
+        double yPrime = speedIny*sin(yaw)*timeSample ;
+        // the next step of the robot not the actual position
+        tf0.setTranslation(Vec3f(x+ xPrime,y+yPrime,robotpose(2)));
+       // tf0.setTranslation(Vec3f(robotpose(0),robotpose(1),robotpose(2)));
 
         CollisionObject co0(Shpere0, tf0);
+        // for visualization
         AABB a = co0.getAABB() ;
         Vec3f vec =  a.center() ;
         drawSphere( vec ) ;
@@ -217,22 +219,18 @@ public:
         for(size_t i = 0; i < boxes.size(); ++i)
         {
             CollisionObject* box =  boxes[i];
-            //bool res2 = solver.shapeIntersect(*Shpere0, tf0, box, tf1, &contact_points, &penetration_depth, &normal);
-            //std::cout << "res2" << res2 << std::endl ;
-            static const int num_max_contacts = std::numeric_limits<int>::max();//std::numeric_limits<int>::max();
+            static const int num_max_contacts = std::numeric_limits<int>::max();
             static const bool enable_contact = true ;
 
+            // for visualization
             AABB b = box->getAABB() ;
             Vec3f vec2 =  b.center();
 
-            visualization_msgs::Marker marker ; // = drawCUBE(vec2, i) ;
-           // marker_array.markers.push_back(marker);
+            visualization_msgs::Marker marker ;
             fcl::CollisionResult result;
             fcl::CollisionRequest request(num_max_contacts, enable_contact);
             fcl::collide(&co0, box, request, result);
-            //          vector<Contact> contacts;
-            //          result.getContacts(contacts);
-            //          std::cout << "size: " <<  contacts.size() << std::endl ;
+
             if (result.isCollision() == true )
             {
 
@@ -251,18 +249,17 @@ public:
                 collide_flag.data = false ;
                 collide_F_pub.publish(collide_flag) ;
             }
+
         }
-        vis_cude_pub.publish(marker_array);
+        vis_cube_pub.publish(marker_array);
         for(size_t i = 0; i < boxes.size(); ++i)
             delete boxes[i];
         double t2 = ros::Time::now().toSec();
         std::cout << "Operation Time is " << t2 - t1 << std::endl ;
 
-	std::cout << "time or call back function" << t2 - tstart << std::endl ;
+        std::cout << "time or call back function" << t2 - tstart << std::endl ;
     }
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_pose)
-
-    //    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_pose)
     {
         // std::cout << "get robot data " << std::endl ;
         robotpose(0) =  robot_pose->pose.position.x ;
@@ -272,17 +269,16 @@ public:
         poseQ[1] = robot_pose->pose.orientation.y;
         poseQ[2] = robot_pose->pose.orientation.z;
         poseQ[3] = robot_pose->pose.orientation.w;
-
-        //        robotpose(0) =  robot_pose->pose.pose.position.x ;
-        //        robotpose(1) =  robot_pose->pose.pose.position.y  ;
-        //        robotpose(2) =  robot_pose->pose.pose.position.z ;
-        //        poseQ[0] = robot_pose->pose.pose.orientation.x;
-        //        poseQ[1] = robot_pose->pose.pose.orientation.y;
-        //        poseQ[2] = robot_pose->pose.pose.orientation.z;
-        //        poseQ[3] = robot_pose->pose.pose.orientation.w;
+        tf::Quaternion q(poseQ[0], poseQ[1] ,poseQ[2],poseQ[3]);
+        tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
     }
 
-
+    void velCallback (const geometry_msgs::Twist::ConstPtr&  cmd_vel)
+    {
+        robotvel(0) =  cmd_vel->linear.x ;
+        robotvel(1) =  cmd_vel->linear.y  ;
+        robotvel(2) =  cmd_vel->linear.z ;
+    }
     void generateBoxesFromOctomap(std::vector<CollisionObject*>& boxes, OcTree& tree)
     {
 
@@ -303,12 +299,9 @@ public:
         }
         // std::cout << "boxes size: " << boxes.size() << std::endl;
     }
-
-
     void drawSphere(Vec3f vec )
     {
         visualization_msgs::Marker marker;
-        //marker.header.frame_id = "odom";
         marker.header.frame_id = "/uav/baselink_ENU";
         marker.header.stamp = ros::Time();
         marker.ns = "my_namespace";
@@ -334,8 +327,6 @@ public:
         marker.color.g = 0.0;
         marker.color.b = 0.0;
         marker.lifetime = ros::Duration(0.3);
-        //only if using a MESH_RESOURCE marker type:
-        //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
         vis_pub.publish( marker );
     }
 
@@ -379,28 +370,27 @@ public:
             marker.color.b = 0.0;
         }
 
-            marker.lifetime = ros::Duration(0.3);
-            //only if using a MESH_RESOURCE marker type:
-            //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
-            return marker ;
-        }
-
-    };
-
-    int main(int argc, char** argv)
-    {
-        ros::init(argc, argv, "my_scan_to_cloud");
-        ros::NodeHandle n;
-        ros::NodeHandle n_priv("~");
-        double freq;
-        n_priv.param<double>("frequency", freq, 100.0);
-        ros::Rate loop_rate(freq);
-        LaserScanToPointCloud lstopc(n);
-        std::cout << "Object created" << std::endl ;
-        while(ros::ok())
-        {
-            ros::spinOnce();
-            loop_rate.sleep();
-        }
-        return 0;
+        marker.lifetime = ros::Duration(0.3);
+        //only if using a MESH_RESOURCE marker type:
+        //marker.mesh_resource = "package://pr2_description/meshes/base_v0/base.dae";
+        return marker ;
     }
+};
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "Collision_Detection_node");
+    ros::NodeHandle n;
+    ros::NodeHandle n_priv("~");
+    double freq;
+    n_priv.param<double>("frequency", freq, 100.0);
+    ros::Rate loop_rate(freq);
+    LaserScanToPointCloud lstopc(n);
+    std::cout << "Object created" << std::endl ;
+    while(ros::ok())
+    {
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
+    return 0;
+}
