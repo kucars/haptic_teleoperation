@@ -55,11 +55,13 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     //slave_server.setCallback(slave_callback_type);
     // Feedback publish
 
-    cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+    cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/cmd_vel", 1);
+   // cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+
     // Master joint states subscriber
     master_sub = n_.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveController::masterJointsCallback, this);
     force_feedback_sub = n_.subscribe<geometry_msgs::PoseStamped>("/virtual_force_feedback", 1, &SlaveController::feedbackFocreCallback, this);
-    collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
+   //collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
     // Slave pose and velocity subscriber
     slave_sub = n_.subscribe("/ground_truth/state", 1, &SlaveController::slaveOdometryCallback, this);
     //force_feedback_sub = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback , this);
@@ -446,7 +448,9 @@ void SlaveController::feedback()
 {
    // std::cout << " FEED BACK MASTER FUNCTION" << std::endl ;
    // std::cout << "Force normalized " << getfeedbackForceNorm() << std::endl ;
-    geometry_msgs::Twist twist_msg;
+    geometry_msgs::TwistStamped twist_msg;
+
+    geometry_msgs::Twist msg;
     if (control_event) // && force_stop(0,0) > -1.0 && !lastPositionUpdate) && (battery_per > 30) //
     {
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
@@ -468,14 +472,17 @@ void SlaveController::feedback()
 //        else
 //        {
             std::cout << "INSIDE ********************" << std:: endl ;
-            twist_msg.linear.x=feeback_matrix(0,0);//+ feedbackForce(0);
-            twist_msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
-            twist_msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
-            twist_msg.angular.z=feeback_matrix(5,5);
+            msg.linear.x=feeback_matrix(0,0);//+ feedbackForce(0);
+            msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
+            msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
+            msg.angular.z=feeback_matrix(5,5);
             master_new_readings=false;
             slave_new_readings=false;
      //   }
     }
+    twist_msg.twist = msg ;
+    twist_msg.header.stamp = ros::Time::now() ;
+
     cmd_pub.publish(twist_msg);
 }
 bool SlaveController::geoFence(double timeSample , Eigen::Matrix<double,6,1> currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry )

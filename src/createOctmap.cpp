@@ -273,11 +273,11 @@ public:
         tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
     }
 
-    void velCallback (const geometry_msgs::Twist::ConstPtr&  cmd_vel)
+    void velCallback (const geometry_msgs::TwistStamped::ConstPtr&  cmd_vel)
     {
-        robotvel(0) =  cmd_vel->linear.x ;
-        robotvel(1) =  cmd_vel->linear.y  ;
-        robotvel(2) =  cmd_vel->linear.z ;
+        robotvel(0) =  cmd_vel->twist.linear.x ;
+        robotvel(1) =  cmd_vel->twist.linear.y  ;
+        robotvel(2) =  cmd_vel->twist.linear.z ;
     }
     void generateBoxesFromOctomap(std::vector<CollisionObject*>& boxes, OcTree& tree)
     {
