@@ -47,6 +47,9 @@
 #define KEYCODE_D 0x42
 #define KEYCODE_Q 0x71
 
+const double PI=3.14159265359;
+
+
 class RobotTeleop
 {
 public:
@@ -85,7 +88,7 @@ RobotTeleop::RobotTeleop():
   ph_.param("scale_angular", a_scale_, a_scale_);
   ph_.param("scale_linear", l_scale_, l_scale_);
   vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped>("/cmd_vel_test", 1);
-  pose_sub_ = nh_.subscribe("/mavros/vision_pose/pose" ,1, &RobotTeleop::poseCallback, this );
+  pose_sub_ = nh_.subscribe("/uav/pose_ENU_corr" ,1, &RobotTeleop::poseCallback, this );
   
 }
 
@@ -95,6 +98,10 @@ void RobotTeleop::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
   tf::Transform transform;
   tf::Quaternion q( msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z,msg->pose.orientation.w);
   tf::Matrix3x3(q).getRPY(roll, pitch, yaw);  
+ //   std::cout << "yaw" << yaw * 180 / PI << std::endl ;
+
+  
+  
 }
 
 
@@ -194,9 +201,9 @@ void RobotTeleop::keyLoop()
         break;
       case KEYCODE_D:
         ROS_DEBUG("DOWN");
-        linear_x = 0.0;
+        linear_x = -0.1;
 	linear_y = 0.0;
-	angular_z = 0.1; 
+	angular_z = 0.0; 
 
         break;
       case KEYCODE_Q:
@@ -219,13 +226,32 @@ void RobotTeleop::keyLoop()
 
 void RobotTeleop::publish(double linear_y, double linear_x , double angular_z)  
 {
+  std::cout << "linear_x" << linear_x << std::endl ;
+  std::cout << "linear_y" << linear_y << std::endl ;
+  std::cout << "angual_z" << angular_z << std::endl ;
+  
     geometry_msgs::TwistStamped vel;
     
     double r = sqrt((linear_x* linear_x) + (linear_y * linear_y)) ;
-    double theta = atan(linear_y / linear_x);
+    double theta ; 
+    if ( linear_x == 0  && linear_y < 0  )
+      theta = -PI/2 ;
+    else if (linear_x == 0  && linear_y > 0)
+       theta = PI/2 ; 
+    else if (linear_x > 0  && linear_y == 0 || (linear_x == 0  && linear_y == 0 ))
+      theta = 0 ;
+    else if ( linear_x <  0  && linear_y == 0 ) 
+      theta = -PI ;
+    else       
+      theta = atan(linear_y / linear_x);
     
     
     vel.twist.linear.x = r * cos(theta + yaw) ;
+    std::cout << "yaw" << yaw * 180 / PI << std::endl ;
+//   std::cout << "roll" << roll * 180 / PI << std::endl ;
+//    std::cout << "pitch" << pitch * 180 / PI << std::endl ;
+
+    std::cout << "theta" << theta << std::endl ; 
     vel.twist.linear.y = r * sin (theta + yaw);
     std::cout << "vel.twist.linear.x" << vel.twist.linear.x << std::endl ; 
     std::cout << "vel.twist.linear.y" << vel.twist.linear.y<< std::endl ; 
