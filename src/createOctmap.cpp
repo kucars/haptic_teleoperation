@@ -113,7 +113,7 @@ public:
         // subscribers
         laser_sub = n_.subscribe("/scan",1, &LaserScanToPointCloud::laserCallback, this);
         slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
-        slave_vel_sub = n_.subscribe("/cmd_vel_des" , 100 ,&LaserScanToPointCloud::velCallback, this);
+        slave_vel_sub = n_.subscribe("/uav/cmd_vel" , 100 ,&LaserScanToPointCloud::velCallback, this);
 
         // Publishers
         vis_pub = n_.advertise<visualization_msgs::Marker>("Sphere", 1);

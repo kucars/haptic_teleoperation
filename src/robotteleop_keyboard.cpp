@@ -72,7 +72,7 @@ private:
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
     double roll, pitch, yaw;
     boost::mutex publish_mutex_;
-    bool inCollision ;
+  //  bool inCollision ;
 
 };
 
@@ -86,9 +86,9 @@ RobotTeleop::RobotTeleop():
 {
     ph_.param("scale_angular", a_scale_, a_scale_);
     ph_.param("scale_linear", l_scale_, l_scale_);
-    vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped>("/cmd_vel_des", 1);
+    vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped>("/uav/cmd_vel", 1);
     pose_sub_ = nh_.subscribe("/mavros/vision_pose/pose" ,1, &RobotTeleop::poseCallback, this );
-    collision_flag = nh_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
+   // collision_flag = nh_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
 
 
 }
@@ -99,15 +99,15 @@ void RobotTeleop::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 }
 
-void RobotTeleop::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
-{
-    std::cout << "GET inCollison " << std::endl  ;
+//void RobotTeleop::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
+//{
+//    std::cout << "GET inCollison " << std::endl  ;
 
-    inCollision = _inCollision->data ;
+//    inCollision = _inCollision->data ;
 
-    std::cout << "inCollison" << inCollision << std::endl  ;
+//    std::cout << "inCollison" << inCollision << std::endl  ;
 
-}
+//}
 
 
 int kfd = 0;
@@ -205,9 +205,9 @@ void RobotTeleop::keyLoop()
             break;
         case KEYCODE_D:
             ROS_DEBUG("DOWN");
-            linear_x = 0.0;
+            linear_x = -0.1;
             linear_y = 0.0;
-            angular_z = 0.1;
+            angular_z = 0.0;
 
             break;
         case KEYCODE_Q:
@@ -233,24 +233,36 @@ void RobotTeleop::publish(double linear_y, double linear_x , double angular_z)
     geometry_msgs::TwistStamped vel;
     
 
-    if(inCollision)
-    {
-        vel.twist.linear.x = 0;
-        vel.twist.linear.y = 0;
-        vel.twist.angular.z = angular_z;
-    }
-    else {
-        double r = sqrt((linear_x* linear_x) + (linear_y * linear_y)) ;
+//    if(inCollision)
+//    {
+//        vel.twist.linear.x = 0;
+//        vel.twist.linear.y = 0;
+//        vel.twist.angular.z = angular_z;
+//    }
+//    else {
+//        double theta ;
+//        if(linear_x > 0 && linear_y ==0  )
+//            theta = 90 ;
+//        else if (linear_x < 0 && linear_y ==0 )
+//            theta = -90 ;
+//        else if (linear_y > 0 && linear_x == 0  )
+//            theta = 180 ;
+//        else if ( linear_y < 0 && linear_x ==0 )
+//            theta = 0  ;
+//        else
+//            theta = yaw ;
+//           // theta = atan(linear_y / linear_x);
 
-        if ( )
-            double theta = atan(linear_y / linear_x);
-        vel.twist.linear.x = r * cos(theta + yaw) ;
-        vel.twist.linear.y = r * sin (theta + yaw);
+        double r = sqrt((linear_x* linear_x) + (linear_y * linear_y)) ;
+        vel.twist.linear.x = r * cos(yaw) ;
+        vel.twist.linear.y = r * sin (yaw);
+
         std::cout << "vel.twist.linear.x" << vel.twist.linear.x << std::endl ;
         std::cout << "vel.twist.linear.y" << vel.twist.linear.y<< std::endl ;
+        vel.twist.angular.z = angular_z;
 
 
-    }
+//    }
 
     
     
