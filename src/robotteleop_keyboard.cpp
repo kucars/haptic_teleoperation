@@ -72,8 +72,6 @@ private:
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
     double roll, pitch, yaw;
     boost::mutex publish_mutex_;
-    double s_y  ;
-    double s_x  ;
 
   //  bool inCollision ;
 
@@ -108,17 +106,6 @@ void RobotTeleop::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
     
 }
 
-//void RobotTeleop::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
-//{
-//    std::cout << "GET inCollison " << std::endl  ;
-
-//    inCollision = _inCollision->data ;
-
-//    std::cout << "inCollison" << inCollision << std::endl  ;
-
-//}
-
-
 int kfd = 0;
 struct termios cooked, raw;
 
@@ -139,15 +126,10 @@ int main(int argc, char** argv)
     signal(SIGINT,quit);
 
     boost::thread my_thread(boost::bind(&RobotTeleop::keyLoop, &turtlebot_teleop));
-
-
     ros::Timer timer = n.createTimer(ros::Duration(10.0), boost::bind(&RobotTeleop::watchdog, &turtlebot_teleop));
-
     ros::spin();
-
     my_thread.interrupt() ;
     my_thread.join() ;
-
     return(0);
 }
 
@@ -201,29 +183,24 @@ void RobotTeleop::keyLoop()
             angular_z = 0.0;
             linear_x = 0.0;
             linear_y = 0.1;
-	    s_y = 1 ;
             break;
         case KEYCODE_R:
             ROS_DEBUG("RIGHT");
             angular_z = 0.0;
             linear_x = 0.0;
             linear_y = -0.1;
-	    s_y = -1 ;
-
             break;
         case KEYCODE_U:
             ROS_DEBUG("UP");
             linear_y = 0.0;
             angular_z = 0.0;
             linear_x = 0.1;
-	    s_x = 1;
             break;
         case KEYCODE_D:
             ROS_DEBUG("DOWN");
             linear_x = -0.1;
             linear_y = 0.0;
             angular_z = 0.0;
-	    s_x = -1; 
             break;
         case KEYCODE_Q:
             ROS_DEBUG("Emergancy");
@@ -246,26 +223,12 @@ void RobotTeleop::keyLoop()
 void RobotTeleop::publish(double linear_y, double linear_x , double angular_z)  
 {
     geometry_msgs::TwistStamped vel;
-    
-    
-    
         vel.twist.linear.x = linear_x*cos(yaw ) - linear_y * sin(yaw) ; 
-	
         vel.twist.linear.y = linear_x*sin (yaw) + linear_y * cos(yaw) ;
-
         std::cout << "vel.twist.linear.x" << vel.twist.linear.x << std::endl ;
         std::cout << "vel.twist.linear.y" << vel.twist.linear.y<< std::endl ;
         vel.twist.angular.z = angular_z;
-
-
-//    }
-
-    
-    
-
-    vel_pub_.publish(vel);
-
-
+	vel_pub_.publish(vel);
     return;
 }
 
