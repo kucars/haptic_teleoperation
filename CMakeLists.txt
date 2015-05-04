@@ -26,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   gazebo_msgs
   geometry_msgs
- cmake_modules
+ #cmake_modules
 
 
  )
