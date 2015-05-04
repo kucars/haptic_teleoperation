@@ -111,8 +111,8 @@ public:
     {
 
         // subscribers
-        laser_sub = n_.subscribe("/scan",1, &LaserScanToPointCloud::laserCallback, this);
-        slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
+        laser_sub = n_.subscribe("/scan",10, &LaserScanToPointCloud::laserCallback, this);
+        slave_pose_sub = n_.subscribe("mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
         slave_vel_sub = n_.subscribe("/uav/cmd_vel" , 100 ,&LaserScanToPointCloud::velCallback, this);
 
         // Publishers
@@ -150,11 +150,11 @@ public:
         for(int i = 0;i<msg.points.size();i++){
             if( sqrt( ((msg.points[i].x - robotpose(0))*(msg.points[i].x-robotpose(0)))
                       + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
-                      + ((msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2)))) > 0.3
+                      + ((msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2)))) > 0.5
                     &&
                     sqrt( ((msg.points[i].x-robotpose(0))*(msg.points[i].x-robotpose(0)))
                           + ((msg.points[i].y-robotpose(1))*(msg.points[i].y-robotpose(1)))
-                          + (msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2))) < 2)
+                          + (msg.points[i].z-robotpose(2))*(msg.points[i].z-robotpose(2))) < 4)
             {
                 octomap::point3d endpoint((float) msg.points[i].x,(float) msg.points[i].y,(float) msg.points[i].z);
                 st_cld.push_back(endpoint);
@@ -185,7 +185,7 @@ public:
 
 
         std_msgs::Bool collide_flag;
-        boost::shared_ptr<Box> Shpere0(new Box(1,1,1));
+        boost::shared_ptr<Box> Shpere0(new Box(2,2,2));
         //        GJKSolver_libccd solver;
         //        Vec3f contact_points;
         //        FCL_REAL penetration_depth;
@@ -216,6 +216,7 @@ public:
         generateBoxesFromOctomap(boxes, *st_tree2);
 
         visualization_msgs::MarkerArray marker_array ;
+	bool collisionDetected = false;
         for(size_t i = 0; i < boxes.size(); ++i)
         {
             CollisionObject* box =  boxes[i];
@@ -240,14 +241,13 @@ public:
                 // exit(0) ;
                 collide_flag.data = true ;
                 collide_F_pub.publish(collide_flag) ;
+		collisionDetected = true;
 
             }
             else
             {
                 marker = drawCUBE(vec2, i, 1) ;
                 marker_array.markers.push_back(marker);
-                collide_flag.data = false ;
-                collide_F_pub.publish(collide_flag) ;
             }
 
         }
@@ -255,9 +255,13 @@ public:
         for(size_t i = 0; i < boxes.size(); ++i)
             delete boxes[i];
         double t2 = ros::Time::now().toSec();
-        std::cout << "Operation Time is " << t2 - t1 << std::endl ;
-
-        std::cout << "time or call back function" << t2 - tstart << std::endl ;
+	if(!collisionDetected)
+	{
+	  collide_flag.data = false ;
+          collide_F_pub.publish(collide_flag) ;	  
+	}
+        std::cout << "Operation Time is: " << (t2 - t1)*1000.0f << std::endl ;
+        std::cout << "time or call back function: " << (t2 - tstart)*1000.0f << std::endl ;
     }
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_pose)
     {
