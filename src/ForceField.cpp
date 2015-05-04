@@ -96,9 +96,8 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
     }
     sensor_msgs::PointCloud cloud;
     //projector_.projectLaser(*scan_in, cloud);
-    projector_.transformLaserScanToPointCloud("base_link",*scan_in, cloud,listener_);
-    //projector_.transformLaserScanToPointCloud("Pioneer3AT/base_link",*scan_in, cloud,listener_);
-    cloud.header.frame_id = "base_link" ;
+    projector_.transformLaserScanToPointCloud("world",*scan_in, cloud,listener_);
+    cloud.header.frame_id = "world" ;
     //cloud.header.frame_id = "Pioneer3AT/base_link" ;   // GAZEBO
     std::cout << "cloud_size" << cloud.points.size() << std::endl;
     std::cout << "cloud_0" << cloud.points[0].x << std::endl;

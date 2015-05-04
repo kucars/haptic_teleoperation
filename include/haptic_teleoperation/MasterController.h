@@ -56,9 +56,10 @@ class MasterController : public Controller
 		// MASTER MEASUREMENTS
         void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
 
-		// SLAVE MEASUREMENTS
-		void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
-		//void MasterController::feedbackCallback(const geometry_msgs::Point::ConstPtr& force);
+        // SLAVE MEASUREMENTS
+        void slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+
+        //void MasterController::feedbackCallback(const geometry_msgs::Point::ConstPtr& force);
 
 		void feedback();
 

@@ -159,7 +159,7 @@ public:
                 octomap::point3d endpoint((float) msg.points[i].x,(float) msg.points[i].y,(float) msg.points[i].z);
                 st_cld.push_back(endpoint);
             }
-            std::cout << "No Obstacles are recorded  " << std::endl ;
+           // std::cout << "No Obstacles are recorded  " << std::endl ;
         }
         
         double t10 = ros::Time::now().toSec();
@@ -185,24 +185,33 @@ public:
 
 
         std_msgs::Bool collide_flag;
-        boost::shared_ptr<Box> Shpere0(new Box(2,2,2));
+        boost::shared_ptr<Box> Shpere0(new Box(1.5,1.5,1.5));
         //        GJKSolver_libccd solver;
         //        Vec3f contact_points;
         //        FCL_REAL penetration_depth;
         //        Vec3f normal;
 
+
+        visualization_msgs::MarkerArray marker_array ;
+        visualization_msgs::Marker marker ;
+
+
         Transform3f tf0;
         tf0.setIdentity();
-        double timeSample = 1 ;
+        double deltaT = 4;
         double x = robotpose(0) ;
         double y = robotpose(1) ;
         double speedInx = robotvel(0) ; // * sin(theta) ;
         double speedIny = robotvel(1) ; //* cos(theta);
-        double xPrime = speedInx*cos(yaw)*timeSample ;
-        double yPrime = speedIny*sin(yaw)*timeSample ;
+        double xPrime = speedInx*deltaT ;
+        double yPrime = speedIny*deltaT ;
+        std::cout << "Yaw " << yaw *180/M_PI  << std::endl ;
         // the next step of the robot not the actual position
-        tf0.setTranslation(Vec3f(x+ xPrime,y+yPrime,robotpose(2)));
-       // tf0.setTranslation(Vec3f(robotpose(0),robotpose(1),robotpose(2)));
+        tf0.setTranslation(Vec3f(x+xPrime, y+yPrime,robotpose(2)));
+        marker = drawCUBE(Vec3f(x+xPrime, y+yPrime,robotpose(2)),1000,3) ;
+
+        marker_array.markers.push_back(marker);
+
 
         CollisionObject co0(Shpere0, tf0);
         // for visualization
@@ -215,7 +224,6 @@ public:
         std::vector<CollisionObject*> boxes;
         generateBoxesFromOctomap(boxes, *st_tree2);
 
-        visualization_msgs::MarkerArray marker_array ;
 	bool collisionDetected = false;
         for(size_t i = 0; i < boxes.size(); ++i)
         {
@@ -227,7 +235,6 @@ public:
             AABB b = box->getAABB() ;
             Vec3f vec2 =  b.center();
 
-            visualization_msgs::Marker marker ;
             fcl::CollisionResult result;
             fcl::CollisionRequest request(num_max_contacts, enable_contact);
             fcl::collide(&co0, box, request, result);
@@ -237,7 +244,7 @@ public:
 
                 marker = drawCUBE(vec2,i,2) ;
                 marker_array.markers.push_back(marker);
-                std::cout << "inCollision " << std::endl ;
+                //std::cout << "inCollision " << std::endl ;
                 // exit(0) ;
                 collide_flag.data = true ;
                 collide_F_pub.publish(collide_flag) ;
@@ -260,8 +267,8 @@ public:
 	  collide_flag.data = false ;
           collide_F_pub.publish(collide_flag) ;	  
 	}
-        std::cout << "Operation Time is: " << (t2 - t1)*1000.0f << std::endl ;
-        std::cout << "time or call back function: " << (t2 - tstart)*1000.0f << std::endl ;
+      //  std::cout << "Operation Time is: " << (t2 - t1)*1000.0f << std::endl ;
+      //  std::cout << "time or call back function: " << (t2 - tstart)*1000.0f << std::endl ;
     }
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_pose)
     {
@@ -275,6 +282,8 @@ public:
         poseQ[3] = robot_pose->pose.orientation.w;
         tf::Quaternion q(poseQ[0], poseQ[1] ,poseQ[2],poseQ[3]);
         tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+        std::cout << "Yaw  from callback" << yaw *180/M_PI  << std::endl ;
+
     }
 
     void velCallback (const geometry_msgs::TwistStamped::ConstPtr&  cmd_vel)
@@ -367,11 +376,22 @@ public:
         {
             marker.color.r = 0.0;
             marker.color.b = 1.0;
+            marker.color.g = 0.0;
+
         }
-        else
+        else if(c_color == 2)
         {
             marker.color.r = 1.0;
             marker.color.b = 0.0;
+            marker.color.g = 0.0;
+
+        }
+        else
+        {
+            marker.color.r = 0.0;
+            marker.color.b = 0.0;
+            marker.color.g = 1.0;
+
         }
 
         marker.lifetime = ros::Duration(0.3);

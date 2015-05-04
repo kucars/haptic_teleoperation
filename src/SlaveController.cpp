@@ -54,7 +54,7 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     //slave_callback_type = boost::bind(&SlaveController::paramsCallback, this, _1, _2);
     //slave_server.setCallback(slave_callback_type);
     // Feedback publish
-    cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/cmd_vel", 1);
+    cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/uav/cmd_vel", 1);
     //cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 
     // Master joint states subscriber
