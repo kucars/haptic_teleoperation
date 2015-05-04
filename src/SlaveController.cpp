@@ -472,9 +472,9 @@ void SlaveController::feedback()
 //        else
 //        {
             std::cout << "INSIDE ********************" << std:: endl ;
-            msg.linear.x=feeback_matrix(0,0);//+ feedbackForce(0);
-            msg.linear.y=feeback_matrix(1,1);// + feedbackForce(1);
-            msg.linear.z=feeback_matrix(2,2);// + feedbackForce(2);
+            msg.linear.x=(feeback_matrix(0,0) *cos(current_pose_slave(5,0)) )- (feeback_matrix(1,1) * sin(current_pose_slave(5,0))) ;//+ feedbackForce(0);
+            msg.linear.y=(feeback_matrix(0,0) *sin(current_pose_slave(5,0))) + (feeback_matrix(1,1) * cos(current_pose_slave(5,0)) );// + feedbackForce(1);
+            msg.linear.z= 0 ;// + feedbackForce(2);
             msg.angular.z=feeback_matrix(5,5);
             master_new_readings=false;
             slave_new_readings=false;
