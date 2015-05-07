@@ -9,7 +9,9 @@ int main(int argc, char **argv)
     n_priv.param<double>("frequency", freq, 50.0);
     ros::Rate loop_rate(freq);
 
-    double gain = 0.5 ;
+    //double gain = 0.5 ;
+    double gain = 1.0 ;
+
     VirtualForceBrf brf_obj(n);
     brf_obj.setGain(gain) ;
 

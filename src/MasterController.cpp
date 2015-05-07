@@ -65,7 +65,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     // Slave pose and velocity subscriber from ( gazebo or the real robot)
     //slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
   //  slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
-    slave_sub = n_.subscribe("/ground_truth/state", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+    slave_sub = n_.subscribe("/mavros/vision_pose/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
 
     // subscribe for the environmental force from the potential fieldFp
     force_feedback_sub  = n_.subscribe("/virtual_force_feedback" , 1, &MasterController::getforce_feedback   , this);
@@ -96,7 +96,7 @@ void MasterController::initParams()
     double fp_z;
     double fp_roll;
     double fp_pitch;
-    double Fp_yaw;
+    double fp_yaw;
 
     //initialize operational parameters
     n_priv.param<double>("frequency", freq, 10.0);
@@ -226,7 +226,7 @@ void MasterController::paramsCallback(haptic_teleoperation::MasterControllerConf
             config.bd_roll,
             config.bd_pitch,
             config.bd_yaw;
-//    Fp << fp_x, fp_y, fp_z, fp_roll,fp_pitch, Fp_yaw;
+    Fp << config.fp_x, config.fp_y, config.fp_z, config.fp_roll,config.fp_pitch, config.fp_yaw;
 
     lambda << config.lambda_x, 0, 0, 0 ,0, 0,
             0, config.lambda_y, 0, 0, 0, 0,
@@ -381,7 +381,7 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
                 msg->pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
-                yaw; // should be relative
+                yaw_slave_previous; // should be relative
         preTime = ros::Time::now().toSec() ;
         yaw_slave_previous=yaw;
         init_slave_readings=true;
@@ -493,9 +493,13 @@ void MasterController::feedback()
 //    force_msg.force.y=feedback_matrix(2,2); // sign problem again
 //    force_msg.force.z=feedback_matrix(0,0);
 
+//    force_msg.force.x=feedback_matrix(1,1);
+//    force_msg.force.y=feedback_matrix(2,2); // sign problem again
+//    force_msg.force.z=feedback_matrix(0,0);
+
     force_msg.force.x=feedback_matrix(1,1);
     force_msg.force.y=feedback_matrix(2,2); // sign problem again
-    force_msg.force.z=feedback_matrix(0,0);
+    force_msg.force.z=feedback_matrix(0,0); //feedback_matrix(0,0);
 
     master_new_readings=false;
     slave_new_readings=false;

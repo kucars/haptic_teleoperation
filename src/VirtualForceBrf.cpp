@@ -18,7 +18,11 @@ Eigen::Vector3d VirtualForceBrf::getForcePoint (geometry_msgs::Point32 & c_curre
     Eigen::Vector3d obsVector;
     obsVector(0) = c_current.x ;
     obsVector(1)=  c_current.y ;
-    obsVector(2) = 0 ;
+    obsVector(2) = c_current.z ;
+
+//    obsVector(0) =  c_current.x * cos(yaw) - c_current.y * sin(yaw)  + CurrentRobotPose(0)  ;
+//    obsVector(1)=  c_current.x * sin(yaw) + c_current.y * cos(yaw) + CurrentRobotPose(1)  ;
+//    obsVector(2) = c_current.z + CurrentRobotPose(2) ;
 
     double obsMag = sqrt(pow(c_current.x, 2) + pow(c_current.y , 2) + pow(c_current.z , 2)) ;
 

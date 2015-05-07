@@ -207,8 +207,8 @@ public:
         double yPrime = speedIny*deltaT ;
         std::cout << "Yaw " << yaw *180/M_PI  << std::endl ;
         // the next step of the robot not the actual position
-        tf0.setTranslation(Vec3f(x+xPrime, y+yPrime,robotpose(2)));
-        marker = drawCUBE(Vec3f(x+xPrime, y+yPrime,robotpose(2)),1000,3) ;
+        tf0.setTranslation(Vec3f(robotpose(0) +xPrime, robotpose(1) +yPrime,robotpose(2)));
+        marker = drawCUBE(Vec3f(robotpose(0) +xPrime, robotpose(1) +yPrime,robotpose(2)),1000,3) ;
 
         marker_array.markers.push_back(marker);
 

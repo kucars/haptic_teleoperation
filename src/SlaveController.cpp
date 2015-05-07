@@ -307,7 +307,7 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     // x and y are mirrored
     // angles are relative
     current_pose_master <<
-                           (-x_master + master_min(0,0)+master_max(0,0)),
+            (-x_master + master_min(0,0)+master_max(0,0)),
             (-y_master + master_min(1,0)+master_max(1,0)),
             z_master,
             0.0,
@@ -339,7 +339,7 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
 void SlaveController::slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
     // Pose slave
 
-    std::cout << " slaveOdometryCallback" << std::endl ;
+    //std::cout << " slaveOdometryCallback" << std::endl ;
 
     Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
                                                        msg->pose.orientation.x,
@@ -372,8 +372,8 @@ void SlaveController::slaveOdometryCallback(const geometry_msgs::PoseStamped::Co
                 msg->pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
-                yaw ; // I dont know if this is right or not :S
-        //yaw_slave_previous; // should be relative
+                yaw_slave_previous; // should be relative
+
 
         std::cout << "current_pose_slave(5,0)" << current_pose_slave(5,0) << std::endl ;;
 
@@ -477,17 +477,17 @@ void SlaveController::feedback()
         //        }
         //        else
         //        {
-        std::cout << "INSIDE ********************" << std:: endl ;
+       // std::cout << "INSIDE ********************" << std:: endl ;
         double vx = feeback_matrix(0,0) ;
         double vy =  feeback_matrix(1,1)  ;
         double theta = current_pose_slave(5,0) ;
-        std::cout << "theta: " << theta * 180 / 3.14 << std::endl  ;
+      //  std::cout << "theta: " << theta * 180 / 3.14 << std::endl  ;
         msg.linear.x=(vx *cos(theta) )- (vy* sin(theta)) ;
-        msg.linear.y=(vx *sin(theta)) + (vy * cos(theta) );
+        msg.linear.y=(vx *sin(theta)) + (vy * cos(theta));
         msg.linear.z= 0 ;
 
-        std::cout << "The Input velocity in x: " << vx << "The output velocity in x: " <<  msg.linear.x << std::endl ;
-        std::cout << "The input velocity in y: "<<  vy << "The output velocity in y:" <<  msg.linear.y << std::endl ;
+       // std::cout << "The Input velocity in x: " << vx << "The output velocity in x: " <<  msg.linear.x << std::endl ;
+      //  std::cout << "The input velocity in y: "<<  vy << "The output velocity in y:" <<  msg.linear.y << std::endl ;
 
         msg.angular.z=feeback_matrix(5,5);
 

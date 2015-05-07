@@ -47,7 +47,10 @@ int main(int argc, char **argv)
 //        robotVel(0) = 0 ;
 //        robotVel(1) = 0 ;
 //        robotVel(2) = 0 ;
+        std::cout << "Creatred Object " << std::endl ;
+
         VirtualImpedanceForce obj(n ,kp, kd);
+
         //obj.setInitFlag(false);
        // obj.runTestVirtualImpedance() ;
     // ******************* End **********************************//

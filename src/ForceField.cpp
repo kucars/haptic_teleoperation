@@ -31,34 +31,75 @@
 ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 {
     init_flag = true;
-    std::cout << "parent constructor" << std::endl;
-    virtual_force_pub = n_.advertise<geometry_msgs::PoseStamped>("/virtual_force_feedback", 100);
-    // virtual_force_pub = n_.advertise<geometry_msgs::Twist>("/Pioneer3AT/cmd_vel", 100); // GAZEBO
-    laser_pub = n_.advertise<sensor_msgs::PointCloud>("pointCloudObs", 100);
-    //laser_sub = n_.subscribe("/Pioneer3AT/laserscan" , 1, &ForceField::laserCallback, this);  // GAZEBO
-    laser_sub = n_.subscribe("/scan",1, &ForceField::laserCallback, this);
-    std::cout << "reading /scan" << std::endl;
-    slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this );
+    init_flag_pose = true;
 
-    //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this );
-    // slave_pose_sub = n_.subscribe("/Pioneer3AT/pose" , 100 , &ForceField::poseCallback, this ); // GAZEBO
+    std::cout << "parent constructor" << std::endl;
+
+
+    laser_sub = n_.subscribe("/scan",1, &ForceField::laserCallback, this);
+
+    slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 , &ForceField::poseCallback, this );
+
+    //slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this);
+    //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this);
+    // slave_pose_sub = n_.subscribe("/Pioneer3AT/pose" , 100 , &ForceField::poseCallback, this); // GAZEBO
+
+    laser_pub = n_.advertise<sensor_msgs::PointCloud>("pointCloudObs", 100);
+    virtual_force_pub = n_.advertise<geometry_msgs::PoseStamped>("/virtual_force_feedback", 100);
     visualization_markers_pub = n_.advertise<visualization_msgs::MarkerArray>("risk_vector_marker", 1);
-    std::cout << "build" << std::endl;
-    //maxFF = 0;
-    //minFF = 1000000 ;
+
+    std::cout << "test" << std::endl;
+
 }
 
-void ForceField::poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity)
+void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_state)
 {
+    double preT, nowT ;
     Eigen::Vector3d robotVel ;
-    std::cout << "get robot velocity " << std::endl ;
-    // robotVel(0) = 0 ;
-    // robotVel(1) = 0 ;
-    // robotVel(2) = 0 ;
-    robotVel(0) =  robot_velocity->twist.twist.linear.x ;
-    robotVel(1) =  robot_velocity->twist.twist.linear.y  ;
-    robotVel(2) =  robot_velocity->twist.twist.linear.z ;
-    setRobotVelocity(robotVel) ;
+    // std::cout << "get robot velocity " << std::endl ;
+    if(init_flag_pose)
+    {
+        PreRobotPose(0) = robot_state->pose.position.x ;
+        PreRobotPose(1) = robot_state->pose.position.y ;
+        PreRobotPose(2) = robot_state->pose.position.z ;
+        preT = ros::Time::now().toSec() ;
+        init_flag_pose = false ;
+        std::cout << "Init_flag "   << std::endl ;
+        poseQ[0] = robot_state->pose.orientation.x;
+        poseQ[1] = robot_state->pose.orientation.y;
+        poseQ[2] = robot_state->pose.orientation.z;
+        poseQ[3] = robot_state->pose.orientation.w;
+        return ;
+    }
+
+    else
+    {
+        nowT = ros::Time::now().toSec() ;
+        CurrentRobotPose(0) = robot_state->pose.position.x ;
+        CurrentRobotPose(1) = robot_state->pose.position.y ;
+        CurrentRobotPose(2) = robot_state->pose.position.z ;
+
+        robotVel(0) =  CurrentRobotPose(0) - PreRobotPose(0) / (nowT - preT) ;
+        robotVel(1) =  CurrentRobotPose(1) - PreRobotPose(1)  / (nowT - preT)  ;
+        robotVel(2) =  CurrentRobotPose(2) - PreRobotPose(2) / (nowT - preT) ;
+
+        setRobotVelocity(robotVel) ;
+        PreRobotPose  = CurrentRobotPose ;
+        preT = ros::Time::now().toSec() ;
+
+        poseQ[0] = robot_state->pose.orientation.x;
+        poseQ[1] = robot_state->pose.orientation.y;
+        poseQ[2] = robot_state->pose.orientation.z;
+        poseQ[3] = robot_state->pose.orientation.w;
+
+
+
+    }
+    // std::cout << "qx: " << poseQ[0] << " qy: " <<poseQ[1] << std::endl ;
+    tf::Quaternion q(poseQ[0], poseQ[1] ,poseQ[2],poseQ[3]);
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    //std::cout << "Yaw from callback  " << yaw * 180 / PI << std::endl ;
+
 }
 
 
@@ -86,22 +127,18 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 
     // Transformation
     if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                   "world",
-                                   // "Pioneer3AT/base_link",  // GAZEBO
-                                   //                              //ros::Time::now(),
+                                   "uav/baselink_ENU",
                                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                                    ros::Duration(1.0))){
         std::cout << "RETURN" << std::endl ;
         return;
     }
     sensor_msgs::PointCloud cloud;
-    //projector_.projectLaser(*scan_in, cloud);
-    projector_.transformLaserScanToPointCloud("world",*scan_in, cloud,listener_);
-    cloud.header.frame_id = "world" ;
-    //cloud.header.frame_id = "Pioneer3AT/base_link" ;   // GAZEBO
-    std::cout << "cloud_size" << cloud.points.size() << std::endl;
-    std::cout << "cloud_0" << cloud.points[0].x << std::endl;
+    projector_.transformLaserScanToPointCloud("uav/baselink_ENU",*scan_in, cloud,listener_);
 
+    cloud.header.frame_id = "uav/baselink_ENU" ;
+    std::cout << "cloud_size" << cloud.points.size() << std::endl;
+    std::cout << "cloud_0 :" << cloud.points[0].x << std::endl;
     cloud.header.stamp = ros::Time::now();
     laser_pub.publish(cloud) ;
 
@@ -114,58 +151,92 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 
 void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions_current)
 {
-
-    int maxIndex = 0 ;
-    int minIndex = 0 ;
-    double maxFF ;
-    double minFF ;
-
-    double F ;
     std::cout << "computeForceField" << std::endl ;
-    resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+    Eigen::Vector3d resulting_force ;
     std::vector<Eigen::Vector3d> force_field;
+    std::vector<Eigen::Vector3d> oop;
+
     unsigned int aux_it = obstacles_positions_current.points.size();
     std::cout << "aux1" << aux_it <<  std::endl ;
-
     if (aux_it != 0 )
     {
         std::cout << "laser data" <<   std::endl ;
-
-        for(int i=0; i<aux_it; ++i)
+        int count = 0 ;
+        for(int i=0; i<aux_it; i=i+10)
         {
+            double obsMag = sqrt(pow(obstacles_positions_current.points[i].x, 2) + pow(obstacles_positions_current.points[i].y , 2) + pow(obstacles_positions_current.points[i].z , 2)) ;
+            if(obsMag <= 3.0 && obsMag >= 0.3)
+            {
+                Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current.points[i], getRobotVelocity()) ;
+                std::cout << "f on x  " << f(0)  << std::endl ;
+                std::cout << "f on y  " << f(1)  << std::endl ;
+                std::cout << "f on z  " << f(2)  << std::endl ;
 
-            Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current.points[i], getRobotVelocity()) ;
-            force_field.push_back(f);
-            resulting_force+=force_field[i];
+                Eigen::Vector3d dis ;
+                dis(0) = obstacles_positions_current.points[i].x ;
+                dis(1) = obstacles_positions_current.points[i].y ;
+                dis(2) = obstacles_positions_current.points[i].z ;
+                force_field.push_back(f);
+                oop.push_back(dis) ;
+                count++;
+                std::cout << "count:" << count <<std::endl ;
+                std::cout << " distance_x " << dis(0) << std::endl ;
+                std::cout << " distance y " << dis(1) << std::endl ;
+                std::cout << " distance z " << dis(2) << std::endl ;
+                resulting_force(0)=resulting_force(0) + f(0) ;
+                resulting_force(1)=resulting_force(1) + f(1) ;
 
-            resulting_force = resulting_force/aux_it ;
+                resulting_force(2)=resulting_force(2) + f(2) ;
+
+                std::cout << "  0      " << count <<std::endl ;
+                std::cout << " frx " << resulting_force(0) << std::endl ;
+                std::cout << " fr y " << resulting_force(1) << std::endl ;
+                std::cout << " fz z " << resulting_force(2) << std::endl ;
+
+            }
+            else{
+
+                std::cout << "out of range *****************************" << std::endl ;
+                continue ;
+            }
 
         }
+        if (count == 0 )
+        {
+            std::cout << "  1"  <<std::endl ;
+            resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
 
+        }
+        else
+        {
+            std::cout << "2: "  <<std::endl ;
+            resulting_force(0) = resulting_force(0)/count ;
+            resulting_force(1) = resulting_force(1)/count ;
+            resulting_force(2) = resulting_force(2)/count ;
+
+        }
     }
     else
     {
+        std::cout << " 3: "  <<std::endl ;
+
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
         std::cout << "zero force no obstacles " << std::endl ;
     }
+    std::cout << "  4: " <<std::endl ;
 
+   // resulting_force=Eigen::Vector3d(1.0,1.0,1.0);
 
-    if( init_flag)
-    {
-        std::cout << " RETURN &&&&&&&&&&&&&&&&&&&&&&&&&&" << std::endl ;
-        pre_resulting_force = resulting_force ;
-        init_flag = false ;
-        return ;
-
-    }
     double f = resulting_force.norm() ;
-    std::cout << " resulting force magnitude  " << F << std::endl ;
-    geometry_msgs::Point32 point; point.x = 0.0 ; point.y = 0.0 ; point.z =0.0;
-    visualization_msgs::MarkerArray marker_array= rviz_arrows(force_field, obstacles_positions_current, std::string("potential_field"));
-    visualization_msgs::Marker marker=rviz_arrow(resulting_force, point, 0, std::string("resulting_risk_vector"));
+    std::cout << " resulting force norm" <<  f << std::endl ;
+
+    geometry_msgs::Point32 point;
+    //Eigen::Vector3d point ( 0, 0 ,0) ;
+    point.x = 0.0 ; point.y = 0.0 ; point.z =0.0;
+    visualization_msgs::MarkerArray marker_array= rviz_arrows(force_field, oop, std::string("potential_field"));
+    visualization_msgs::Marker marker=rviz_arrow(resulting_force, point, 10000, std::string("resulting_risk_vector"));
     marker_array.markers.push_back(marker);
     visualization_markers_pub.publish(marker_array);
-
 }
 
 void ForceField::feedbackMaster()
@@ -198,12 +269,29 @@ Eigen::Vector3d ForceField::getForcePoint(geometry_msgs::Point32  & c_current, E
 
 
 // ********************************* visualization **************************************************************
-visualization_msgs::MarkerArray ForceField::rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space)
+//visualization_msgs::MarkerArray ForceField::rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space)
+//{
+//    visualization_msgs::MarkerArray marker_array;
+//    for(int i=0; i< arrows.size();i=i+30)
+//    {
+//        marker_array.markers.push_back(rviz_arrow(arrows[i], arrows_origins.points[i], (i+1), name_space));
+
+//    }
+//    return marker_array;
+//}
+
+
+visualization_msgs::MarkerArray ForceField::rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const std::vector<Eigen::Vector3d> & arrows_origins, std::string name_space)
 {
     visualization_msgs::MarkerArray marker_array;
-    for(int i=0; i< arrows.size();i=i+30)
+    for(int i=0; i< arrows.size();i=i++)
     {
-        marker_array.markers.push_back(rviz_arrow(arrows[i], arrows_origins.points[i], (i+1), name_space));
+        geometry_msgs::Point32 a;
+        a.x = arrows_origins[i].x() ;
+        a.y = arrows_origins[i].y();
+        a.z = arrows_origins[i].z();
+
+        marker_array.markers.push_back(rviz_arrow(arrows[i], a , (i+1), name_space));
 
     }
     return marker_array;
@@ -211,6 +299,7 @@ visualization_msgs::MarkerArray ForceField::rviz_arrows(const std::vector<Eigen:
 
 visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow, const  geometry_msgs::Point32 & arrow_origin , int id, std::string name_space )
 {
+
     Eigen::Quaternion<double> rotation;
     if(arrow.norm()<0.0001)
     {
@@ -230,7 +319,7 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
     //marker.header.frame_id = "laser0_frame";
     //marker.header.stamp = ros::Time::now();
     marker.id = id;
-    if(id==0)
+    if(id==10000)
     {
         marker.color.r = 0.0;
         marker.color.g = 0.0;
@@ -249,6 +338,7 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
     marker.pose.position.x = arrow_origin.x;
     marker.pose.position.y = arrow_origin.y;
     marker.pose.position.z = arrow_origin.z;
+
     marker.pose.orientation.x = rotation.x();
     marker.pose.orientation.y = rotation.y();
     marker.pose.orientation.z = rotation.z();
@@ -262,8 +352,12 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
     }
     else
     {
-        marker.scale.x = arrow.x(); //norm();
-        marker.scale.y = arrow.y();//0.1;
+        marker.scale.x = arrow.norm() ; //arrow.x(); //norm();
+        marker.scale.y = 0.1 ; //arrow.y();//0.1;//    marker.pose.orientation.x = rotation.x();
+        //    marker.pose.orientation.y = rotation.y();
+        //    marker.pose.orientation.z = rotation.z();
+        //    marker.pose.orientation.w = rotation.w();
+
         marker.scale.z = 0.1;
     }
     marker.color.a = 1.0;

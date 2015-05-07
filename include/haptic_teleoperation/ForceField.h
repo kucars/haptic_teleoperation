@@ -75,6 +75,16 @@ public:
     Eigen::Vector3d pre_resulting_force;
 
     geometry_msgs::PoseStamped msg ;
+
+
+
+    double roll, pitch , yaw ;
+
+    double poseQ[4];
+    Eigen::Vector3d PreRobotPose ;
+    Eigen::Vector3d CurrentRobotPose ;
+
+
     //Eigen::Vector3d preResultingForce;
     // geometry_msgs::Point32 &  c_previous ;
     // params
@@ -93,14 +103,16 @@ public:
 
     // ************ helping functions ********************************** //
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
-    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
+    //void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
+    void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_velocity) ;
+
     //    void pointCloudCallback(const sensor_msgs::PointCloud::ConstPtr& msg); // I may use this one
 
 
     // ******************* viviualization ****************
-    visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space);
+    //visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space);
     visualization_msgs::Marker rviz_arrow(const Eigen::Vector3d & arrow, const geometry_msgs::Point32 & arrow_origin, int id, std::string name_space ) ;
-
+    visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const std::vector<Eigen::Vector3d> & arrows_origins, std::string name_space);
     //********* PRF run test functions ************** //
     void runTestPrf(string namOftest);
     String testName(double dmin, double amax , double rpz ,double tahead, int numberOftest ,  double vel );
@@ -117,13 +129,19 @@ public:
     // virtual
     virtual Eigen::Vector3d getForcePoint(geometry_msgs::Point32 & c_current, Eigen::Vector3d robot_velocity) ;
 
+    double distanse (double x , double y , double z)
+    {
+        sqrt(pow(x,2) + pow(y,2) + pow(z,2)) ;
+    }
+
     void setRobotVelocity(Eigen::Vector3d robotVel)
     {
         robotVelocity(0) = robotVel(0) ;
         robotVelocity(1) = robotVel(1) ;
         robotVelocity(2) = robotVel(2) ;
-
     }
+
+
 
     Eigen::Vector3d getRobotVelocity()
     {
@@ -135,7 +153,12 @@ protected:
     ros::NodeHandle n;
     ros::NodeHandle n_priv;
     Eigen::Vector3d robotVelocity ;
+
     bool init_flag ;
+    bool init_flag_pose ;
+
+
+
 };
 
 #endif 
