@@ -51,6 +51,8 @@ public:
     ros::NodeHandle n_priv;
 
     ros::Publisher cmd_pub;
+    ros::Publisher omni_pub;
+
     ros::Publisher lock_pub;
     ros::Publisher haptic_pub ;
     ros::Subscriber master_sub;

@@ -53,7 +53,7 @@ MasterController::MasterController(ros::NodeHandle & n_,
     master_server.setCallback(master_callback_type);
 
     // Feedback publish to the haptic device
-    cmd_pub = n_.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
+    omni_pub = n_.advertise<phantom_omni::OmniFeedback>("/omni1_force_feedback", 1);
     lock_pub = n_.advertise<std_msgs::Bool>("/lock", 1);
 
     // haptic position publisher in linear coordinates
@@ -248,7 +248,7 @@ void MasterController::paramsCallback(haptic_teleoperation::MasterControllerConf
 ////    feedback_fore[3][1] = force.z() ;
 ////}
 //}
-void MasterController::getforce_feedback(const geometry_msgs::PoseStamped::ConstPtr & force)
+void MasterController::getforce_feedback(const geometry_msgs::PoseStamped::ConstPtr& force)
 {
 
     force_auto <<  force->pose.position.x,
@@ -355,7 +355,7 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
     // haptic_position.twist.twist.linear.x = current_velocity_master(0,1) ;
     // haptic_position.twist.twist.linear.x = current_velocity_master(0,2) ;
     master_new_readings=true;
-    feedback();
+    //feedback();
     previous_pose_master=current_pose_master;
 
 }
@@ -418,11 +418,11 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
             (current_pose_slave(5,0)-previous_pose_slave(5,0)/(nowTime - preTime)-slave_velocity_min(5,0)) * slave_velocity_master_pose_scale(5,0) + master_min(5,0);
 
     //std::cout << "current_velocity_slave:"<<current_velocity_slave(0,0) << " " << msg->twist.twist.linear.x << " " << master_min(0,0)<< " " << master_max(0,0)<< std::endl;
-    //    std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
+    //std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
 
 
     slave_new_readings=true;
-   // feedback();
+    feedback();
     previous_pose_slave=current_pose_slave;
 }
 
@@ -451,59 +451,22 @@ void MasterController::feedback()
     if(control_event )
     {
 
-        std::cout << " CONTROLLER _ M " << std::endl ;
-
-        //Eigen::Matrix<double,6,1> r=current_velocity_master+lambda*current_pose_master;
         Eigen::Matrix<double,6,1> r=current_pose_master;
-       // Eigen::Matrix<double,6,6> Human_force = current_pose_master*Km_1.transpose() + current_velocity_master *Km_2.transpose()  ;
-
         feedback_matrix += ((current_pose_slave_scaled -  current_pose_master) * Kp.transpose() +
                 (current_velocity_slave -  r)                   * Kd.transpose() +
-                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe ) ; // Human_force - Fe
-       // if(current_pose_master(0,0) > 0.0)
-       // feedback_matrix += (current_pose_slave_scaled -  (current_velocity_slave * 10 +   current_pose_master) )* Kp.transpose() +
-         //       (current_velocity_slave -  r)                   * Kd.transpose() +
-           //     (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() ; // Human_force - Fe
-        //std_msgs::Bool lock_state ;
-        //lock_state.data = false ;
-       // lock_pub.publish(lock_state) ;
+                (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe ) ;
     }
-
-//    else
-//    {
-
-//          std_msgs::Bool lock_state ;
-//          lock_state.data = true;
-//          lock_pub.publish(lock_state) ;
-////        feedback_matrix (0,0) = 0.0;
-////        feedback_matrix (1,1) = 0.0 ;
-////        feedback_matrix (2,2) = 0.0 ;
-
-////        feedback_matrix (0,0) = -0.2 ;
-////        feedback_matrix (1,1) =  0.0 ;
-////        feedback_matrix (2,2) = -0.9 ;
-
-////        feedback_matrix (0,0) = -0.9 ;
-////        feedback_matrix (1,1) =  -0.9 ;
-////        feedback_matrix (2,2) = -0.8 ;
-//    }
-
-    // mapping the force to the joints
-//    force_msg.force.x=0.1*feedback_matrix(1,1);
-//    force_msg.force.y=feedback_matrix(2,2); // sign problem again
-//    force_msg.force.z=feedback_matrix(0,0);
-
-//    force_msg.force.x=feedback_matrix(1,1);
-//    force_msg.force.y=feedback_matrix(2,2); // sign problem again
-//    force_msg.force.z=feedback_matrix(0,0);
 
     force_msg.force.x=feedback_matrix(1,1);
     force_msg.force.y=feedback_matrix(2,2); // sign problem again
     force_msg.force.z=feedback_matrix(0,0); //feedback_matrix(0,0);
+//    force_msg.force.x=0.0;
+//    force_msg.force.y=0.0; // sign problem again
+//    force_msg.force.z=0.0; //feedback_matrix(0,0);
 
     master_new_readings=false;
     slave_new_readings=false;
-    cmd_pub.publish(force_msg);
+    omni_pub.publish(force_msg);
 
 }
 

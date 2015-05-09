@@ -5,7 +5,7 @@ bool testFlag = true ;
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "prf");
+    ros::init(argc, argv, "vi");
 
     ros::NodeHandle n;
     ros::NodeHandle n_priv("~");
@@ -34,27 +34,8 @@ int main(int argc, char **argv)
     Eigen::Vector3d kd(kd_x,kd_y,kd_z);
 
 
-
-   //************* testing one sample data ******************** //
-
-    // ******************* End*************************//
-
-
-    //**************** real time experiment ******************** //
-    std::cout<<"Main"<<"\n";
-
-//        Eigen::Vector3d robotVel ;
-//        robotVel(0) = 0 ;
-//        robotVel(1) = 0 ;
-//        robotVel(2) = 0 ;
-        std::cout << "Creatred Object " << std::endl ;
-
-        VirtualImpedanceForce obj(n ,kp, kd);
-
-        //obj.setInitFlag(false);
-       // obj.runTestVirtualImpedance() ;
-    // ******************* End **********************************//
-
+    std::cout << "Creatred Object " << std::endl ;
+    VirtualImpedanceForce obj(n ,kp, kd);
 
 
     while(ros::ok())

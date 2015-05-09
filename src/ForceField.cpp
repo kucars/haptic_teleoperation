@@ -27,6 +27,8 @@
 #include <sstream>
 #include "haptic_teleoperation/ForceField.h"
 
+Eigen::Vector3d resulting_force ;
+
 
 ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 {
@@ -146,13 +148,14 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
     //  runTestObstacles(cloud) ;
     //  runTestSamplePrf(cloud) ;
     computeForceField(cloud);
+    std::cout << " OUT OF FUNCTION " << std::endl ;
     feedbackMaster();
+
 }
 
 void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions_current)
 {
     std::cout << "computeForceField" << std::endl ;
-    Eigen::Vector3d resulting_force ;
     std::vector<Eigen::Vector3d> force_field;
     std::vector<Eigen::Vector3d> oop;
 
@@ -162,16 +165,12 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
     {
         std::cout << "laser data" <<   std::endl ;
         int count = 0 ;
-        for(int i=0; i<aux_it; i=i+10)
+        for(int i=0; i<aux_it; i=i++)
         {
             double obsMag = sqrt(pow(obstacles_positions_current.points[i].x, 2) + pow(obstacles_positions_current.points[i].y , 2) + pow(obstacles_positions_current.points[i].z , 2)) ;
-            if(obsMag <= 3.0 && obsMag >= 0.3)
+            if(obsMag <= 3.0 && obsMag >= 0.2)
             {
                 Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current.points[i], getRobotVelocity()) ;
-                std::cout << "f on x  " << f(0)  << std::endl ;
-                std::cout << "f on y  " << f(1)  << std::endl ;
-                std::cout << "f on z  " << f(2)  << std::endl ;
-
                 Eigen::Vector3d dis ;
                 dis(0) = obstacles_positions_current.points[i].x ;
                 dis(1) = obstacles_positions_current.points[i].y ;
@@ -179,56 +178,42 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
                 force_field.push_back(f);
                 oop.push_back(dis) ;
                 count++;
-                std::cout << "count:" << count <<std::endl ;
-                std::cout << " distance_x " << dis(0) << std::endl ;
-                std::cout << " distance y " << dis(1) << std::endl ;
-                std::cout << " distance z " << dis(2) << std::endl ;
                 resulting_force(0)=resulting_force(0) + f(0) ;
                 resulting_force(1)=resulting_force(1) + f(1) ;
-
                 resulting_force(2)=resulting_force(2) + f(2) ;
-
-                std::cout << "  0      " << count <<std::endl ;
-                std::cout << " frx " << resulting_force(0) << std::endl ;
-                std::cout << " fr y " << resulting_force(1) << std::endl ;
-                std::cout << " fz z " << resulting_force(2) << std::endl ;
 
             }
             else{
 
-                std::cout << "out of range *****************************" << std::endl ;
+               // std::cout << "out of range *****************************" << std::endl ;
                 continue ;
             }
 
         }
         if (count == 0 )
         {
-            std::cout << "  1"  <<std::endl ;
+            //std::cout << "  1"  <<std::endl ;
             resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
 
         }
         else
         {
-            std::cout << "2: "  <<std::endl ;
+          //  std::cout << "2: "  <<std::endl ;
             resulting_force(0) = resulting_force(0)/count ;
             resulting_force(1) = resulting_force(1)/count ;
             resulting_force(2) = resulting_force(2)/count ;
+
+
 
         }
     }
     else
     {
-        std::cout << " 3: "  <<std::endl ;
+        //std::cout << " 3: "  <<std::endl ;
 
         resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
         std::cout << "zero force no obstacles " << std::endl ;
     }
-    std::cout << "  4: " <<std::endl ;
-
-   // resulting_force=Eigen::Vector3d(1.0,1.0,1.0);
-
-    double f = resulting_force.norm() ;
-    std::cout << " resulting force norm" <<  f << std::endl ;
 
     geometry_msgs::Point32 point;
     //Eigen::Vector3d point ( 0, 0 ,0) ;
@@ -242,19 +227,15 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
 void ForceField::feedbackMaster()
 {
 
-    // For GAZEBO
-    //    geometry_msgs::Twist twistMsg ;
-    //    twistMsg.linear.x = resulting_force.x() ;
-    //    twistMsg.linear.y = resulting_force.y() ;
-    //    twistMsg.linear.z = resulting_force.z() ;
-    //    std::cout << "Force x: " << twistMsg.linear.y  << std::endl ;
-    //    virtual_force_pub.publish(twistMsg);
+    std::cout << " in master function  " <<  std::endl ;
 
-
-
-    msg.pose.position.x=resulting_force.x() ;
-    msg.pose.position.y=resulting_force.y() ;
-    msg.pose.position.z=resulting_force.z() ;
+    std::cout << " frx " << resulting_force(0) << std::endl ;
+    std::cout << " fry " << resulting_force(1) << std::endl ;
+    std::cout << " frz " << resulting_force(2) << std::endl ;
+    std::cout << "FORCE X: " <<  resulting_force(0) << " MSG X " << msg.pose.position.x << std::endl;
+    msg.pose.position.x=resulting_force(0) ;
+    msg.pose.position.y=resulting_force(1) ;
+    msg.pose.position.z=resulting_force(2) ;
     msg.header.frame_id = "base_link" ;
     msg.header.stamp =  ros::Time::now();
     virtual_force_pub.publish(msg);
