@@ -28,6 +28,8 @@ Eigen::Matrix<double,6,1> force_auto ;
 nav_msgs::Odometry haptic_position ;
 double nowTime ;
 double preTime ;
+
+
 MasterController::MasterController(ros::NodeHandle & n_,
                                    double freq_,
                                    Eigen::Matrix<double,6,1> Kp_,
@@ -365,14 +367,17 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
 
 
     // Pose slave
-    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
-                                                       msg->pose.orientation.x,
-                                                       msg->pose.orientation.y,
-                                                       msg->pose.orientation.z).matrix().eulerAngles(2, 1, 0);
-    double yaw = euler(0,0);
-    double pitch = euler(1,0);
-    double roll = euler(2,0);
+//    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
+//                                                       msg->pose.orientation.x,
+//                                                       msg->pose.orientation.y,
+//                                                       msg->pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+//    double yaw = euler(0,0);
+//    double pitch = euler(1,0);
+//    double roll = euler(2,0);
+    tf::Quaternion q(msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z,msg->pose.orientation.w);
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
+    std::cout << "YAW = " << yaw * 180 /3.4 << std::endl ;
 
     if(!init_slave_readings)
     {
@@ -417,8 +422,8 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
             (current_pose_slave(4,0)-previous_pose_slave(4,0)/(nowTime - preTime)-slave_velocity_min(4,0)) * slave_velocity_master_pose_scale(4,0) + master_min(4,0),
             (current_pose_slave(5,0)-previous_pose_slave(5,0)/(nowTime - preTime)-slave_velocity_min(5,0)) * slave_velocity_master_pose_scale(5,0) + master_min(5,0);
 
-    //std::cout << "current_velocity_slave:"<<current_velocity_slave(0,0) << " " << msg->twist.twist.linear.x << " " << master_min(0,0)<< " " << master_max(0,0)<< std::endl;
-    //std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
+    std::cout << "current_velocity_slave:"<<current_velocity_slave(0,0) << " " << master_min(0,0)<< " " << master_max(0,0)<< std::endl;
+   // std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
 
 
     slave_new_readings=true;
@@ -457,9 +462,9 @@ void MasterController::feedback()
                 (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe ) ;
     }
 
-    force_msg.force.x=feedback_matrix(1,1);
-    force_msg.force.y=feedback_matrix(2,2); // sign problem again
-    force_msg.force.z=feedback_matrix(0,0); //feedback_matrix(0,0);
+    force_msg.force.x=1.5* feedback_matrix(1,1);
+    force_msg.force.y=0*feedback_matrix(2,2); // sign problem again
+    force_msg.force.z=1.5* feedback_matrix(0,0); //feedback_matrix(0,0);
 //    force_msg.force.x=0.0;
 //    force_msg.force.y=0.0; // sign problem again
 //    force_msg.force.z=0.0; //feedback_matrix(0,0);

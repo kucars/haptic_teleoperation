@@ -185,7 +185,7 @@ public:
 
 
         std_msgs::Bool collide_flag;
-        boost::shared_ptr<Box> Shpere0(new Box(1.5,1.5,1.5));
+        boost::shared_ptr<Box> Shpere0(new Box(0.7,0.7,0.7));
         //        GJKSolver_libccd solver;
         //        Vec3f contact_points;
         //        FCL_REAL penetration_depth;

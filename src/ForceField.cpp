@@ -165,6 +165,8 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
     {
         std::cout << "laser data" <<   std::endl ;
         int count = 0 ;
+        resulting_force=Eigen::Vector3d(0.0,0.0,0.0);
+
         for(int i=0; i<aux_it; i=i++)
         {
             double obsMag = sqrt(pow(obstacles_positions_current.points[i].x, 2) + pow(obstacles_positions_current.points[i].y , 2) + pow(obstacles_positions_current.points[i].z , 2)) ;
@@ -202,9 +204,7 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
             resulting_force(0) = resulting_force(0)/count ;
             resulting_force(1) = resulting_force(1)/count ;
             resulting_force(2) = resulting_force(2)/count ;
-
-
-
+            count = 0.0;
         }
     }
     else

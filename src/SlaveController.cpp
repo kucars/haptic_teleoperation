@@ -337,17 +337,25 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
 }
 // SLAVE MEASUREMENTS
 void SlaveController::slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
+
+
+    tf::Quaternion q(msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z,msg->pose.orientation.w);
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    std::cout << "YAW = " << yaw * 180 /3.4 << std::endl ;
+    //ROS_INFO("Pose Yaw:%f",pcl::rad2deg(yaw));
+
     // Pose slave
 
     //std::cout << " slaveOdometryCallback" << std::endl ;
 
-    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
-                                                       msg->pose.orientation.x,
-                                                       msg->pose.orientation.y,
-                                                       msg->pose.orientation.z).matrix().eulerAngles(2, 1, 0);
-    double yaw = euler(0,0);
-    double pitch = euler(1,0);
-    double roll = euler(2,0);
+   // Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
+    //                                                   msg->pose.orientation.x,
+     //                                                  msg->pose.orientation.y,
+      //                                                 msg->pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+    //double yaw = euler(0,0);
+    //double pitch = euler(1,0);
+    //double roll = euler(2,0);
 
     if(!init_slave_readings)
     {
@@ -375,7 +383,7 @@ void SlaveController::slaveOdometryCallback(const geometry_msgs::PoseStamped::Co
                 yaw_slave_previous; // should be relative
 
 
-        std::cout << "current_pose_slave(5,0)" << current_pose_slave(5,0) << std::endl ;;
+       // std::cout << "current_pose_slave(5,0)" << current_pose_slave(5,0) << std::endl ;;
 
         //    double test = current_pose_slave(5,0) ;
         //        std::cout << "yaw:" << yaw << "                  yaw previous:" << yaw_slave_previous << std::endl;

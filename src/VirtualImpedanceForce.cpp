@@ -23,9 +23,9 @@ Eigen::Vector3d VirtualImpedanceForce::getForcePoint (geometry_msgs::Point32 & c
     if(obsMag < ro) // < ro
     {
         Eigen::Vector3d f=(-1 * kp_mat*((ro-obsMag)*obsVecNorm))/3;
-//        std::cout << "f on x" << f(0)  << std::endl ;
-//        std::cout << "f on y  " << f(1)  << std::endl ;
-//        std::cout << "f on z  " << f(2)  << std::endl ;
+        std::cout << "f on x" << f(0)  << std::endl ;
+        std::cout << "f on y  " << f(1)  << std::endl ;
+        std::cout << "f on z  " << f(2)  << std::endl ;
         return f;
     }
     else

@@ -69,5 +69,7 @@ class MasterController : public Controller
 
 		Eigen::Matrix<double,6,1> slave_to_master_scale;
 		Eigen::Matrix<double,6,1> slave_velocity_master_pose_scale;
+        double yaw,pitch,roll;
+
 };
 #endif
