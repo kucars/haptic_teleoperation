@@ -103,11 +103,12 @@ public:
 
     // ************ helping functions ********************************** //
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
-    //void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
-    void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_velocity) ;
+    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
+    //void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_velocity) ;
 
     //    void pointCloudCallback(const sensor_msgs::PointCloud::ConstPtr& msg); // I may use this one
 
+    void visualization_fun(std::vector<Eigen::Vector3d> forces ,Eigen::Vector3d resulting_f , std::vector<Eigen::Vector3d> obstacles );
 
     // ******************* viviualization ****************
     //visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space);

@@ -40,8 +40,7 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 
     laser_sub = n_.subscribe("/scan",1, &ForceField::laserCallback, this);
 
-    slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 , &ForceField::poseCallback, this );
-
+    slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this );
     //slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this);
     //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this);
     // slave_pose_sub = n_.subscribe("/Pioneer3AT/pose" , 100 , &ForceField::poseCallback, this); // GAZEBO
@@ -54,32 +53,81 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 
 }
 
-void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_state)
+//void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_state)
+//{
+//    double preT, nowT ;
+//    Eigen::Vector3d robotVel ;
+//    // std::cout << "get robot velocity " << std::endl ;
+//    if(init_flag_pose)
+//    {
+//        PreRobotPose(0) = robot_state->pose.position.x ;
+//        PreRobotPose(1) = robot_state->pose.position.y ;
+//        PreRobotPose(2) = robot_state->pose.position.z ;
+//        preT = ros::Time::now().toSec() ;
+//        init_flag_pose = false ;
+//        std::cout << "Init_flag "   << std::endl ;
+//        poseQ[0] = robot_state->pose.orientation.x;
+//        poseQ[1] = robot_state->pose.orientation.y;
+//        poseQ[2] = robot_state->pose.orientation.z;
+//        poseQ[3] = robot_state->pose.orientation.w;
+//        return ;
+//    }
+
+//    else
+//    {
+//        nowT = ros::Time::now().toSec() ;
+//        CurrentRobotPose(0) = robot_state->pose.position.x ;
+//        CurrentRobotPose(1) = robot_state->pose.position.y ;
+//        CurrentRobotPose(2) = robot_state->pose.position.z ;
+
+//        robotVel(0) =  CurrentRobotPose(0) - PreRobotPose(0) / (nowT - preT) ;
+//        robotVel(1) =  CurrentRobotPose(1) - PreRobotPose(1)  / (nowT - preT)  ;
+//        robotVel(2) =  CurrentRobotPose(2) - PreRobotPose(2) / (nowT - preT) ;
+
+//        setRobotVelocity(robotVel) ;
+//        PreRobotPose  = CurrentRobotPose ;
+//        preT = ros::Time::now().toSec() ;
+
+//        poseQ[0] = robot_state->pose.orientation.x;
+//        poseQ[1] = robot_state->pose.orientation.y;
+//        poseQ[2] = robot_state->pose.orientation.z;
+//        poseQ[3] = robot_state->pose.orientation.w;
+
+
+
+//    }
+//    // std::cout << "qx: " << poseQ[0] << " qy: " <<poseQ[1] << std::endl ;
+//    tf::Quaternion q(poseQ[0], poseQ[1] ,poseQ[2],poseQ[3]);
+//    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+//    //std::cout << "Yaw from callback  " << yaw * 180 / PI << std::endl ;
+
+//}
+void ForceField::poseCallback(const nav_msgs::Odometry::ConstPtr & robot_state)
 {
     double preT, nowT ;
     Eigen::Vector3d robotVel ;
-    // std::cout << "get robot velocity " << std::endl ;
+    std::cout << "get robot velocity " << std::endl ;
     if(init_flag_pose)
     {
-        PreRobotPose(0) = robot_state->pose.position.x ;
-        PreRobotPose(1) = robot_state->pose.position.y ;
-        PreRobotPose(2) = robot_state->pose.position.z ;
+        PreRobotPose(0) = robot_state->pose.pose.position.x ;
+        PreRobotPose(1) = robot_state->pose.pose.position.y ;
+        PreRobotPose(2) = robot_state->pose.pose.position.z ;
         preT = ros::Time::now().toSec() ;
         init_flag_pose = false ;
         std::cout << "Init_flag "   << std::endl ;
-        poseQ[0] = robot_state->pose.orientation.x;
-        poseQ[1] = robot_state->pose.orientation.y;
-        poseQ[2] = robot_state->pose.orientation.z;
-        poseQ[3] = robot_state->pose.orientation.w;
+        poseQ[0] = robot_state->pose.pose.orientation.x;
+        poseQ[1] = robot_state->pose.pose.orientation.y;
+        poseQ[2] = robot_state->pose.pose.orientation.z;
+        poseQ[3] = robot_state->pose.pose.orientation.w;
         return ;
     }
 
     else
     {
         nowT = ros::Time::now().toSec() ;
-        CurrentRobotPose(0) = robot_state->pose.position.x ;
-        CurrentRobotPose(1) = robot_state->pose.position.y ;
-        CurrentRobotPose(2) = robot_state->pose.position.z ;
+        CurrentRobotPose(0) = robot_state->pose.pose.position.x ;
+        CurrentRobotPose(1) = robot_state->pose.pose.position.y ;
+        CurrentRobotPose(2) = robot_state->pose.pose.position.z ;
 
         robotVel(0) =  CurrentRobotPose(0) - PreRobotPose(0) / (nowT - preT) ;
         robotVel(1) =  CurrentRobotPose(1) - PreRobotPose(1)  / (nowT - preT)  ;
@@ -89,10 +137,10 @@ void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot
         PreRobotPose  = CurrentRobotPose ;
         preT = ros::Time::now().toSec() ;
 
-        poseQ[0] = robot_state->pose.orientation.x;
-        poseQ[1] = robot_state->pose.orientation.y;
-        poseQ[2] = robot_state->pose.orientation.z;
-        poseQ[3] = robot_state->pose.orientation.w;
+        poseQ[0] = robot_state->pose.pose.orientation.x;
+        poseQ[1] = robot_state->pose.pose.orientation.y;
+        poseQ[2] = robot_state->pose.pose.orientation.z;
+        poseQ[3] = robot_state->pose.pose.orientation.w;
 
 
 
@@ -101,6 +149,10 @@ void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot
     tf::Quaternion q(poseQ[0], poseQ[1] ,poseQ[2],poseQ[3]);
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
     //std::cout << "Yaw from callback  " << yaw * 180 / PI << std::endl ;
+    std::cout << "CurrentRobotPose(0) from Call back   " << CurrentRobotPose(0) <<  std::endl ;
+    std::cout << "CurrentRobotPose(1)  from Call back " << CurrentRobotPose(1) <<  std::endl ;
+    std::cout << "CurrentRobotPose(2)   from Call back" << CurrentRobotPose(2) <<  std::endl ;
+
 
 }
 
@@ -108,7 +160,7 @@ void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot
 void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 {
 
-    std::cout<<"lasercallback"<<"\n";
+   // std::cout<<"lasercallback"<<"\n";
     //*****************************************************************************
     //  double distance ;
     // double maxRange=0;
@@ -129,38 +181,41 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 
     // Transformation
     if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                   "uav/baselink_ENU",
+                                   "world",
                                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
-                                   ros::Duration(1.0))){
+                                   ros::Duration(2.0))){
         std::cout << "RETURN" << std::endl ;
         return;
     }
-    sensor_msgs::PointCloud cloud;
-    projector_.transformLaserScanToPointCloud("uav/baselink_ENU",*scan_in, cloud,listener_);
 
-    cloud.header.frame_id = "uav/baselink_ENU" ;
-    std::cout << "cloud_size" << cloud.points.size() << std::endl;
-    std::cout << "cloud_0 :" << cloud.points[0].x << std::endl;
+    sensor_msgs::PointCloud cloud;
+  //  projector_.transformLaserScanToPointCloud("uav/baselink_ENU",*scan_in, cloud,listener_);
+    projector_.transformLaserScanToPointCloud("world",*scan_in, cloud,listener_);
+    //cloud.header.frame_id = "uav/baselink_ENU" ;
+    cloud.header.frame_id = "world" ;
+
+   // std::cout << "cloud_size" << cloud.points.size() << std::endl;
+   // std::cout << "cloud_0 :" << cloud.points[0].x << std::endl;
     cloud.header.stamp = ros::Time::now();
     laser_pub.publish(cloud) ;
 
-    std::cout << "laserscan data" << std::endl ;
+   // std::cout << "laserscan data" << std::endl ;
     //  runTestObstacles(cloud) ;
     //  runTestSamplePrf(cloud) ;
     computeForceField(cloud);
-    std::cout << " OUT OF FUNCTION " << std::endl ;
+   // std::cout << " OUT OF FUNCTION " << std::endl ;
     feedbackMaster();
 
 }
 
 void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions_current)
 {
-    std::cout << "computeForceField" << std::endl ;
+   // std::cout << "computeForceField" << std::endl ;
     std::vector<Eigen::Vector3d> force_field;
     std::vector<Eigen::Vector3d> oop;
 
     unsigned int aux_it = obstacles_positions_current.points.size();
-    std::cout << "aux1" << aux_it <<  std::endl ;
+ //   std::cout << "aux1" << aux_it <<  std::endl ;
     if (aux_it != 0 )
     {
         std::cout << "laser data" <<   std::endl ;
@@ -169,9 +224,24 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
 
         for(int i=0; i<aux_it; i=i++)
         {
-            double obsMag = sqrt(pow(obstacles_positions_current.points[i].x, 2) + pow(obstacles_positions_current.points[i].y , 2) + pow(obstacles_positions_current.points[i].z , 2)) ;
-            if(obsMag <= 3.0 && obsMag >= 0.2)
+           std::cout << "for 1" <<   std::endl ;
+
+            double obsMag = sqrt(pow(obstacles_positions_current.points[i].x - CurrentRobotPose(0), 2) + pow(obstacles_positions_current.points[i].y - CurrentRobotPose(1) , 2) + pow(obstacles_positions_current.points[i].z - CurrentRobotPose(2) , 2)) ;
+            std::cout << "CurrentRobotPose(0)  " << CurrentRobotPose(0) <<  std::endl ;
+            std::cout << "CurrentRobotPose(1)  " << CurrentRobotPose(1) <<  std::endl ;
+            std::cout << "CurrentRobotPose(2)  " << CurrentRobotPose(2) <<  std::endl ;
+
+            //std::cout << "obstacles_positions_current.points[i].x  " << obstacles_positions_current.points[i].x<<  std::endl ;
+           // std::cout << "obstacles_positions_current.points[i].y  " << obstacles_positions_current.points[i].y <<  std::endl ;
+           // std::cout << "obstacles_positions_current.points[i].z  " << obstacles_positions_current.points[i].z <<  std::endl ;
+
+
+           std::cout << "ObsMag  " << obsMag <<  std::endl ;
+
+            if(obsMag <= 3.0 && obsMag >= 0.5)
             {
+                std::cout << "Start Calculation" <<   std::endl ;
+
                 Eigen::Vector3d f = this->getForcePoint(obstacles_positions_current.points[i], getRobotVelocity()) ;
                 Eigen::Vector3d dis ;
                 dis(0) = obstacles_positions_current.points[i].x ;
@@ -217,9 +287,9 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
 
     geometry_msgs::Point32 point;
     //Eigen::Vector3d point ( 0, 0 ,0) ;
-    point.x = 0.0 ; point.y = 0.0 ; point.z =0.0;
+    point.x = CurrentRobotPose(0) ; point.y = CurrentRobotPose(1) ; point.z = CurrentRobotPose(2);
     visualization_msgs::MarkerArray marker_array= rviz_arrows(force_field, oop, std::string("potential_field"));
-    visualization_msgs::Marker marker=rviz_arrow(resulting_force, point, 10000, std::string("resulting_risk_vector"));
+    visualization_msgs::Marker marker=rviz_arrow(-resulting_force, point, 10000, std::string("resulting_risk_vector"));
     marker_array.markers.push_back(marker);
     visualization_markers_pub.publish(marker_array);
 }
@@ -227,11 +297,11 @@ void ForceField::computeForceField(sensor_msgs::PointCloud & obstacles_positions
 void ForceField::feedbackMaster()
 {
 
-    std::cout << " in master function  " <<  std::endl ;
+  //  std::cout << " in master function  " <<  std::endl ;
 
-    std::cout << " frx " << resulting_force(0) << std::endl ;
-    std::cout << " fry " << resulting_force(1) << std::endl ;
-    std::cout << " frz " << resulting_force(2) << std::endl ;
+    //std::cout << " frx " << resulting_force(0) << std::endl ;
+    //std::cout << " fry " << resulting_force(1) << std::endl ;
+    //std::cout << " frz " << resulting_force(2) << std::endl ;
     std::cout << "FORCE X: " <<  resulting_force(0) << " MSG X " << msg.pose.position.x << std::endl;
     msg.pose.position.x=resulting_force(0) ;
     msg.pose.position.y=resulting_force(1) ;
@@ -265,7 +335,7 @@ Eigen::Vector3d ForceField::getForcePoint(geometry_msgs::Point32  & c_current, E
 visualization_msgs::MarkerArray ForceField::rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const std::vector<Eigen::Vector3d> & arrows_origins, std::string name_space)
 {
     visualization_msgs::MarkerArray marker_array;
-    for(int i=0; i< arrows.size();i=i++)
+    for(int i=0; i< arrows.size();i=i+5)
     {
         geometry_msgs::Point32 a;
         a.x = arrows_origins[i].x() ;
@@ -296,8 +366,10 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
 
     visualization_msgs::Marker marker;
     // marker.header.frame_id = "/Pioneer3AT/laserscan"; // for pioneer
-    marker.header.frame_id = "laser";
-    //marker.header.frame_id = "laser0_frame";
+    //marker.header.frame_id = "laser";
+    marker.header.frame_id = "world";
+
+//    marker.header.frame_id = "laser0_frame";
     //marker.header.stamp = ros::Time::now();
     marker.id = id;
     if(id==10000)
@@ -305,7 +377,14 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
         marker.color.r = 0.0;
         marker.color.g = 0.0;
         marker.color.b = 1.0;
-        marker.ns = name_space;
+        marker.ns = name_space;      
+        marker.scale.x =  arrow.norm() ; //arrow.x(); //norm();
+        marker.scale.y = 0.1 ; //arrow.y();//0.1;//    marker.pose.orientation.x = rotation.x();
+        //    marker.pose.orientation.y = rotation.y();
+        //    marker.pose.orientation.z = rotation.z();
+        //    marker.pose.orientation.w = rotation.w();
+
+        marker.scale.z = 0.1;
     }
     else
     {
@@ -325,16 +404,16 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
     marker.pose.orientation.z = rotation.z();
     marker.pose.orientation.w = rotation.w();
 
-    if(arrow.norm()<0.0001)
+    if(arrow.norm()<0.0001 )
     {
         marker.scale.x = 0.001;
         marker.scale.y = 0.001;
         marker.scale.z = 0.001;
     }
-    else
+    else if ( id != 10000)
     {
-        marker.scale.x = arrow.norm() ; //arrow.x(); //norm();
-        marker.scale.y = 0.1 ; //arrow.y();//0.1;//    marker.pose.orientation.x = rotation.x();
+        marker.scale.x =  arrow.norm() ; //arrow.x(); //norm();
+        marker.scale.y = 0.005 ; //arrow.y();//0.1;//    marker.pose.orientation.x = rotation.x();
         //    marker.pose.orientation.y = rotation.y();
         //    marker.pose.orientation.z = rotation.z();
         //    marker.pose.orientation.w = rotation.w();

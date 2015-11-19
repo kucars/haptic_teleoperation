@@ -1,0 +1,26 @@
+# Slave velocity limits
+slave_velocity_min_x: -0.1
+slave_velocity_max_x: 0.1
+slave_velocity_min_y: -0.1
+slave_velocity_max_y: 0.1
+slave_velocity_min_z: -0.1
+slave_velocity_max_z: 0.1
+slave_velocity_min_pitch: 0.0
+slave_velocity_max_pitch: 0.0
+slave_velocity_min_roll: 0.0
+slave_velocity_max_roll: 0.0
+slave_velocity_min_yaw: -0.1
+slave_velocity_max_yaw: 0.1
+
+slave_min_x: -1.0
+slave_max_x: 1.0
+slave_min_y: -1.0
+slave_max_y: 1.0
+slave_min_z: -1.0
+slave_max_z: 1.0
+slave_min_roll: -1.0
+slave_max_roll: 1.0
+slave_min_pitch: -1.0
+slave_max_pitch: 1.0
+slave_min_yaw: -3.14
+slave_max_yaw: 3.14

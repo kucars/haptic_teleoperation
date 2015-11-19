@@ -14,10 +14,16 @@ VirtualImpedanceForce::VirtualImpedanceForce(ros::NodeHandle & n_  , Eigen::Vect
 Eigen::Vector3d VirtualImpedanceForce::getForcePoint (geometry_msgs::Point32 & c_current , Eigen::Vector3d  robot_vel) {
     double ro = 3.0 ;
     Eigen::Vector3d obsVector(0,0,0);
-    obsVector(0) = c_current.x  ;
-    obsVector(1)=  c_current.y  ;
-    obsVector(2) = c_current.z  ;
-    double obsMag = sqrt(pow(c_current.x, 2) + pow(c_current.y , 2) + pow(c_current.z , 2)) ;
+
+
+//    obsVector(0) = c_current.x  ;
+//    obsVector(1)=  c_current.y  ;
+//    obsVector(2) = c_current.z  ;
+
+    obsVector(0) = CurrentRobotPose(0) - c_current.x  ;
+    obsVector(1)=  CurrentRobotPose(1) - c_current.y  ;
+    obsVector(2) = CurrentRobotPose(2) - c_current.z  ;
+    double obsMag = sqrt(pow(c_current.x - CurrentRobotPose(0), 2) + pow(c_current.y - CurrentRobotPose(1) , 2) + pow(c_current.z - CurrentRobotPose(2) , 2)) ;
     Eigen::Vector3d obsVecNorm = obsVector / obsMag ;
 
     if(obsMag < ro) // < ro
@@ -26,7 +32,7 @@ Eigen::Vector3d VirtualImpedanceForce::getForcePoint (geometry_msgs::Point32 & c
         std::cout << "f on x" << f(0)  << std::endl ;
         std::cout << "f on y  " << f(1)  << std::endl ;
         std::cout << "f on z  " << f(2)  << std::endl ;
-        return f;
+        return -f;
     }
     else
     {

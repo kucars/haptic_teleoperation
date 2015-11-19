@@ -65,9 +65,8 @@ MasterController::MasterController(ros::NodeHandle & n_,
     master_sub = n_.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &MasterController::masterJointsCallback, this);
 
     // Slave pose and velocity subscriber from ( gazebo or the real robot)
-    //slave_sub = n.subscribe("/Pioneer3AT/pose", 1, &MasterController::slaveOdometryCallback, this); // for pioneer
-  //  slave_sub = n.subscribe("/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
     slave_sub = n_.subscribe("/mavros/vision_pose/pose", 1, &MasterController::slaveOdometryCallback, this); // for airdrone
+
 
     // subscribe for the environmental force from the potential fieldFp
     force_feedback_sub  = n_.subscribe("/virtual_force_feedback" , 1, &MasterController::getforce_feedback   , this);
@@ -363,7 +362,9 @@ void MasterController::masterJointsCallback(const sensor_msgs::JointState::Const
 }
 
 // SLAVE MEASUREMENTS
-void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
+
+
+void MasterController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg){
 
 
     // Pose slave
@@ -374,16 +375,16 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
 //    double yaw = euler(0,0);
 //    double pitch = euler(1,0);
 //    double roll = euler(2,0);
-    tf::Quaternion q(msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z,msg->pose.orientation.w);
+    tf::Quaternion q(msg->pose.pose.orientation.x,msg->pose.pose.orientation.y,msg->pose.pose.orientation.z,msg->pose.pose.orientation.w);
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
     std::cout << "YAW = " << yaw * 180 /3.4 << std::endl ;
 
     if(!init_slave_readings)
     {
-        previous_pose_slave << msg->pose.position.x,
-                msg->pose.position.y,
-                msg->pose.position.z,
+        previous_pose_slave << msg->pose.pose.position.x,
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw_slave_previous; // should be relative
@@ -394,9 +395,9 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
     }
     else
     {
-        current_pose_slave << msg->pose.position.x,
-                msg->pose.position.y,
-                msg->pose.position.z,
+        current_pose_slave << msg->pose.pose.position.x,
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z,
                 roll-previous_pose_slave(3,0),
                 pitch-previous_pose_slave(4,0),
                 yaw-yaw_slave_previous; // should be relative
@@ -430,6 +431,76 @@ void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::C
     feedback();
     previous_pose_slave=current_pose_slave;
 }
+
+/* this function is used with mavros package */
+//void MasterController::slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
+
+
+//    // Pose slave
+////    Eigen::Matrix<double,3,1> euler=Eigen::Quaterniond(msg->pose.orientation.w,
+////                                                       msg->pose.orientation.x,
+////                                                       msg->pose.orientation.y,
+////                                                       msg->pose.orientation.z).matrix().eulerAngles(2, 1, 0);
+////    double yaw = euler(0,0);
+////    double pitch = euler(1,0);
+////    double roll = euler(2,0);
+//    tf::Quaternion q(msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z,msg->pose.orientation.w);
+//    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+//    std::cout << "YAW = " << yaw * 180 /3.4 << std::endl ;
+
+//    if(!init_slave_readings)
+//    {
+//        previous_pose_slave << msg->pose.position.x,
+//                msg->pose.position.y,
+//                msg->pose.position.z,
+//                roll-previous_pose_slave(3,0),
+//                pitch-previous_pose_slave(4,0),
+//                yaw_slave_previous; // should be relative
+//        preTime = ros::Time::now().toSec() ;
+//        yaw_slave_previous=yaw;
+//        init_slave_readings=true;
+//        return;
+//    }
+//    else
+//    {
+//        current_pose_slave << msg->pose.position.x,
+//                msg->pose.position.y,
+//                msg->pose.position.z,
+//                roll-previous_pose_slave(3,0),
+//                pitch-previous_pose_slave(4,0),
+//                yaw-yaw_slave_previous; // should be relative
+//        nowTime = ros::Time::now().toSec() ;
+
+//        //std::cout << "yaw:" << yaw << " yaw previous:" << yaw_slave_previous << std::endl;
+
+//        yaw_slave_previous=yaw;
+//    }
+
+
+//    current_pose_slave_scaled(0,0)=(current_pose_slave(0,0)-slave_min(0,0))*slave_to_master_scale(0,0) + master_min(0,0);
+//    current_pose_slave_scaled(1,0)=(current_pose_slave(1,0)-slave_min(1,0))*slave_to_master_scale(1,0) + master_min(1,0);
+//    current_pose_slave_scaled(2,0)=(current_pose_slave(2,0)-slave_min(2,0))*slave_to_master_scale(2,0) + master_min(2,0);
+//    current_pose_slave_scaled(3,0)=(current_pose_slave(3,0)-slave_min(3,0))*slave_to_master_scale(3,0) + master_min(3,0);
+//    current_pose_slave_scaled(4,0)=(current_pose_slave(4,0)-slave_min(4,0))*slave_to_master_scale(4,0) + master_min(4,0);
+//    current_pose_slave_scaled(5,0)=(current_pose_slave(5,0)-slave_min(5,0))*slave_to_master_scale(5,0) + master_min(5,0);
+
+//    current_velocity_slave << ((current_pose_slave(0,0)-previous_pose_slave(0,0)/(nowTime - preTime))-slave_velocity_min(0,0)) * slave_velocity_master_pose_scale(0,0) + master_min(0,0),
+//            ((current_pose_slave(1,0)-previous_pose_slave(1,0)/(nowTime - preTime))-slave_velocity_min(1,0)) * slave_velocity_master_pose_scale(1,0) + master_min(1,0),
+//            (current_pose_slave(2,0)-previous_pose_slave(2,0)/(nowTime - preTime)-slave_velocity_min(2,0)) * slave_velocity_master_pose_scale(2,0)  + master_min(2,0),
+//            (current_pose_slave(3,0)-previous_pose_slave(3,0)/(nowTime - preTime)-slave_velocity_min(3,0)) * slave_velocity_master_pose_scale(3,0) + master_min(3,0),
+//            (current_pose_slave(4,0)-previous_pose_slave(4,0)/(nowTime - preTime)-slave_velocity_min(4,0)) * slave_velocity_master_pose_scale(4,0) + master_min(4,0),
+//            (current_pose_slave(5,0)-previous_pose_slave(5,0)/(nowTime - preTime)-slave_velocity_min(5,0)) * slave_velocity_master_pose_scale(5,0) + master_min(5,0);
+
+//    std::cout << "current_velocity_slave:"<<current_velocity_slave(0,0) << " " << master_min(0,0)<< " " << master_max(0,0)<< std::endl;
+//   // std::cout << "current_velocity_slave:"<<slave_velocity_min.transpose() << std::endl;
+
+
+//    slave_new_readings=true;
+//    feedback();
+//    previous_pose_slave=current_pose_slave;
+//}
+
 
 void MasterController::feedback()
 {
@@ -465,10 +536,9 @@ void MasterController::feedback()
     force_msg.force.x=1.5* feedback_matrix(1,1);
     force_msg.force.y=0*feedback_matrix(2,2); // sign problem again
     force_msg.force.z=1.5* feedback_matrix(0,0); //feedback_matrix(0,0);
-//    force_msg.force.x=0.0;
-//    force_msg.force.y=0.0; // sign problem again
-//    force_msg.force.z=0.0; //feedback_matrix(0,0);
-
+//   force_msg.force.x=0.0;
+//   force_msg.force.y=0.0; // sign problem again
+//   force_msg.force.z=0.0; //feedback_matrix(0,0);
     master_new_readings=false;
     slave_new_readings=false;
     omni_pub.publish(force_msg);
