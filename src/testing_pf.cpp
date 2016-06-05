@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {
-        potential_field.move(wall_pose);
+        //potential_field.move(wall_pose);
         ros::spinOnce();
         loop_rate.sleep();
     }

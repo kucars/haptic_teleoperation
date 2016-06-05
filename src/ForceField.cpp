@@ -40,7 +40,9 @@ ForceField::ForceField(ros::NodeHandle & n_):n(n_)
 
     laser_sub = n_.subscribe("/scan",1, &ForceField::laserCallback, this);
 
-    slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 , &ForceField::poseCallback, this );
+   // slave_pose_sub = n_.subscribe("/mavros/vision_pose/pose" , 100 , &ForceField::poseCallback, this );
+    slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::pose2Callback, this );
+
 
     //slave_pose_sub = n_.subscribe("/ground_truth/state" , 100 , &ForceField::poseCallback, this);
     //  slave_pose_sub = n_.subscribe("/RosAria/pose" , 100 , &ForceField::poseCallback, this);
@@ -105,6 +107,62 @@ void ForceField::poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot
 }
 
 
+
+
+void ForceField::pose2Callback(const nav_msgs::Odometry::ConstPtr & robot_state)
+{
+//    double preT, nowT ;
+    Eigen::Vector3d robotVel ;
+//    // std::cout << "get robot velocity " << std::endl ;
+//    if(init_flag_pose)
+//    {
+//        PreRobotPose(0) = robot_state->pose.position.x ;
+//        PreRobotPose(1) = robot_state->pose.position.y ;
+//        PreRobotPose(2) = robot_state->pose.position.z ;
+//        preT = ros::Time::now().toSec() ;
+//        init_flag_pose = false ;
+//        std::cout << "Init_flag "   << std::endl ;
+//        poseQ[0] = robot_state->pose.orientation.x;
+//        poseQ[1] = robot_state->pose.orientation.y;
+//        poseQ[2] = robot_state->pose.orientation.z;
+//        poseQ[3] = robot_state->pose.orientation.w;
+//        return ;
+//    }
+
+//    else
+//    {
+//        nowT = ros::Time::now().toSec() ;
+//        CurrentRobotPose(0) = robot_state->pose.position.x ;
+//        CurrentRobotPose(1) = robot_state->pose.position.y ;
+//        CurrentRobotPose(2) = robot_state->pose.position.z ;
+
+        robotVel(0) =  robot_state->twist.twist.linear.x  ;
+        robotVel(1) =   robot_state->twist.twist.linear.y ;
+        robotVel(2) =   robot_state->twist.twist.linear.z ;
+
+
+//        robotVel(0) =  CurrentRobotPose(0) - PreRobotPose(0) / (nowT - preT) ;
+//        robotVel(1) =  CurrentRobotPose(1) - PreRobotPose(1)  / (nowT - preT)  ;
+//        robotVel(2) =  CurrentRobotPose(2) - PreRobotPose(2) / (nowT - preT) ;
+
+        setRobotVelocity(robotVel) ;
+//        PreRobotPose  = CurrentRobotPose ;
+//        preT = ros::Time::now().toSec() ;
+
+//        poseQ[0] = robot_state->pose.orientation.x;
+//        poseQ[1] = robot_state->pose.orientation.y;
+//        poseQ[2] = robot_state->pose.orientation.z;
+//        poseQ[3] = robot_state->pose.orientation.w;
+
+
+
+    //}
+    // std::cout << "qx: " << poseQ[0] << " qy: " <<poseQ[1] << std::endl ;
+   // tf::Quaternion q(poseQ[0], poseQ[1] ,poseQ[2],poseQ[3]);
+  //  tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    //std::cout << "Yaw from callback  " << yaw * 180 / PI << std::endl ;
+
+}
 void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 {
 
@@ -129,16 +187,16 @@ void ForceField::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan_in)
 
     // Transformation
     if(!listener_.waitForTransform(scan_in->header.frame_id,
-                                   "uav/baselink_ENU",
+                                   "base_link",
                                    scan_in->header.stamp + ros::Duration().fromSec(scan_in->ranges.size()*scan_in->time_increment),
                                    ros::Duration(1.0))){
         std::cout << "RETURN" << std::endl ;
         return;
     }
     sensor_msgs::PointCloud cloud;
-    projector_.transformLaserScanToPointCloud("uav/baselink_ENU",*scan_in, cloud,listener_);
+    projector_.transformLaserScanToPointCloud("base_link",*scan_in, cloud,listener_);
 
-    cloud.header.frame_id = "uav/baselink_ENU" ;
+    cloud.header.frame_id = "base_link" ;
     std::cout << "cloud_size" << cloud.points.size() << std::endl;
     std::cout << "cloud_0 :" << cloud.points[0].x << std::endl;
     cloud.header.stamp = ros::Time::now();
@@ -296,8 +354,8 @@ visualization_msgs::Marker ForceField::rviz_arrow(const Eigen::Vector3d & arrow,
 
     visualization_msgs::Marker marker;
     // marker.header.frame_id = "/Pioneer3AT/laserscan"; // for pioneer
-    marker.header.frame_id = "laser";
-    //marker.header.frame_id = "laser0_frame";
+    //marker.header.frame_id = "laser";
+    marker.header.frame_id = "laser0_frame";
     //marker.header.stamp = ros::Time::now();
     marker.id = id;
     if(id==10000)

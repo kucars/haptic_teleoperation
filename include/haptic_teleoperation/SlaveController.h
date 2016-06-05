@@ -60,8 +60,8 @@ private:
     void masterJointsCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
     void feedbackFocreCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
     // SLAVE MEASUREMENTS
-    //void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
-    void slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+    void slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+    //void slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
     void get_navdata(const ardrone_autonomy::Navdata::ConstPtr& msg);
     bool geoFence(double timeSample , Eigen::Matrix<double,6,1> currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry) ;

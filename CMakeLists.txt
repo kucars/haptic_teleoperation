@@ -206,6 +206,12 @@ target_link_libraries(CollisionDetection
 
 
 
+add_executable(move_quad src/move_quad.cpp)
+add_dependencies(move_quad ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(move_quad
+ ${catkin_LIBRARIES}
+ ${Boost_LIBRARIES}
+)
 
 #add_executable(move_robot src/move_husky.cpp)
 #add_dependencies(move_robot ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
@@ -213,6 +219,14 @@ target_link_libraries(CollisionDetection
 # ${catkin_LIBRARIES}
 # ${Boost_LIBRARIES}
 #)
+
+
+add_executable(test_pf src/testing_pf.cpp)
+add_dependencies(test_pf ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(test_pf 
+ ${catkin_LIBRARIES}
+ ${Boost_LIBRARIES}
+)
 
 add_executable(robot_teleop src/robotteleop_keyboard.cpp)
 target_link_libraries(robot_teleop ${catkin_LIBRARIES})

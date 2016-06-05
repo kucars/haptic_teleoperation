@@ -36,23 +36,24 @@
   	
   </node>
  
+<!--
 <group if="$(arg force_or_potential)">
-
+-->
  <!-- Run the potential field node that calculated the potential field around the robot ( find the risk vector)-->
-  <node name="potential_field" pkg="haptic_teleoperation" type="potential_field" output="screen" ns="/haptic_teleoperation">
+  <!-- <node name="potential_field" pkg="haptic_teleoperation" type="potential_field" output="screen" ns="/haptic_teleoperation">
     <rosparam command="load" file="$(find haptic_teleoperation)/config/potential_field.yaml" />
     <remap from="pose" to="$(arg pose_topic)"/> 
   </node>
 </group>
-<group unless="$(arg force_or_potential)">
+<group unless="$(arg force_or_potential)"> -->
  <!-- Run the force field node that find the envirnmental force that acts on the the robot -->
-<node name="force_field" pkg="haptic_teleoperation" type="force_field"  output="screen" ns="/haptic_teleoperation">
+<!-- <node name="force_field" pkg="haptic_teleoperation" type="force_field"  output="screen" ns="/haptic_teleoperation">
     <rosparam command="load" file="$(find haptic_teleoperation)/config/force_field_params.yaml" />
     <remap from="/base_link" to="laser0_frame"/> 
   </node>
 
 </group>
- 
+ -->
 <!--<node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure"/>-->
 
 </launch>
