@@ -9,11 +9,8 @@
 #include <cmath>
 #include <phantom_omni/OmniFeedback.h>
 #include <dynamic_reconfigure/server.h>
-#include <haptic_teleoperation/TwistArray.h>
-#include <haptic_teleoperation/ContourData.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_listener.h>
-#include <haptic_teleoperation/potential_fieldConfig.h>
 #include <phantom_omni/PhantomButtonEvent.h>
 #include <gazebo_msgs/ModelState.h>
 #include <Eigen/Eigen>

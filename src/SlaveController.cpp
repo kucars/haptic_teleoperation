@@ -27,7 +27,7 @@
 double battery_per ;
 Eigen::Matrix<double,6,1> force_stop ;
 
-//bool inCollison ;
+bool inCollison ;
 
 SlaveController::SlaveController(ros::NodeHandle & n_,
                                  double freq_,
@@ -60,20 +60,20 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     master_sub = n_.subscribe<sensor_msgs::JointState>("/omni1_joint_states", 1, &SlaveController::masterJointsCallback, this);
     //force_feedback_sub = n_.subscribe<geometry_msgs::PoseStamped>("/virtual_force_feedback", 1, &SlaveController::feedbackFocreCallback, this);
 
-    //collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
+    collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
     // Slave pose and velocity subscriber
     slave_sub = n_.subscribe("/mavros/vision_pose/pose", 1, &SlaveController::slaveOdometryCallback, this);
     //force_feedback_sub = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback , this);
 
 }
 
-/*void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
+void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
 {
     std::cout << "GET inCollison " << std::endl  ;
     inCollison = _inCollision->data ;
-   std::cout << "inCollison" << inCollison << std::endl  ;
+    std::cout << "inCollison" << inCollison << std::endl  ;
 }
-*/
+
 
 //void SlaveController::setfeedbackForce(Eigen::Vector3d &f)
 //{
@@ -305,7 +305,7 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     // x and y are mirrored
     // angles are relative
     current_pose_master <<
-            (-x_master + master_min(0,0)+master_max(0,0)),
+                           (-x_master + master_min(0,0)+master_max(0,0)),
             (-y_master + master_min(1,0)+master_max(1,0)),
             z_master,
             0.0,
@@ -490,20 +490,26 @@ void SlaveController::feedback()
         double vy =  feeback_matrix(1,1)  ;
         double theta = current_pose_slave(5,0) ;
 
-  /* this code has been used with the actual quadrotor and mavros packhgae */
+        /* this code has been used with the actual quadrotor and mavros packhgae */
 
-       // msg.linear.x=(vx *cos(theta) )- (vy* sin(theta)) ;
-       // msg.linear.y=(vx *sin(theta)) + (vy * cos(theta));
-       // msg.linear.z= 0 ;
+        // msg.linear.x=(vx *cos(theta) )- (vy* sin(theta)) ;
+        // msg.linear.y=(vx *sin(theta)) + (vy * cos(theta));
+        // msg.linear.z= 0 ;
+        if(inCollison)
+        {
+            msg.linear.x= 0 ;
+            msg.linear.y= 0;
+            msg.linear.z= 0 ;
+            msg.angular.z=feeback_matrix(5,5);
+        }
+        else
+        {
+            msg.linear.x=vx ;
+            msg.linear.y=vy;
+            msg.linear.z= 0 ;
+            msg.angular.z=feeback_matrix(5,5);
 
-        msg.linear.x=vx ;
-        msg.linear.y=vy;
-        msg.linear.z= 0 ;
-
-
-        msg.angular.z=feeback_matrix(5,5);
-
-
+        }
         master_new_readings=false;
         slave_new_readings=false;
         //   }

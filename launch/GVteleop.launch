@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+
+<!-- Run the master controller controller -->
+<node name="master_controller" pkg="haptic_teleoperation" type="controller_ros" ns="/haptic_teleoperation" >
+<rosparam command="load" file="$(find haptic_teleoperation)/config/slave_params.yaml" />
+<rosparam command="load" file="$(find haptic_teleoperation)/config/master_controller_params_ground.yaml" />
+<rosparam command="load" file="$(find haptic_teleoperation)/config/master_params.yaml" />
+  <remap from="/cmd_vel" to="/RosAria/cmd_vel"/>   
+  <remap from="/mavros/vision_pose/pose" to="RosAria/pose"/> 
+    
+</node>
+
+
+</launch>

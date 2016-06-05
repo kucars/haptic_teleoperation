@@ -191,6 +191,9 @@ target_link_libraries(controller_ros
 
 ) 
 
+
+
+
 add_executable(CollisionDetection src/collisionDetecctionGV.cpp)
 add_dependencies(CollisionDetection ${PROJECT_NAME}_gencfg)
 target_link_libraries(CollisionDetection
