@@ -23,7 +23,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
-#include <cvaux.h>
+//#include <cvaux.h>
 #include <sstream>
 #include "haptic_teleoperation/ForceField.h"
 

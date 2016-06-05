@@ -40,7 +40,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
-#include <cvaux.h>
+//#include <cvaux.h>
 #include "tf/transform_listener.h"
 #include "sensor_msgs/PointCloud.h"
 #include "sensor_msgs/PointCloud2.h"
