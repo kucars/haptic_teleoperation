@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="slave_controller" pkg="haptic_teleoperation" type="controller_ros" output="screen"  ns="/haptic_teleoperation">
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/slave_controller_params_ground.yaml" />
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/slave_params.yaml" />
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/master_params.yaml" />
+  
+  <remap from="/ground_truth/state" to="/RosAria/pose"/> 
+   <remap from="/cmd_vel" to="/RosAria/cmd_vel"/> 
+  </node>
+  <node name="master_controller" pkg="haptic_teleoperation" type="controller_ros"  ns="/haptic_teleoperation">
+  
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/slave_params.yaml" />
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/master_controller_params_ground.yaml" />
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/master_params.yaml" />
+    
+  
+    
+    <remap from="/ground_truth/state" to="/RosAria/pose"/>  
+   <remap from="/cmd_vel" to="/RosAria/cmd_vel"/>           
+  
+  </node>
+
+
+<!--<node name="prf" pkg="haptic_teleoperation" type="prf" output="screen"  ns="/haptic_teleoperation" >
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/potential_field.yaml" />
+  
+  </node> --> 
+<!--<node name="prf_feedback_force" pkg="haptic_teleoperation" type="prf_feedback_force" output="screen"  ns="/haptic_teleoperation" >
+    <rosparam command="load" file="$(find haptic_teleoperation)/config/potential_field.yaml" />
+    <remap from="/ground_truth/state" to="/RosAria/pose"/> 
+    <remap from="/cmd_vel" to="/RosAria/cmd_vel"/>
+  </node> -->
+</launch>
+
+

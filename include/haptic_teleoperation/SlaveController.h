@@ -151,7 +151,7 @@ private:
     bool geoFence(double timeSample , Eigen::Matrix<double,6,1> currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry) ;
 
 
-    //void get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision);
+    void get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision);
 
     void feedback();
     void initParams();

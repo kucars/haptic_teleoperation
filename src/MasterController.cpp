@@ -533,9 +533,9 @@ void MasterController::feedback()
                 (current_velocity_master_scaled-current_velocity_slave)*Bd.transpose() - Fe ) ;
     }
 
-    force_msg.force.x=1.5* feedback_matrix(1,1);
+    force_msg.force.x=3* feedback_matrix(1,1);
     force_msg.force.y=0*feedback_matrix(2,2); // sign problem again
-    force_msg.force.z=1.5* feedback_matrix(0,0); //feedback_matrix(0,0);
+    force_msg.force.z=3* feedback_matrix(0,0); //feedback_matrix(0,0);
 //   force_msg.force.x=0.0;
 //   force_msg.force.y=0.0; // sign problem again
 //   force_msg.force.z=0.0; //feedback_matrix(0,0);
