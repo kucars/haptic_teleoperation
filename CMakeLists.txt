@@ -26,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_geometry
   gazebo_msgs
   geometry_msgs
- #cmake_modules
+  cmake_modules
 
 
  )
@@ -191,6 +191,9 @@ target_link_libraries(controller_ros
 
 ) 
 
+
+
+
 add_executable(CollisionDetection src/collisionDetecctionGV.cpp)
 add_dependencies(CollisionDetection ${PROJECT_NAME}_gencfg)
 target_link_libraries(CollisionDetection
@@ -231,7 +234,11 @@ target_link_libraries(test_pf
 add_executable(robot_teleop src/robotteleop_keyboard.cpp)
 target_link_libraries(robot_teleop ${catkin_LIBRARIES})
 
+add_executable(Quad_hover src/testing_pf.cpp)
+target_link_libraries(Quad_hover ${catkin_LIBRARIES})
 
+#add_executable(FF src/FF.cpp)
+#target_link_libraries(FF ${catkin_LIBRARIES})
 
 catkin_add_gtest(utest src/ForceFieldTests.cpp)
 

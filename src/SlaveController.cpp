@@ -27,8 +27,7 @@
 double battery_per ;
 Eigen::Matrix<double,6,1> force_stop ;
 
-//bool inCollison ;
-
+bool inCollison ;
 
 SlaveController::SlaveController(ros::NodeHandle & n_,
                                  double freq_,
@@ -54,9 +53,13 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
     //slave_callback_type = boost::bind(&SlaveController::paramsCallback, this, _1, _2);
     //slave_server.setCallback(slave_callback_type);
     // Feedback publish
+<<<<<<< HEAD
 
     //cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/uav/cmd_vel", 1);
 
+=======
+    //cmd_pub = n_.advertise<geometry_msgs::TwistStamped>("/cmd_vel", 1);
+>>>>>>> 880f690c69a4b559264f4910d84b4859e17aa6d3
     cmd_pub = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 
     // Master joint states subscriber
@@ -66,25 +69,28 @@ SlaveController::SlaveController(ros::NodeHandle & n_,
 
     //force_feedback_sub = n_.subscribe<geometry_msgs::PoseStamped>("/virtual_force_feedback", 1, &SlaveController::feedbackFocreCallback, this);
 
-    //collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
-
+    collision_flag = n_.subscribe<std_msgs::Bool>("/collision_flag" , 1, &SlaveController::get_inCollision , this);
     // Slave pose and velocity subscriber
+<<<<<<< HEAD
     //slave_sub = n_.subscribe("/mavros/vision_pose/pose", 1, &SlaveController::slaveOdometryCallback, this);
 
 
     slave_sub = n_.subscribe("/ground_truth/state" , 1 , &SlaveController::slaveOdometryCallback, this);
 
+=======
+    slave_sub = n_.subscribe("/mavros/vision_pose/pose", 1, &SlaveController::slaveOdometryCallback, this);
+>>>>>>> 880f690c69a4b559264f4910d84b4859e17aa6d3
     //force_feedback_sub = n_.subscribe("pf_force_feedback" , 1, &SlaveController::getforce_feedback , this);
 
 }
 
-/*void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
+void SlaveController::get_inCollision(const std_msgs::Bool::ConstPtr&  _inCollision)
 {
     std::cout << "GET inCollison " << std::endl  ;
     inCollison = _inCollision->data ;
-   std::cout << "inCollison" << inCollison << std::endl  ;
+    std::cout << "inCollison" << inCollison << std::endl  ;
 }
-*/
+
 
 //void SlaveController::setfeedbackForce(Eigen::Vector3d &f)
 //{
@@ -236,6 +242,7 @@ void SlaveController::paramsCallback(haptic_teleoperation::SlaveControllerConfig
             0, 0, 0, 0, config.lambda_pitch, 0,
             0, 0, 0, 0, 0, config.lambda_yaw;
 }
+/* this function is used for autonomous collision avoidance **/
 //void SlaveController::feedbackFocreCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 //{
 //    double x = msg->pose.position.x ;
@@ -315,7 +322,7 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     // x and y are mirrored
     // angles are relative
     current_pose_master <<
-            (-x_master + master_min(0,0)+master_max(0,0)),
+                           (-x_master + master_min(0,0)+master_max(0,0)),
             (-y_master + master_min(1,0)+master_max(1,0)),
             z_master,
             0.0,
@@ -343,6 +350,8 @@ void SlaveController::masterJointsCallback(const sensor_msgs::JointState::ConstP
     previous_pose_master=current_pose_master;
     previous_pose_master_scaled=current_pose_master_scaled;
 }
+
+/* this function is used with mavros package where the type of msg for the position of the robot is PoseStammped */
 // SLAVE MEASUREMENTS
 //void SlaveController::slaveOdometryCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
 
@@ -466,17 +475,21 @@ void SlaveController::slaveOdometryCallback(const nav_msgs::Odometry::ConstPtr& 
     feedback();
     previous_pose_slave=current_pose_slave;
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 880f690c69a4b559264f4910d84b4859e17aa6d3
 void SlaveController::feedback()
 {
-    // std::cout << " FEED BACK MASTER FUNCTION" << std::endl ;
-    // std::cout << "Force normalized " << getfeedbackForceNorm() << std::endl ;
     geometry_msgs::TwistStamped twist_msg;
 
     geometry_msgs::Twist msg;
+    /* the other condition has been used with the commercial quadrotor */
     if (control_event) // && force_stop(0,0) > -1.0 && !lastPositionUpdate) && (battery_per > 30) //
     {
         Eigen::Matrix<double,6,1> r=current_pose_master_scaled;
         Eigen::Matrix<double,6,6> feeback_matrix = r * Kd.transpose() ;
+        /* this code has been used when creating a vertual fence from this file not from python file for testing using ground robot and simulation quadrotor*/
         //        double timeSample = 1 ; //0.05;
         //        double xBoundry = 9*0.6 ;
         //        double yBoundry = 5*0.6 ;
@@ -493,21 +506,30 @@ void SlaveController::feedback()
         //        }
         //        else
         //        {
-       // std::cout << "INSIDE ********************" << std:: endl ;
         double vx = feeback_matrix(0,0) ;
         double vy =  feeback_matrix(1,1)  ;
         double theta = current_pose_slave(5,0) ;
-      //  std::cout << "theta: " << theta * 180 / 3.14 << std::endl  ;
-        msg.linear.x=(vx *cos(theta) )- (vy* sin(theta)) ;
-        msg.linear.y=(vx *sin(theta)) + (vy * cos(theta));
-        msg.linear.z= 0 ;
 
-       // std::cout << "The Input velocity in x: " << vx << "The output velocity in x: " <<  msg.linear.x << std::endl ;
-      //  std::cout << "The input velocity in y: "<<  vy << "The output velocity in y:" <<  msg.linear.y << std::endl ;
+        /* this code has been used with the actual quadrotor and mavros packhgae */
 
-        msg.angular.z=feeback_matrix(5,5);
+        // msg.linear.x=(vx *cos(theta) )- (vy* sin(theta)) ;
+        // msg.linear.y=(vx *sin(theta)) + (vy * cos(theta));
+        // msg.linear.z= 0 ;
+        if(inCollison)
+        {
+            msg.linear.x= 0 ;
+            msg.linear.y= 0;
+            msg.linear.z= 0 ;
+            msg.angular.z=feeback_matrix(5,5);
+        }
+        else
+        {
+            msg.linear.x=vx ;
+            msg.linear.y=vy;
+            msg.linear.z= 0 ;
+            msg.angular.z=feeback_matrix(5,5);
 
-
+        }
         master_new_readings=false;
         slave_new_readings=false;
         //   }
@@ -517,6 +539,7 @@ void SlaveController::feedback()
 
     cmd_pub.publish(msg);
 }
+
 bool SlaveController::geoFence(double timeSample , Eigen::Matrix<double,6,1> currentPose , Eigen::Matrix<double,6,6> desiredVelocity , double xBoundry , double yBoundry )
 {
     double theta = currentPose(5,0) ;
@@ -524,20 +547,11 @@ bool SlaveController::geoFence(double timeSample , Eigen::Matrix<double,6,1> cur
     double y = currentPose(1,0) ;
     double speedInx = desiredVelocity(0,0) ; // * sin(theta) ;
     double speedIny = desiredVelocity(1,1) ; //* cos(theta);
-
-
     double xPrime = speedInx*cos(theta)*timeSample ;
     double yPrime = speedInx*sin(theta)*timeSample ;
-
-    //    std::cout << "xPrime" << xPrime << std::endl ;
-    //    std::cout << "yPrime" << yPrime << std::endl ;
-    //    std::cout << "x + xPrime" << x+ xPrime << std::endl ;
-
-    //    std::cout << "y + yPrime" << y + yPrime << std::endl ;
 
     if( (x+xPrime > xBoundry) || ( y+yPrime>yBoundry) ||( x+xPrime < 0.0) || ( y+yPrime< 0.0)  )
         return true ;
     else
         return false ;
 }
-// 0.4 meter

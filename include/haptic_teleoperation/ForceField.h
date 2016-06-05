@@ -40,7 +40,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
-#include <cvaux.h>
+//#include <cvaux.h>
 #include "tf/transform_listener.h"
 #include "sensor_msgs/PointCloud.h"
 #include "sensor_msgs/PointCloud2.h"
@@ -103,11 +103,17 @@ public:
 
     // ************ helping functions ********************************** //
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& laser_scan) ;
+<<<<<<< HEAD
     void pose2Callback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_velocity) ;
+=======
+    void poseCallback(const nav_msgs::Odometry::ConstPtr & robot_velocity) ;
+    //void poseCallback(const geometry_msgs::PoseStamped::ConstPtr & robot_velocity) ;
+>>>>>>> 880f690c69a4b559264f4910d84b4859e17aa6d3
 
     //    void pointCloudCallback(const sensor_msgs::PointCloud::ConstPtr& msg); // I may use this one
 
+    void visualization_fun(std::vector<Eigen::Vector3d> forces ,Eigen::Vector3d resulting_f , std::vector<Eigen::Vector3d> obstacles );
 
     // ******************* viviualization ****************
     //visualization_msgs::MarkerArray rviz_arrows(const std::vector<Eigen::Vector3d> & arrows, const sensor_msgs::PointCloud arrows_origins, std::string name_space);

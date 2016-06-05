@@ -110,9 +110,11 @@ public:
     LaserScanToPointCloud(ros::NodeHandle n):n_(n)
     {
 
+        std::cout << "Object 2" << std::endl ;
+
         // subscribers
-        laser_sub = n_.subscribe("/scan",10, &LaserScanToPointCloud::laserCallback, this);
-        slave_pose_sub = n_.subscribe("mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
+        laser_sub = n_.subscribe("/iris/iris/laser/scan",10, &LaserScanToPointCloud::laserCallback, this);
+        slave_pose_sub = n_.subscribe("iris/mavros/vision_pose/pose" , 100 ,&LaserScanToPointCloud::poseCallback, this);
         slave_vel_sub = n_.subscribe("/uav/cmd_vel" , 100 ,&LaserScanToPointCloud::velCallback, this);
 
         // Publishers
